@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Lead / CRM</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="sidebar.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#FBF6F0;min-height:100vh}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn .3s ease}
+input,select,button,textarea{font-family:inherit}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:#E2D0BC;border-radius:3px}
+.hidden{display:none!important}
+
+:root{
+  --brown:#38261C;--brown-l:#5C3D2A;--brown-m:#7A5240;
+  --green:#8FC643;--green-d:#6FA030;--green-l:#C5E08A;
+  --cream:#FBF6F0;--cream-d:#F0E6D8;--cream-b:#E2D0BC;
+  --white:#FFFFFF;--gray:#666666;
+  --red:#C0392B;--orange:#D4851A;--blue:#2980B9;--purple:#9B59B6;
+}
+
+/* Login */
+.login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:var(--white);border-radius:20px;padding:40px;width:100%;max-width:400px;box-shadow:0 10px 40px rgba(56,38,28,.12);text-align:center}
+.login-logo{width:90px;height:90px;background:var(--brown);border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--green)}
+.login-title{font-size:22px;font-weight:900;color:var(--brown);margin-bottom:6px}
+.login-subtitle{font-size:12px;color:var(--brown-m);margin-bottom:6px}
+.login-slogan{font-size:11px;color:var(--green-d);font-style:italic;margin-bottom:30px}
+.login-input{width:100%;padding:14px 16px;border:1px solid var(--cream-b);border-radius:12px;font-size:14px;margin-bottom:14px;transition:border .2s}
+.login-input:focus{outline:none;border-color:var(--green)}
+.login-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--brown);color:var(--green);font-size:14px;font-weight:800;cursor:pointer;transition:all .2s}
+.login-btn:hover{background:var(--brown-l);transform:translateY(-1px)}
+.login-btn:disabled{opacity:.7;cursor:not-allowed}
+.login-error{color:var(--red);font-size:12px;margin-bottom:14px;display:none}
+.login-error.show{display:block}
+
+/* Layout */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:240px;background:var(--brown);display:flex;flex-direction:column;position:fixed;height:100vh;left:0;top:0;z-index:100}
+.sidebar-header{padding:24px;text-align:center;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-logo{width:56px;height:56px;background:var(--green);border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--brown)}
+.sidebar-brand{font-size:15px;font-weight:800;color:var(--green)}
+.sidebar-tagline{font-size:10px;color:rgba(255,255,255,.6);margin-top:4px}
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:4px;transition:all .2s}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:var(--green);color:var(--brown)}
+.nav-item .icon{font-size:18px}
+.sidebar-footer{padding:16px;border-top:1px solid rgba(255,255,255,.1)}
+.lang-toggle{display:flex;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden}
+.lang-btn{flex:1;padding:8px;border:none;background:transparent;color:rgba(255,255,255,.6);font-size:11px;font-weight:700;cursor:pointer;transition:all .2s}
+.lang-btn.active{background:var(--green);color:var(--brown)}
+
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--white);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--cream-b);position:sticky;top:0;z-index:50}
+.topbar-left{display:flex;align-items:center;gap:16px}
+.page-title{font-size:18px;font-weight:800;color:var(--brown)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.user-info{display:flex;align-items:center;gap:12px}
+.user-avatar{width:38px;height:38px;border-radius:50%;background:var(--green-l);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--brown)}
+.user-name{font-size:13px;font-weight:700;color:var(--brown)}
+.user-role{font-size:11px;color:var(--brown-m)}
+.logout-btn{padding:8px 16px;border:1px solid var(--cream-b);border-radius:10px;background:var(--white);color:var(--brown-m);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
+.logout-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.content{flex:1;padding:28px}
+
+/* Stats */
+.leads-stats{display:grid;grid-template-columns:repeat(8,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--white);border-radius:12px;padding:14px 16px;border:1px solid var(--cream-b);display:flex;align-items:center;gap:14px}
+.stat-icon{font-size:24px}
+.stat-label{font-size:11px;color:var(--brown-m);font-weight:600}
+.stat-value{font-size:18px;font-weight:900;color:var(--brown)}
+
+/* Header & Filters */
+.leads-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.leads-filters{display:flex;gap:10px;flex-wrap:wrap}
+.filter-select{padding:10px 14px;border:1px solid var(--cream-b);border-radius:10px;font-size:13px;background:var(--white);color:var(--brown);min-width:140px}
+.filter-select:focus{outline:none;border-color:var(--green)}
+.filter-input{padding:10px 14px;border:1px solid var(--cream-b);border-radius:10px;font-size:13px;background:var(--white);color:var(--brown);min-width:200px}
+.btn-add{padding:10px 20px;border:none;border-radius:10px;background:var(--green);color:var(--brown);font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s}
+.btn-add:hover{background:var(--green-d);transform:translateY(-1px)}
+
+/* Table */
+.orders-table-wrap{background:var(--white);border-radius:16px;border:1px solid var(--cream-b);overflow:hidden}
+.orders-table{width:100%;border-collapse:collapse}
+.orders-table th{background:var(--cream-d);padding:14px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--brown-m);text-transform:uppercase;letter-spacing:.5px}
+.orders-table td{padding:14px 16px;border-bottom:1px solid var(--cream-b);font-size:13px;color:var(--brown)}
+.orders-table tr:last-child td{border-bottom:none}
+.orders-table tr:hover td{background:var(--cream)}
+
+.lead-company{font-weight:700;color:var(--brown)}
+.lead-contact{font-size:12px;color:var(--brown-m)}
+.lead-value{font-weight:700;color:var(--green-d)}
+.order-sales{font-size:12px;color:var(--brown-m)}
+
+/* Badges */
+.type-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.type-badge.noi_dia{background:#E3F2FD;color:#1565C0}
+.type-badge.xuat_khau{background:#FFF3E0;color:#E65100}
+
+.pipeline-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.pipeline-badge.lead{background:#E8EAF6;color:#3949AB}
+.pipeline-badge.bao_gia{background:#E3F2FD;color:#1565C0}
+.pipeline-badge.gui_sample{background:#FFF3E0;color:#EF6C00}
+.pipeline-badge.deal{background:#F3E5F5;color:#7B1FA2}
+.pipeline-badge.chot_don{background:#E8F5E9;color:#2E7D32}
+.pipeline-badge.quay_lai{background:#E0F7FA;color:#00838F}
+
+.potential-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.potential-badge.cao{background:#E8F5E9;color:#1B5E20}
+.potential-badge.trung_binh{background:#FFF8E1;color:#F57F17}
+.potential-badge.thap{background:#FFEBEE;color:#C62828}
+
+.portrait-badge{display:inline-block;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;background:var(--cream-d);color:var(--brown-m)}
+
+/* Action Buttons */
+.action-btns{display:flex;gap:6px}
+.action-btn{width:32px;height:32px;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
+.action-btn.view{background:var(--cream-d);color:var(--brown)}
+.action-btn.view:hover{background:var(--blue);color:#fff}
+.action-btn.edit{background:var(--cream-d);color:var(--brown)}
+.action-btn.edit:hover{background:var(--orange);color:#fff}
+.action-btn.log{background:var(--cream-d);color:var(--brown)}
+.action-btn.log:hover{background:var(--green);color:var(--brown)}
+.action-btn.delete{background:var(--cream-d);color:var(--brown)}
+.action-btn.delete:hover{background:var(--red);color:#fff}
+
+.empty-state{padding:60px 20px;text-align:center}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state .title{font-size:16px;font-weight:700;color:var(--brown);margin-bottom:8px}
+.empty-state .text{font-size:13px;color:var(--brown-m)}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(56,38,28,.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal{background:var(--white);border-radius:20px;padding:28px;width:100%;max-width:700px;box-shadow:0 20px 60px rgba(56,38,28,.2);max-height:90vh;overflow-y:auto}
+.modal.small{max-width:400px}
+.modal-title{font-size:17px;font-weight:900;color:var(--brown);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.modal-input{width:100%;padding:12px 14px;border:1px solid var(--cream-b);border-radius:10px;font-size:14px;margin-bottom:12px}
+.modal-input:focus{outline:none;border-color:var(--green)}
+.modal-label{font-size:12px;font-weight:600;color:var(--brown-m);margin-bottom:6px;display:block}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-error{font-size:12px;color:var(--red);margin-bottom:12px}
+.modal-btns{display:flex;gap:10px;margin-top:24px}
+.modal-btn{flex:1;padding:12px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer}
+.modal-btn.cancel{background:var(--cream-d);color:var(--brown-m);border:1px solid var(--cream-b)}
+.modal-btn.primary{background:var(--brown);color:var(--green);border:none}
+.modal-btn.danger{background:var(--red);color:#fff;border:none}
+
+/* Order Detail Section */
+.order-detail-section{margin-bottom:20px}
+.order-detail-title{font-size:13px;font-weight:700;color:var(--brown);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--cream-b)}
+.order-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.order-detail-item{display:flex;flex-direction:column;gap:2px}
+.order-detail-label{font-size:11px;color:var(--brown-m)}
+.order-detail-value{font-size:13px;font-weight:600;color:var(--brown)}
+
+.order-products-table{width:100%;border-collapse:collapse;margin-top:12px}
+.order-products-table th{background:var(--cream-d);padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--brown-m)}
+.order-products-table td{padding:10px 12px;border-bottom:1px solid var(--cream-b);font-size:13px}
+.order-products-table tr:last-child td{border-bottom:none}
+
+/* Contact Logs */
+.contact-logs{display:flex;flex-direction:column;gap:12px}
+.contact-log-item{background:var(--cream);border-radius:10px;padding:12px 16px;border-left:3px solid var(--green)}
+.log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.log-date{font-size:12px;font-weight:700;color:var(--brown)}
+.log-result{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
+.log-result.thanh_cong{background:#E8F5E9;color:#2E7D32}
+.log-result.dang_theo{background:#FFF3E0;color:#EF6C00}
+.log-result.that_bai{background:#FFEBEE;color:#C62828}
+.log-content{font-size:13px;color:var(--brown-m);line-height:1.5}
+
+/* Coming Soon */
+.coming-soon{display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;text-align:center}
+.coming-soon .icon{font-size:56px;margin-bottom:20px}
+.coming-soon .title{font-size:18px;font-weight:900;color:var(--brown);margin-bottom:10px}
+.coming-soon .text{font-size:13px;color:var(--brown-m)}
+
+/* Pipeline Funnel */
+.pipeline-funnel{background:var(--white);border-radius:16px;padding:24px;border:1px solid var(--cream-b);margin-bottom:24px}
+.funnel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.funnel-title{font-size:15px;font-weight:800;color:var(--brown);display:flex;align-items:center;gap:8px}
+.funnel-summary{display:flex;gap:24px;align-items:center}
+.funnel-summary-item{text-align:center}
+.funnel-summary-label{font-size:10px;color:var(--brown-m);text-transform:uppercase;letter-spacing:.5px}
+.funnel-summary-value{font-size:18px;font-weight:900;color:var(--brown)}
+.funnel-summary-value.highlight{color:var(--green-d);font-size:20px}
+.funnel-toggle{display:flex;align-items:center;gap:8px;background:var(--cream-d);padding:4px;border-radius:8px}
+.funnel-toggle-label{font-size:11px;color:var(--brown-m);padding:0 8px}
+.funnel-toggle-btn{padding:6px 12px;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--brown-m)}
+.funnel-toggle-btn.active{background:var(--white);color:var(--brown);box-shadow:0 2px 4px rgba(0,0,0,.1)}
+
+.funnel-stages{display:flex;align-items:stretch;gap:0;margin-top:8px}
+.funnel-stage{flex:1;display:flex;align-items:center}
+.funnel-stage-box{flex:1;text-align:center;padding:16px 8px;background:var(--cream);border-radius:12px;position:relative;transition:all .2s}
+.funnel-stage-box:hover{background:var(--cream-d);transform:translateY(-2px)}
+.funnel-stage.lead .funnel-stage-box{border-top:4px solid #3949AB}
+.funnel-stage.bao_gia .funnel-stage-box{border-top:4px solid #1565C0}
+.funnel-stage.gui_sample .funnel-stage-box{border-top:4px solid #EF6C00}
+.funnel-stage.deal .funnel-stage-box{border-top:4px solid #7B1FA2}
+.funnel-stage.chot_don .funnel-stage-box{border-top:4px solid #2E7D32}
+.funnel-stage.quay_lai .funnel-stage-box{border-top:4px solid #00838F}
+.funnel-count{font-size:28px;font-weight:900;color:var(--brown)}
+.funnel-label{font-size:12px;font-weight:600;color:var(--brown-m);margin-top:4px}
+
+.funnel-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px;min-width:60px}
+.funnel-arrow-icon{font-size:20px;color:var(--cream-b);margin-bottom:4px}
+.funnel-conversion{font-size:13px;font-weight:800;color:var(--white);background:var(--green-d);padding:4px 10px;border-radius:99px;white-space:nowrap}
+.funnel-conversion.low{background:var(--red)}
+.funnel-conversion.medium{background:var(--orange)}
+.funnel-conversion.high{background:var(--green-d)}
+
+/* Column Filter */
+.th-filter{position:relative;cursor:pointer;user-select:none}
+.th-filter:hover{background:var(--cream)}
+.th-filter-icon{font-size:10px;margin-left:4px;opacity:.5}
+.th-filter.active .th-filter-icon{opacity:1;color:var(--green-d)}
+.filter-dropdown{position:absolute;top:100%;left:0;background:var(--white);border:1px solid var(--cream-b);border-radius:10px;box-shadow:0 8px 24px rgba(56,38,28,.12);padding:8px 0;min-width:160px;z-index:100;display:none}
+.filter-dropdown.show{display:block}
+.filter-option{padding:8px 14px;font-size:12px;color:var(--brown);cursor:pointer;display:flex;align-items:center;gap:8px}
+.filter-option:hover{background:var(--cream)}
+.filter-option.active{background:var(--green-l);color:var(--brown);font-weight:700}
+.filter-option-check{width:14px;height:14px;border:2px solid var(--cream-b);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.filter-option.active .filter-option-check{background:var(--green);border-color:var(--green);color:var(--brown)}
+.filter-clear{padding:8px 14px;font-size:11px;color:var(--brown-m);cursor:pointer;border-top:1px solid var(--cream-b);margin-top:4px}
+.filter-clear:hover{color:var(--red)}
+.active-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.active-filter-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--green-l);border-radius:99px;font-size:11px;font-weight:600;color:var(--brown)}
+.active-filter-tag .remove{cursor:pointer;opacity:.7}
+.active-filter-tag .remove:hover{opacity:1}
+
+/* Responsive */
+@media(max-width:1400px){.leads-stats{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:900px){.leads-stats{grid-template-columns:repeat(2,1fr)}.modal-row,.modal-row.three{grid-template-columns:1fr}}
+@media(max-width:768px){.sidebar{width:200px}.main{margin-left:200px}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-page">
+  <div class="login-box fade">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button id="loginBtn" class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">☕</div>
+      <div class="sidebar-brand">Hello 5 Coffee</div>
+      <div class="sidebar-tagline">Internal Management</div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-footer">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="vi" onclick="setLang('vi')">🇻🇳 VI</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">🇬🇧 EN</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title" id="pageTitle">Lead / CRM</div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">LN</div>
+          <div>
+            <div class="user-name" id="userName">Louis Nguyen</div>
+            <div class="user-role" id="userRole">CCO & Co-Founder</div>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">🚪 Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- LEAD MODAL -->
+<div id="leadModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-title" id="leadModalTitle">🎯 Thêm Lead mới</div>
+    <form id="leadForm" onsubmit="saveLead(event)">
+      <input type="hidden" id="leadId">
+      
+      <div class="modal-row">
+        <div class="modal-group">
+          <label class="modal-label">Tên doanh nghiệp *</label>
+          <input type="text" id="leadCompany" class="modal-input" placeholder="Tên công ty/doanh nghiệp" required>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Phân loại *</label>
+          <select id="leadType" class="modal-input" required>
+            <option value="noi_dia">Nội địa</option>
+            <option value="xuat_khau">Xuất khẩu</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-row">
+        <div class="modal-group">
+          <label class="modal-label">Số điện thoại *</label>
+          <input type="tel" id="leadPhone" class="modal-input" placeholder="0xxx xxx xxx" required>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Email</label>
+          <input type="email" id="leadEmail" class="modal-input" placeholder="email@company.com">
+        </div>
+      </div>
+
+      <div class="modal-group">
+        <label class="modal-label">Địa chỉ</label>
+        <input type="text" id="leadAddress" class="modal-input" placeholder="Địa chỉ doanh nghiệp">
+      </div>
+
+      <div class="modal-row three">
+        <div class="modal-group">
+          <label class="modal-label">Quốc gia *</label>
+          <select id="leadCountry" class="modal-input" required>
+            <option value="vietnam">🇻🇳 Việt Nam</option>
+            <option value="japan">🇯🇵 Nhật Bản</option>
+            <option value="korea">🇰🇷 Hàn Quốc</option>
+            <option value="usa">🇺🇸 Mỹ</option>
+            <option value="eu">🇪🇺 EU</option>
+            <option value="china">🇨🇳 Trung Quốc</option>
+            <option value="taiwan">🇹🇼 Đài Loan</option>
+            <option value="singapore">🇸🇬 Singapore</option>
+            <option value="australia">🇦🇺 Úc</option>
+            <option value="other">Khác</option>
+          </select>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Chân dung KH *</label>
+          <select id="leadPortrait" class="modal-input" required>
+            <option value="nha_phan_phoi">Nhà phân phối</option>
+            <option value="ban_le">Bán lẻ</option>
+            <option value="sieu_thi">Siêu thị</option>
+            <option value="horeca">Horeca</option>
+            <option value="quan_cafe">Quán cà phê</option>
+            <option value="chuoi_fnb">Chuỗi F&B</option>
+            <option value="tmdt">Thương mại điện tử</option>
+          </select>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Kênh *</label>
+          <select id="leadChannel" class="modal-input" required>
+            <option value="facebook">Facebook</option>
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="website">Website</option>
+            <option value="shopee">Shopee</option>
+            <option value="tiktok">TikTok</option>
+            <option value="telesales">Telesales</option>
+            <option value="truc_tiep">Trực tiếp</option>
+            <option value="duoc_gioi_thieu">Được giới thiệu</option>
+            <option value="hoi_cho">Hội chợ/Triển lãm</option>
+            <option value="google_ads">Google Ads</option>
+            <option value="email">Email marketing</option>
+            <option value="zalo">Zalo</option>
+            <option value="chua_ro">Chưa rõ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-row three">
+        <div class="modal-group">
+          <label class="modal-label">Pipeline *</label>
+          <select id="leadPipeline" class="modal-input" required>
+            <option value="lead">Lead</option>
+            <option value="bao_gia">Báo giá</option>
+            <option value="gui_sample">Gửi sample</option>
+            <option value="deal">Deal</option>
+            <option value="chot_don">Chốt đơn đầu</option>
+            <option value="quay_lai">Quay lại</option>
+          </select>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Tiềm năng *</label>
+          <select id="leadPotential" class="modal-input" required>
+            <option value="cao">Cao</option>
+            <option value="trung_binh">Trung bình</option>
+            <option value="thap">Thấp</option>
+          </select>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Vấn đề gặp phải</label>
+          <select id="leadIssue" class="modal-input">
+            <option value="">-- Không có --</option>
+            <option value="gia_cao">Giá cao</option>
+            <option value="khong_sp_phu_hop">Không có SP phù hợp</option>
+            <option value="thanh_toan">Vấn đề thanh toán</option>
+            <option value="sp_khong_tot">SP không tốt</option>
+            <option value="thoi_gian_giao">Thời gian giao hàng</option>
+            <option value="moq_cao">MOQ cao</option>
+            <option value="chua_ro">Chưa rõ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-row three">
+        <div class="modal-group">
+          <label class="modal-label">Ngày bắt đầu *</label>
+          <input type="date" id="leadStartDate" class="modal-input" required>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Liên hệ cuối</label>
+          <input type="date" id="leadLastContact" class="modal-input">
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Giá trị ước tính (VNĐ)</label>
+          <input type="number" id="leadEstimatedValue" class="modal-input" placeholder="0">
+        </div>
+      </div>
+
+      <div class="modal-group">
+        <label class="modal-label">Sales phụ trách *</label>
+        <select id="leadSales" class="modal-input" required>
+          <option value="">-- Chọn Sales --</option>
+        </select>
+      </div>
+
+      <div class="order-detail-section">
+        <div class="order-detail-title">🛒 Sản phẩm quan tâm</div>
+        <div id="leadProducts"></div>
+        <button type="button" class="btn-add" style="margin-top:12px" onclick="addLeadProductRow()">➕ Thêm sản phẩm</button>
+      </div>
+
+      <div class="modal-group">
+        <label class="modal-label">Ghi chú</label>
+        <textarea id="leadNote" class="modal-input" rows="2" placeholder="Ghi chú thêm về lead..."></textarea>
+      </div>
+
+      <div class="modal-btns">
+        <button type="button" class="modal-btn cancel" onclick="closeLeadModal()">Hủy</button>
+        <button type="submit" class="modal-btn primary">💾 Lưu Lead</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- LEAD DETAIL MODAL -->
+<div id="leadDetailModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:750px">
+    <div class="modal-title">🎯 Chi tiết Lead: <span id="detailLeadId" style="color:var(--green-d)"></span></div>
+    <div id="leadDetailContent"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeLeadDetailModal()">Đóng</button>
+      <div id="createOrderBtnWrap" class="hidden"><button class="modal-btn" style="background:#E8F5E9;color:#2E7D32;border:1px solid #A5D6A7;font-weight:800" onclick="createOrderFromLead()">📦 Tạo đơn hàng</button></div>
+      <button class="modal-btn primary" onclick="editFromLeadDetail()">✏️ Chỉnh sửa</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT LOG MODAL -->
+<div id="contactLogModal" class="modal-overlay hidden">
+  <div class="modal small">
+    <div class="modal-title">📝 Ghi chú liên hệ: <span id="contactLogLeadName" style="color:var(--green-d)"></span></div>
+    <form onsubmit="saveContactLog(event)">
+      <div class="modal-group">
+        <label class="modal-label">Ngày liên hệ *</label>
+        <input type="date" id="contactLogDate" class="modal-input" required>
+      </div>
+      <div class="modal-group">
+        <label class="modal-label">Nội dung *</label>
+        <textarea id="contactLogContent" class="modal-input" rows="3" placeholder="Nội dung cuộc gọi/email/gặp mặt..." required></textarea>
+      </div>
+      <div class="modal-group">
+        <label class="modal-label">Kết quả *</label>
+        <select id="contactLogResult" class="modal-input" required>
+          <option value="thanh_cong">✅ Thành công</option>
+          <option value="dang_theo">⏳ Đang theo</option>
+          <option value="that_bai">❌ Thất bại</option>
+        </select>
+      </div>
+      <div class="modal-btns">
+        <button type="button" class="modal-btn cancel" onclick="closeContactLogModal()">Hủy</button>
+        <button type="submit" class="modal-btn primary">💾 Lưu</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE LEAD MODAL -->
+<div id="deleteLeadModal" class="modal-overlay hidden">
+  <div class="modal small">
+    <div class="modal-title">⚠️ Xác nhận xóa Lead</div>
+    <p style="font-size:14px;color:var(--brown-m);margin-bottom:20px">
+      Bạn có chắc muốn xóa lead <strong id="deleteLeadName"></strong>? Hành động này không thể hoàn tác.
+    </p>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeDeleteLeadModal()">Không</button>
+      <button class="modal-btn danger" onclick="confirmDeleteLead()">Xóa</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════════
+const ACCOUNTS = {
+  "admin@hello5coffee.com": {pw:"Admin@123456", user:{id:"0",name:"Louis Nguyen",role:"C_LEVEL",roleLabel:"C-Level / Co-Founder",pos:"CCO & Co-Founder",first:false}},
+  "manager@hello5coffee.com": {pw:"123456", user:{id:"1",name:"Nguyễn Thị Lan",role:"MANAGER",roleLabel:"Quản lý",pos:"Trưởng phòng HR",first:false}},
+  "sales@hello5coffee.com": {pw:"123456", user:{id:"3",name:"Lê Minh Khoa",role:"EMPLOYEE_SALES",roleLabel:"Nhân viên Sales",pos:"Chuyên viên Kinh doanh",first:false}},
+};
+
+const _DEFAULT_LEAD_PRODUCTS = [
+  {id:'P001',name:'Cà phê Robusta Rang Xay 500g',price:185000},
+  {id:'P002',name:'Cà phê Arabica Đà Lạt 250g',price:220000},
+  {id:'P003',name:'Cà phê Blend House 1kg',price:350000},
+  {id:'P004',name:'Cà phê Instant Premium 20 gói',price:150000},
+  {id:'P005',name:'Phin nhôm cao cấp',price:85000},
+  {id:'P006',name:'Phin inox 304',price:120000},
+  {id:'P007',name:'Ly sứ Hello 5 Coffee 250ml',price:95000},
+  {id:'P008',name:'Bộ Gift Set Tết 2025',price:550000},
+  {id:'P009',name:'Cà phê xuất khẩu - Container 20ft',price:450000000},
+  {id:'P010',name:'Cà phê xuất khẩu - Container 40ft',price:850000000},
+];
+
+// Dynamic: prefer H5C skus, fallback to defaults
+function _getProductsList() {
+  const skus = H5C.get('skus') || [];
+  if (skus.length) {
+    return skus.map(s => ({id:s.id, name:s.name, price:s.suggestedPrice||0}));
+  }
+  return _DEFAULT_LEAD_PRODUCTS;
+}
+let PRODUCTS_LIST = _DEFAULT_LEAD_PRODUCTS;
+
+let LEADS = [
+  {id:'LD001',company:'Tokyo Coffee Trading Co.',phone:'+81 3-1234-5678',email:'import@tokyocoffee.jp',address:'Shibuya, Tokyo, Japan',type:'xuat_khau',channel:'hoi_cho',country:'japan',portrait:'nha_phan_phoi',pipeline:'gui_sample',potential:'cao',issue:'',startDate:'2025-02-15',lastContact:'2025-03-08',estimatedValue:500000000,sales:'Louis Nguyen',note:'Gặp tại hội chợ SCAJ Tokyo',interestedProducts:[{productId:'P009',name:'Cà phê xuất khẩu - Container 20ft',qty:2}],contactLogs:[{date:'2025-03-08',content:'Gửi sample 5kg Robusta, đang chờ feedback',result:'dang_theo'},{date:'2025-02-20',content:'Gọi điện trao đổi về MOQ và giá',result:'thanh_cong'}]},
+  {id:'LD002',company:'Chuỗi Cà phê Sài Gòn Morning',phone:'0901 234 567',email:'mua@saigonmorning.vn',address:'123 Nguyễn Huệ, Q.1, TP.HCM',type:'noi_dia',channel:'facebook',country:'vietnam',portrait:'horeca',pipeline:'bao_gia',potential:'cao',issue:'gia_cao',startDate:'2025-03-01',lastContact:'2025-03-10',estimatedValue:150000000,sales:'Nguyễn Văn An',note:'Chuỗi 12 quán, cần nguồn cà phê ổn định',interestedProducts:[{productId:'P001',name:'Cà phê Robusta Rang Xay 500g',qty:200},{productId:'P003',name:'Cà phê Blend House 1kg',qty:100}],contactLogs:[{date:'2025-03-10',content:'Gửi báo giá, KH nói giá hơi cao',result:'dang_theo'}]},
+  {id:'LD003',company:'Korea Mart Import',phone:'+82 2-9876-5432',email:'buyer@koreamart.kr',address:'Gangnam, Seoul, South Korea',type:'xuat_khau',channel:'linkedin',country:'korea',portrait:'sieu_thi',pipeline:'deal',potential:'cao',issue:'',startDate:'2025-01-20',lastContact:'2025-03-05',estimatedValue:800000000,sales:'Nguyễn Văn An',note:'Chuỗi siêu thị lớn',interestedProducts:[{productId:'P010',name:'Cà phê xuất khẩu - Container 40ft',qty:1}],contactLogs:[{date:'2025-03-05',content:'Đã chốt giá, đang làm hợp đồng',result:'thanh_cong'}]},
+  {id:'LD004',company:'Đại lý Minh Phát - Đà Nẵng',phone:'0905 111 222',email:'minhphat.dn@gmail.com',address:'456 Nguyễn Văn Linh, Đà Nẵng',type:'noi_dia',channel:'duoc_gioi_thieu',country:'vietnam',portrait:'nha_phan_phoi',pipeline:'chot_don',potential:'trung_binh',issue:'',startDate:'2025-02-01',lastContact:'2025-03-01',estimatedValue:50000000,sales:'Trần Thị Bích',note:'Đại lý miền Trung',interestedProducts:[{productId:'P001',name:'Cà phê Robusta Rang Xay 500g',qty:100}],contactLogs:[{date:'2025-03-01',content:'Đã chốt đơn đầu tiên 50tr',result:'thanh_cong'}]},
+  {id:'LD005',company:'Singapore Coffee House',phone:'+65 9123 4567',email:'hello@sgcoffeehouse.com',address:'Orchard Road, Singapore',type:'xuat_khau',channel:'website',country:'singapore',portrait:'horeca',pipeline:'lead',potential:'trung_binh',issue:'chua_ro',startDate:'2025-03-10',lastContact:'2025-03-10',estimatedValue:200000000,sales:'Lê Minh Khoa',note:'Điền form trên website',interestedProducts:[{productId:'P002',name:'Cà phê Arabica Đà Lạt 250g',qty:500}],contactLogs:[]},
+  {id:'LD006',company:'Quán The Local - Hà Nội',phone:'0912 345 678',email:'thelocal.hn@gmail.com',address:'78 Phố Huế, Hà Nội',type:'noi_dia',channel:'instagram',country:'vietnam',portrait:'horeca',pipeline:'quay_lai',potential:'cao',issue:'',startDate:'2024-10-01',lastContact:'2025-03-08',estimatedValue:30000000,sales:'Phạm Hồng Nhung',note:'Khách hàng cũ, đã mua 3 đơn',interestedProducts:[{productId:'P003',name:'Cà phê Blend House 1kg',qty:30}],contactLogs:[{date:'2025-03-08',content:'KH gọi đặt thêm 30kg',result:'thanh_cong'}]},
+];
+
+const NAV_ITEMS = [
+  {id:'dashboard',icon:'📊',vi:'Tổng quan',en:'Dashboard',roles:['all']},
+  {id:'orders',icon:'📦',vi:'Đơn hàng',en:'Orders',roles:['C_LEVEL','MANAGER','EMPLOYEE_SALES']},
+  {id:'leads',icon:'🎯',vi:'Lead / CRM',en:'Lead / CRM',roles:['C_LEVEL','MANAGER','EMPLOYEE_SALES']},
+  {id:'expenses',icon:'💰',vi:'Chi phí',en:'Expenses',roles:['C_LEVEL','MANAGER','EMPLOYEE_FINANCE']},
+  {id:'warehouse',icon:'🏭',vi:'Kho hàng',en:'Warehouse',roles:['C_LEVEL','MANAGER']},
+  {id:'users',icon:'👥',vi:'Nhân viên',en:'Employees',roles:['C_LEVEL','MANAGER','EMPLOYEE_HR']},
+  {id:'reports',icon:'📈',vi:'Báo cáo',en:'Reports',roles:['C_LEVEL','MANAGER']},
+  {id:'announcements',icon:'📢',vi:'Thông báo',en:'Announcements',roles:['all']},
+];
+
+const LEAD_TYPE_LABELS = {noi_dia:'Nội địa',xuat_khau:'Xuất khẩu'};
+const PIPELINE_LABELS = {lead:'Lead',bao_gia:'Báo giá',gui_sample:'Gửi sample',deal:'Deal',chot_don:'Chốt đơn đầu',quay_lai:'Quay lại'};
+const POTENTIAL_LABELS = {cao:'Cao',trung_binh:'Trung bình',thap:'Thấp'};
+const CHANNEL_LABELS = {facebook:'Facebook',instagram:'Instagram',linkedin:'LinkedIn',website:'Website',shopee:'Shopee',tiktok:'TikTok',telesales:'Telesales',truc_tiep:'Trực tiếp',duoc_gioi_thieu:'Được giới thiệu',hoi_cho:'Hội chợ/Triển lãm',google_ads:'Google Ads',email:'Email marketing',zalo:'Zalo',chua_ro:'Chưa rõ'};
+const COUNTRY_LABELS = {vietnam:'🇻🇳 Việt Nam',japan:'🇯🇵 Nhật Bản',korea:'🇰🇷 Hàn Quốc',usa:'🇺🇸 Mỹ',eu:'🇪🇺 EU',china:'🇨🇳 Trung Quốc',taiwan:'🇹🇼 Đài Loan',singapore:'🇸🇬 Singapore',australia:'🇦🇺 Úc',other:'Khác'};
+const PORTRAIT_LABELS = {nha_phan_phoi:'Nhà phân phối',ban_le:'Bán lẻ',sieu_thi:'Siêu thị',horeca:'Horeca',quan_cafe:'Quán cà phê',chuoi_fnb:'Chuỗi F&B',tmdt:'Thương mại điện tử'};
+const ISSUE_LABELS = {gia_cao:'Giá cao',khong_sp_phu_hop:'Không có SP phù hợp',thanh_toan:'Vấn đề thanh toán',sp_khong_tot:'SP không tốt',thoi_gian_giao:'Thời gian giao hàng',moq_cao:'MOQ cao',chua_ro:'Chưa rõ'};
+const CONTACT_RESULT_LABELS = {thanh_cong:'✅ Thành công',dang_theo:'⏳ Đang theo',that_bai:'❌ Thất bại'};
+
+let state = {user:null,lang:'vi',page:'leads',charts:{},currentLeadId:null,columnFilters:{type:[],pipeline:[],portrait:[],potential:[],country:[],sales:[]},openFilter:null,conversionMode:'previous'};
+
+// === Granular Permission Engine v2 ===
+const _PERM_VIEW_MAP={dashboard:'dash.view',orders:'orders.view',leads:'leads.view',expenses:'expenses.view',warehouse:'wh.view_stock',users:'users.view',reports:'reports.view',announcements:'ann.view'};
+function _can(permId){
+  try{
+    const session=state.user; if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>a.email===(session.email||''));
+    if(!acc) return session.role==='C_LEVEL';
+    if(acc.permissions){
+      const val=acc.permissions[permId];
+      return val===true||val==='all'||val==='own';
+    }
+    if(acc.role==='C_LEVEL') return true;
+    return _roleDefault(acc.role,permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+function _canScope(permId){
+  try{
+    const session=state.user; if(!session)return 'all';
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>a.email===(session.email||''));
+    if(!acc) return session.role==='C_LEVEL'?'all':'own';
+    if(!acc.permissions){
+      if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
+      return 'own';
+    }
+    const val=acc.permissions[permId];
+    if(val==='own') return 'own';
+    if(val===true||val==='all') return 'all';
+    return 'none';
+  }catch(e){return 'all';}
+}
+function _roleDefault(role,pid){
+  const S=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
+  const F=['dash.view','dash.kpi_finance','expenses.view','expenses.view_detail','expenses.view_charts','expenses.create','expenses.edit','expenses.mark_paid','reports.view','reports.generate','reports.compare','ann.view'];
+  const H=['dash.view','users.view','users.view_salary','users.view_team','users.create','users.edit','users.attendance','users.kpi','ann.view','ann.create','ann.edit'];
+  const M_DENY=['users.manage_accounts','users.manage_permissions','orders.commission_config','wh.commission_config'];
+  if(role==='EMPLOYEE_SALES') return S.includes(pid);
+  if(role==='EMPLOYEE_FINANCE') return F.includes(pid);
+  if(role==='EMPLOYEE_HR') return H.includes(pid);
+  if(role==='MANAGER') return !M_DENY.includes(pid);
+  return false;
+}
+// === End Permission Engine ===
+
+// ══════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════
+const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const fmtB = (n) => {if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return(n/1e6).toFixed(0)+' tr';return fmt(n);};
+const getInitials = (name) => name.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
+const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+const generateLeadId = () => 'LD' + String(LEADS.length + 1).padStart(3,'0');
+
+// ══════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════
+function _getAccountsForLogin() {
+  try {
+    const stored = localStorage.getItem('h5c_v1_accounts');
+    if (stored) { const arr = JSON.parse(stored); if (arr && arr.length) return arr; }
+  } catch(e) {}
+  return Object.entries(ACCOUNTS).map(([email, v]) => ({
+    email, pw: v.pw, role: v.user.role, name: v.user.name,
+    pos: v.user.pos, empId: v.user.id
+  }));
+}
+
+function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  errorEl.classList.remove('show');
+
+  const h5cAccounts = _getAccountsForLogin();
+  const h5cAcc = h5cAccounts.find(a => a.email.toLowerCase() === email);
+  if (h5cAcc && h5cAcc.pw === password) {
+    const userObj = {id: h5cAcc.empId || h5cAcc.email, name: h5cAcc.name, role: h5cAcc.role, pos: h5cAcc.pos, email: h5cAcc.email};
+    btn.textContent = 'Đang đăng nhập...'; btn.disabled = true;
+    setTimeout(() => { state.user = userObj; saveSession(userObj); showMain(); btn.textContent = 'Đăng nhập'; btn.disabled = false; }, 400);
+    return;
+  }
+  const acc = ACCOUNTS[document.getElementById('loginEmail').value.trim()];
+  if (!acc || acc.pw !== password) { errorEl.classList.add('show'); return; }
+  btn.textContent = 'Đang đăng nhập...'; btn.disabled = true;
+  setTimeout(() => { state.user = acc.user; saveSession(state.user); showMain(); btn.textContent = 'Đăng nhập'; btn.disabled = false; }, 400);
+}
+
+function handleLogout() {
+  state.user = null;
+  document.getElementById('loginPage').classList.remove('hidden');
+  document.getElementById('mainLayout').classList.add('hidden');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════
+const _DEPT_LABELS={kinh_doanh:'Kinh doanh',san_xuat:'Sản xuất',marketing:'Marketing',hr:'HR',ke_toan:'Kế toán',ban_gd:'Ban GĐ',it:'IT'};
+function _getUserRoleDisplay(user){const emps=H5C.get('employees')||[];const emp=emps.find(e=>e.id===user.id||e.id===user.empId||(user.email&&e.email===user.email));if(emp){const dept=_DEPT_LABELS[emp.dept]||emp.dept||'';const pos=emp.position||user.pos||'';return dept&&pos?dept+' - '+pos:(dept||pos||user.pos||'');}return user.pos||'';}
+function showMain() {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent = state.user.name;
+  document.getElementById('userRole').textContent = _getUserRoleDisplay(state.user);
+  document.getElementById('userAvatar').textContent = getInitials(state.user.name);
+  // Read URL filter params from dashboard
+  const urlParams = new URLSearchParams(window.location.search);
+  const filter = urlParams.get('filter');
+  if (filter) { state.columnFilters.pipeline = [filter]; }
+  renderNav();
+  renderLeads();
+}
+
+function renderNav() {
+  const nav = document.getElementById('sidebarNav');
+  const role = state.user.role;
+  const items = NAV_ITEMS.filter(item => item.roles.includes('all') || item.roles.includes(role));
+  nav.innerHTML = items.map(item => `
+    <div class="nav-item ${state.page === item.id ? 'active' : ''}" onclick="navigateTo('${item.id}')">
+      <span class="icon">${item.icon}</span>
+      <span>${state.lang === 'vi' ? item.vi : item.en}</span>
+    </div>
+  `).join('');
+}
+
+function navigateTo(page) {
+  const pageMap = {
+    dashboard: 'dashboard.html', leads: 'leads.html', orders: 'orders.html',
+    expenses: 'expenses.html', warehouse: 'warehouse.html',
+    users: 'users.html', reports: 'reports.html', announcements: 'announcements.html',
+  };
+  if (page === 'leads') { state.page = page; renderNav(); renderLeads(); }
+  else if (pageMap[page]) { window.location.href = pageMap[page]; }
+  else { alert('Module "' + page + '" đang được phát triển!'); }
+}
+
+function setLang(lang) {
+  state.lang = lang;
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
+  renderNav();
+  renderLeads();
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEADS PAGE
+// ══════════════════════════════════════════════════════════════
+function renderLeads() {
+  const content = document.getElementById('pageContent');
+  
+  // Calculate pipeline counts
+  const pipelineCounts = {
+    lead: LEADS.filter(l => l.pipeline === 'lead').length,
+    bao_gia: LEADS.filter(l => l.pipeline === 'bao_gia').length,
+    gui_sample: LEADS.filter(l => l.pipeline === 'gui_sample').length,
+    deal: LEADS.filter(l => l.pipeline === 'deal').length,
+    chot_don: LEADS.filter(l => l.pipeline === 'chot_don').length,
+    quay_lai: LEADS.filter(l => l.pipeline === 'quay_lai').length
+  };
+  
+  const total = LEADS.length;
+  const totalValue = LEADS.reduce((s, l) => s + (l.estimatedValue || 0), 0);
+  const closedCount = pipelineCounts.chot_don + pipelineCounts.quay_lai;
+  const overallRate = total > 0 ? Math.round((closedCount / total) * 100) : 0;
+  
+  // Calculate cumulative counts (from this stage onwards)
+  const cumulative = {
+    lead: total,
+    bao_gia: total - pipelineCounts.lead,
+    gui_sample: total - pipelineCounts.lead - pipelineCounts.bao_gia,
+    deal: pipelineCounts.deal + pipelineCounts.chot_don + pipelineCounts.quay_lai,
+    chot_don: pipelineCounts.chot_don + pipelineCounts.quay_lai,
+    quay_lai: pipelineCounts.quay_lai
+  };
+  
+  // Calculate conversion rates based on mode
+  const getConversionRates = () => {
+    if (state.conversionMode === 'total') {
+      // So với tổng Lead ban đầu
+      return {
+        to_baogia: total > 0 ? Math.round((cumulative.bao_gia / total) * 100) : 0,
+        to_sample: total > 0 ? Math.round((cumulative.gui_sample / total) * 100) : 0,
+        to_deal: total > 0 ? Math.round((cumulative.deal / total) * 100) : 0,
+        to_chot: total > 0 ? Math.round((cumulative.chot_don / total) * 100) : 0,
+        to_quaylai: total > 0 ? Math.round((pipelineCounts.quay_lai / total) * 100) : 0
+      };
+    } else {
+      // So với giai đoạn trước
+      return {
+        to_baogia: cumulative.lead > 0 ? Math.round((cumulative.bao_gia / cumulative.lead) * 100) : 0,
+        to_sample: cumulative.bao_gia > 0 ? Math.round((cumulative.gui_sample / cumulative.bao_gia) * 100) : 0,
+        to_deal: cumulative.gui_sample > 0 ? Math.round((cumulative.deal / cumulative.gui_sample) * 100) : 0,
+        to_chot: cumulative.deal > 0 ? Math.round((cumulative.chot_don / cumulative.deal) * 100) : 0,
+        to_quaylai: cumulative.chot_don > 0 ? Math.round((pipelineCounts.quay_lai / cumulative.chot_don) * 100) : 0
+      };
+    }
+  };
+  
+  const rates = getConversionRates();
+  
+  const getConversionClass = (rate) => {
+    if (rate >= 70) return 'high';
+    if (rate >= 40) return 'medium';
+    return 'low';
+  };
+
+  let html = `<div class="fade">
+    <!-- Pipeline Funnel -->
+    <div class="pipeline-funnel">
+      <div class="funnel-header">
+        <div class="funnel-title">📈 Pipeline & Tỉ lệ chuyển đổi</div>
+        <div class="funnel-summary">
+          <div class="funnel-summary-item">
+            <div class="funnel-summary-label">Tổng Lead</div>
+            <div class="funnel-summary-value">${total}</div>
+          </div>
+          <div class="funnel-summary-item">
+            <div class="funnel-summary-label">Giá trị dự kiến</div>
+            <div class="funnel-summary-value highlight">${fmtB(totalValue)}</div>
+          </div>
+          <div class="funnel-summary-item">
+            <div class="funnel-summary-label">Tỉ lệ chốt</div>
+            <div class="funnel-summary-value highlight">${overallRate}%</div>
+          </div>
+        </div>
+        <div class="funnel-toggle">
+          <span class="funnel-toggle-label">Tính % theo:</span>
+          <button class="funnel-toggle-btn ${state.conversionMode==='previous'?'active':''}" onclick="setConversionMode('previous')">Giai đoạn trước</button>
+          <button class="funnel-toggle-btn ${state.conversionMode==='total'?'active':''}" onclick="setConversionMode('total')">Tổng Lead</button>
+        </div>
+      </div>
+      
+      <div class="funnel-stages">
+        <div class="funnel-stage lead" onclick="_filterByPipeline('lead')" style="cursor:pointer" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.lead}</div>
+            <div class="funnel-label">Lead</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_baogia)}">${rates.to_baogia}%</div>
+        </div>
+        <div class="funnel-stage bao_gia" onclick="_filterByPipeline('bao_gia')" style="cursor:pointer" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.bao_gia}</div>
+            <div class="funnel-label">Báo giá</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_sample)}">${rates.to_sample}%</div>
+        </div>
+        <div class="funnel-stage gui_sample" onclick="_filterByPipeline('gui_sample')" style="cursor:pointer" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.gui_sample}</div>
+            <div class="funnel-label">Gửi sample</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_deal)}">${rates.to_deal}%</div>
+        </div>
+        <div class="funnel-stage deal" onclick="_filterByPipeline('deal')" style="cursor:pointer" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.deal}</div>
+            <div class="funnel-label">Deal</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_chot)}">${rates.to_chot}%</div>
+        </div>
+        <div class="funnel-stage chot_don" onclick="_filterByPipeline('chot_don')" style="cursor:pointer" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.chot_don}</div>
+            <div class="funnel-label">Chốt đơn</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_quaylai)}">${rates.to_quaylai}%</div>
+        </div>
+        <div class="funnel-stage quay_lai" onclick="_filterByPipeline('quay_lai')" style="cursor:pointer" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.quay_lai}</div>
+            <div class="funnel-label">Quay lại</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="leads-header">
+      <div class="leads-filters">
+        <input type="text" class="filter-input" id="filterLeadSearch" placeholder="🔍 Tìm tên, SĐT, công ty..." onkeyup="filterLeads()">
+      </div>
+      <button class="btn-add" onclick="openLeadModal()" style="${_can('leads.create')?'':' display:none'}">➕ Thêm Lead</button>
+    </div>
+    
+    <!-- Active Filters -->
+    <div class="active-filters" id="activeFilters"></div>
+
+    <!-- Table -->
+    <div class="orders-table-wrap">
+      <table class="orders-table leads-table">
+        <thead>
+          <tr>
+            <th>Công ty</th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'type')">
+              Loại <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-type"></div>
+            </th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'pipeline')">
+              Pipeline <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-pipeline"></div>
+            </th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'portrait')">
+              Chân dung <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-portrait"></div>
+            </th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'potential')">
+              Tiềm năng <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-potential"></div>
+            </th>
+            <th>Giá trị ước tính</th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'country')">
+              Quốc gia <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-country"></div>
+            </th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'sales')">
+              Sales <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-sales"></div>
+            </th>
+            <th>Liên hệ cuối</th>
+            <th style="width:120px">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="leadsTableBody"></tbody>
+      </table>
+    </div>
+  </div>`;
+  content.innerHTML = html;
+  
+  // Initialize filter dropdowns
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+  
+  // Close filter when clicking outside
+  document.addEventListener('click', closeAllFilters);
+}
+
+function _filterByPipeline(pipeline) {
+  // Toggle: click same pipeline again to clear filter
+  if (state.columnFilters.pipeline.length === 1 && state.columnFilters.pipeline[0] === pipeline) {
+    state.columnFilters.pipeline = [];
+  } else {
+    state.columnFilters.pipeline = [pipeline];
+  }
+  renderLeadsTable();
+  // Scroll to table
+  const table = document.querySelector('.leads-table-wrap');
+  if (table) table.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function setConversionMode(mode) {
+  state.conversionMode = mode;
+  renderLeads();
+}
+
+function renderLeadsTable() {
+  const tbody = document.getElementById('leadsTableBody');
+  const searchFilter = document.getElementById('filterLeadSearch').value.toLowerCase();
+
+  const _scope = _canScope('leads.view');
+  let filtered = (_scope==='own') ? LEADS.filter(l=>l.sales===state.user.name) : LEADS;
+  
+  // Apply column filters
+  if (state.columnFilters.type.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.type.includes(l.type));
+  }
+  if (state.columnFilters.pipeline.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.pipeline.includes(l.pipeline));
+  }
+  if (state.columnFilters.portrait.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.portrait.includes(l.portrait));
+  }
+  if (state.columnFilters.potential.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.potential.includes(l.potential));
+  }
+  if (state.columnFilters.country.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.country.includes(l.country));
+  }
+  if (state.columnFilters.sales.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.sales.includes(l.sales));
+  }
+  
+  // Apply search filter
+  if (searchFilter) {
+    filtered = filtered.filter(l => 
+      l.company.toLowerCase().includes(searchFilter) || 
+      l.phone.includes(searchFilter) || 
+      (l.email && l.email.toLowerCase().includes(searchFilter))
+    );
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">📭</div><div class="title">Không có lead nào</div><div class="text">Thử thay đổi bộ lọc hoặc thêm lead mới</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(lead => `
+    <tr onclick="viewLead('${lead.id}')" style="cursor:pointer">
+      <td><div class="lead-company">${lead.company}</div><div class="lead-contact">${lead.phone}</div></td>
+      <td><span class="type-badge ${lead.type}">${LEAD_TYPE_LABELS[lead.type]}</span></td>
+      <td><span class="pipeline-badge ${lead.pipeline}">${PIPELINE_LABELS[lead.pipeline]}</span></td>
+      <td><span class="portrait-badge">${PORTRAIT_LABELS[lead.portrait]||lead.portrait}</span></td>
+      <td><span class="potential-badge ${lead.potential}">${POTENTIAL_LABELS[lead.potential]}</span></td>
+      <td><span class="lead-value">${lead.estimatedValue?fmt(lead.estimatedValue)+'đ':'—'}</span></td>
+      <td>${COUNTRY_LABELS[lead.country]||lead.country}</td>
+      <td><span class="order-sales">${lead.sales}</span></td>
+      <td>${formatDate(lead.lastContact)}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="action-btns">
+          ${_can('leads.edit')?`<button class="action-btn edit" title="Sửa" onclick="editLead('${lead.id}')">✏️</button>`:''}
+          ${_can('leads.contact_log')?`<button class="action-btn log" title="Ghi chú liên hệ" onclick="openContactLog('${lead.id}')">📝</button>`:''}
+          ${_can('leads.delete')?`<button class="action-btn delete" title="Xóa" onclick="deleteLead('${lead.id}')">🗑️</button>`:''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+  
+  // Update header filter indicators
+  updateFilterIndicators();
+}
+
+function filterLeads() { renderLeadsTable(); }
+
+// ══════════════════════════════════════════════════════════════
+// COLUMN FILTERS
+// ══════════════════════════════════════════════════════════════
+const FILTER_OPTIONS = {
+  type: Object.entries(LEAD_TYPE_LABELS).map(([k,v]) => ({value:k,label:v})),
+  pipeline: Object.entries(PIPELINE_LABELS).map(([k,v]) => ({value:k,label:v})),
+  portrait: Object.entries(PORTRAIT_LABELS).map(([k,v]) => ({value:k,label:v})),
+  potential: Object.entries(POTENTIAL_LABELS).map(([k,v]) => ({value:k,label:v})),
+  country: Object.entries(COUNTRY_LABELS).map(([k,v]) => ({value:k,label:v})),
+  sales: [...new Set(LEADS.map(l => l.sales))].map(s => ({value:s,label:s}))
+};
+
+function initFilterDropdowns() {
+  Object.keys(FILTER_OPTIONS).forEach(col => {
+    const dropdown = document.getElementById(`filter-${col}`);
+    if (!dropdown) return;
+    
+    dropdown.innerHTML = FILTER_OPTIONS[col].map(opt => `
+      <div class="filter-option ${state.columnFilters[col].includes(opt.value)?'active':''}" 
+           onclick="toggleFilterOption(event,'${col}','${opt.value}')">
+        <span class="filter-option-check">${state.columnFilters[col].includes(opt.value)?'✓':''}</span>
+        ${opt.label}
+      </div>
+    `).join('') + `
+      <div class="filter-clear" onclick="clearColumnFilter(event,'${col}')">✕ Xóa bộ lọc</div>
+    `;
+  });
+}
+
+function toggleColumnFilter(e, col) {
+  e.stopPropagation();
+  const dropdown = document.getElementById(`filter-${col}`);
+  const wasOpen = dropdown.classList.contains('show');
+  
+  // Close all dropdowns
+  document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
+  
+  // Toggle this one
+  if (!wasOpen) {
+    dropdown.classList.add('show');
+    state.openFilter = col;
+  } else {
+    state.openFilter = null;
+  }
+}
+
+function toggleFilterOption(e, col, value) {
+  e.stopPropagation();
+  
+  const idx = state.columnFilters[col].indexOf(value);
+  if (idx === -1) {
+    state.columnFilters[col].push(value);
+  } else {
+    state.columnFilters[col].splice(idx, 1);
+  }
+  
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+}
+
+function clearColumnFilter(e, col) {
+  e.stopPropagation();
+  state.columnFilters[col] = [];
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+  document.getElementById(`filter-${col}`).classList.remove('show');
+}
+
+function removeActiveFilter(col, value) {
+  const idx = state.columnFilters[col].indexOf(value);
+  if (idx !== -1) {
+    state.columnFilters[col].splice(idx, 1);
+  }
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+}
+
+function clearAllFilters() {
+  Object.keys(state.columnFilters).forEach(col => {
+    state.columnFilters[col] = [];
+  });
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+}
+
+function renderActiveFilters() {
+  const container = document.getElementById('activeFilters');
+  if (!container) return;
+  
+  const labels = {
+    type: LEAD_TYPE_LABELS,
+    pipeline: PIPELINE_LABELS,
+    portrait: PORTRAIT_LABELS,
+    potential: POTENTIAL_LABELS,
+    country: COUNTRY_LABELS,
+    sales: null
+  };
+  
+  const colNames = {
+    type: 'Loại',
+    pipeline: 'Pipeline',
+    portrait: 'Chân dung',
+    potential: 'Tiềm năng',
+    country: 'Quốc gia',
+    sales: 'Sales'
+  };
+  
+  let tags = [];
+  Object.keys(state.columnFilters).forEach(col => {
+    state.columnFilters[col].forEach(value => {
+      const label = labels[col] ? labels[col][value] : value;
+      tags.push(`
+        <span class="active-filter-tag">
+          ${colNames[col]}: ${label}
+          <span class="remove" onclick="removeActiveFilter('${col}','${value}')">✕</span>
+        </span>
+      `);
+    });
+  });
+  
+  if (tags.length > 0) {
+    tags.push(`<span class="active-filter-tag" style="background:var(--cream-d);cursor:pointer" onclick="clearAllFilters()">Xóa tất cả ✕</span>`);
+  }
+  
+  container.innerHTML = tags.join('');
+}
+
+function updateFilterIndicators() {
+  document.querySelectorAll('.th-filter').forEach(th => {
+    const col = th.querySelector('.filter-dropdown')?.id?.replace('filter-','');
+    if (col && state.columnFilters[col]?.length > 0) {
+      th.classList.add('active');
+    } else {
+      th.classList.remove('active');
+    }
+  });
+}
+
+function closeAllFilters(e) {
+  if (!e.target.closest('.th-filter')) {
+    document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
+    state.openFilter = null;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEAD MODAL
+// ══════════════════════════════════════════════════════════════
+function _populateLeadSalesSelect(selected) {
+  const sel = document.getElementById('leadSales');
+  const names = H5C.salesList();
+  // Also include any existing sales names from current leads that might not be in employees
+  const existingNames = [...new Set(LEADS.map(l=>l.sales).filter(Boolean))];
+  const allNames = [...new Set([...names, ...existingNames])];
+  sel.innerHTML = '<option value="">-- Chọn Sales --</option>' + allNames.map(n => `<option value="${n}"${n===selected?' selected':''}>${n}</option>`).join('');
+}
+
+function openLeadModal(leadId = null) {
+  const modal = document.getElementById('leadModal');
+  const title = document.getElementById('leadModalTitle');
+  if (leadId) {
+    const lead = LEADS.find(l => l.id === leadId);
+    if (!lead) return;
+    title.textContent = `✏️ Chỉnh sửa Lead`;
+    document.getElementById('leadId').value = lead.id;
+    document.getElementById('leadCompany').value = lead.company;
+    document.getElementById('leadPhone').value = lead.phone;
+    document.getElementById('leadEmail').value = lead.email || '';
+    document.getElementById('leadAddress').value = lead.address || '';
+    document.getElementById('leadType').value = lead.type;
+    document.getElementById('leadChannel').value = lead.channel;
+    document.getElementById('leadCountry').value = lead.country;
+    document.getElementById('leadPortrait').value = lead.portrait;
+    document.getElementById('leadPipeline').value = lead.pipeline;
+    document.getElementById('leadPotential').value = lead.potential;
+    document.getElementById('leadIssue').value = lead.issue || '';
+    document.getElementById('leadStartDate').value = lead.startDate;
+    document.getElementById('leadLastContact').value = lead.lastContact;
+    document.getElementById('leadEstimatedValue').value = lead.estimatedValue || '';
+    _populateLeadSalesSelect(lead.sales);
+    document.getElementById('leadNote').value = lead.note || '';
+    renderLeadProductRows(lead.interestedProducts || []);
+  } else {
+    title.textContent = '🎯 Thêm Lead mới';
+    document.getElementById('leadForm').reset();
+    document.getElementById('leadId').value = '';
+    document.getElementById('leadStartDate').value = new Date().toISOString().split('T')[0];
+    _populateLeadSalesSelect('');
+    renderLeadProductRows([{productId:'',qty:1}]);
+  }
+  modal.classList.remove('hidden');
+}
+
+function closeLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
+
+function renderLeadProductRows(products) {
+  const container = document.getElementById('leadProducts');
+  if (products.length === 0) products = [{productId:'',qty:1}];
+  container.innerHTML = products.map((p,i) => `
+    <div class="modal-row" style="align-items:end;margin-bottom:8px" data-lead-row="${i}">
+      <div class="modal-group" style="flex:2;margin-bottom:0">
+        ${i===0?'<label class="modal-label">Sản phẩm quan tâm</label>':''}
+        <select class="modal-input" id="leadProduct_${i}">
+          <option value="">-- Chọn sản phẩm --</option>
+          ${PRODUCTS_LIST.map(pr=>`<option value="${pr.id}" ${p.productId===pr.id?'selected':''}>${pr.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-group" style="flex:0.5;margin-bottom:0">
+        ${i===0?'<label class="modal-label">SL</label>':''}
+        <input type="number" class="modal-input" min="1" value="${p.qty||1}" id="leadQty_${i}">
+      </div>
+      <button type="button" onclick="removeLeadProductRow(${i})" style="width:40px;height:40px;border:none;background:var(--red);color:#fff;border-radius:8px;cursor:pointer;margin-bottom:0">✕</button>
+    </div>
+  `).join('');
+}
+
+function addLeadProductRow() {
+  const container = document.getElementById('leadProducts');
+  const rows = container.querySelectorAll('[data-lead-row]');
+  const newIndex = rows.length;
+  const newRow = document.createElement('div');
+  newRow.className = 'modal-row';
+  newRow.style.cssText = 'align-items:end;margin-bottom:8px';
+  newRow.dataset.leadRow = newIndex;
+  newRow.innerHTML = `
+    <div class="modal-group" style="flex:2;margin-bottom:0">
+      <select class="modal-input" id="leadProduct_${newIndex}">
+        <option value="">-- Chọn sản phẩm --</option>
+        ${PRODUCTS_LIST.map(pr=>`<option value="${pr.id}">${pr.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-group" style="flex:0.5;margin-bottom:0">
+      <input type="number" class="modal-input" min="1" value="1" id="leadQty_${newIndex}">
+    </div>
+    <button type="button" onclick="removeLeadProductRow(${newIndex})" style="width:40px;height:40px;border:none;background:var(--red);color:#fff;border-radius:8px;cursor:pointer;margin-bottom:0">✕</button>
+  `;
+  container.appendChild(newRow);
+}
+
+function removeLeadProductRow(index) {
+  const row = document.querySelector(`[data-lead-row="${index}"]`);
+  if (row) row.remove();
+}
+
+function saveLead(e) {
+  e.preventDefault();
+  const leadId = document.getElementById('leadId').value;
+  const isEdit = !!leadId;
+  const container = document.getElementById('leadProducts');
+  const rows = container.querySelectorAll('[data-lead-row]');
+  const interestedProducts = [];
+  rows.forEach(row => {
+    const idx = row.dataset.leadRow;
+    const productSelect = document.getElementById(`leadProduct_${idx}`);
+    const qtyInput = document.getElementById(`leadQty_${idx}`);
+    if (productSelect && qtyInput && productSelect.value) {
+      const product = PRODUCTS_LIST.find(p => p.id === productSelect.value);
+      if (product) interestedProducts.push({productId:product.id,name:product.name,qty:parseInt(qtyInput.value)||1});
+    }
+  });
+  const leadData = {
+    id: isEdit ? leadId : generateLeadId(),
+    company: document.getElementById('leadCompany').value,
+    phone: document.getElementById('leadPhone').value,
+    email: document.getElementById('leadEmail').value,
+    address: document.getElementById('leadAddress').value,
+    type: document.getElementById('leadType').value,
+    channel: document.getElementById('leadChannel').value,
+    country: document.getElementById('leadCountry').value,
+    portrait: document.getElementById('leadPortrait').value,
+    pipeline: document.getElementById('leadPipeline').value,
+    potential: document.getElementById('leadPotential').value,
+    issue: document.getElementById('leadIssue').value,
+    startDate: document.getElementById('leadStartDate').value,
+    lastContact: document.getElementById('leadLastContact').value || document.getElementById('leadStartDate').value,
+    estimatedValue: parseInt(document.getElementById('leadEstimatedValue').value) || 0,
+    sales: document.getElementById('leadSales').value,
+    note: document.getElementById('leadNote').value,
+    interestedProducts: interestedProducts,
+    contactLogs: isEdit ? (LEADS.find(l=>l.id===leadId)?.contactLogs||[]) : []
+  };
+  if (isEdit) { const index = LEADS.findIndex(l=>l.id===leadId); if(index!==-1) LEADS[index]=leadData; }
+  else { LEADS.unshift(leadData); }
+  closeLeadModal();
+  renderLeads();
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEAD DETAIL
+// ══════════════════════════════════════════════════════════════
+function viewLead(leadId) {
+  const lead = LEADS.find(l => l.id === leadId);
+  if (!lead) return;
+  state.currentLeadId = leadId;
+  document.getElementById('detailLeadId').textContent = lead.company;
+  const content = document.getElementById('leadDetailContent');
+  content.innerHTML = `
+    <div class="order-detail-section">
+      <div class="order-detail-title">🏢 Thông tin doanh nghiệp</div>
+      <div class="order-detail-grid">
+        <div class="order-detail-item"><span class="order-detail-label">Tên công ty</span><span class="order-detail-value">${lead.company}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Loại</span><span class="order-detail-value"><span class="type-badge ${lead.type}">${LEAD_TYPE_LABELS[lead.type]}</span></span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Chân dung KH</span><span class="order-detail-value">${PORTRAIT_LABELS[lead.portrait]||lead.portrait}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Quốc gia</span><span class="order-detail-value">${COUNTRY_LABELS[lead.country]||lead.country}</span></div>
+      </div>
+    </div>
+    <div class="order-detail-section">
+      <div class="order-detail-title">📞 Thông tin liên hệ</div>
+      <div class="order-detail-grid">
+        <div class="order-detail-item"><span class="order-detail-label">Số điện thoại</span><span class="order-detail-value">${lead.phone}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Email</span><span class="order-detail-value">${lead.email||'—'}</span></div>
+        <div class="order-detail-item" style="grid-column:span 2"><span class="order-detail-label">Địa chỉ</span><span class="order-detail-value">${lead.address||'—'}</span></div>
+      </div>
+    </div>
+    <div class="order-detail-section">
+      <div class="order-detail-title">📊 Trạng thái & Đánh giá</div>
+      <div class="order-detail-grid">
+        <div class="order-detail-item"><span class="order-detail-label">Pipeline</span><span class="order-detail-value"><span class="pipeline-badge ${lead.pipeline}">${PIPELINE_LABELS[lead.pipeline]}</span></span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Tiềm năng</span><span class="order-detail-value"><span class="potential-badge ${lead.potential}">${POTENTIAL_LABELS[lead.potential]}</span></span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Kênh</span><span class="order-detail-value">${CHANNEL_LABELS[lead.channel]||lead.channel}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Sales phụ trách</span><span class="order-detail-value">${lead.sales}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Vấn đề gặp phải</span><span class="order-detail-value">${ISSUE_LABELS[lead.issue]||lead.issue||'—'}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Giá trị ước tính</span><span class="order-detail-value" style="color:var(--green-d);font-weight:800">${lead.estimatedValue?fmt(lead.estimatedValue)+'đ':'—'}</span></div>
+      </div>
+    </div>
+    <div class="order-detail-section">
+      <div class="order-detail-title">📅 Timeline</div>
+      <div class="order-detail-grid" style="grid-template-columns:1fr 1fr">
+        <div class="order-detail-item"><span class="order-detail-label">Ngày bắt đầu</span><span class="order-detail-value">${formatDate(lead.startDate)}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Liên hệ cuối</span><span class="order-detail-value">${formatDate(lead.lastContact)}</span></div>
+      </div>
+    </div>
+    ${lead.interestedProducts&&lead.interestedProducts.length>0?`
+      <div class="order-detail-section">
+        <div class="order-detail-title">🛒 Sản phẩm quan tâm</div>
+        <table class="order-products-table">
+          <thead><tr><th>Sản phẩm</th><th style="width:100px;text-align:center">Số lượng</th></tr></thead>
+          <tbody>${lead.interestedProducts.map(p=>`<tr><td>${p.name}</td><td style="text-align:center">${p.qty}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    `:''}
+    ${lead.contactLogs&&lead.contactLogs.length>0?`
+      <div class="order-detail-section">
+        <div class="order-detail-title">📝 Lịch sử liên hệ</div>
+        <div class="contact-logs">
+          ${lead.contactLogs.map(log=>`
+            <div class="contact-log-item">
+              <div class="log-header"><span class="log-date">${formatDate(log.date)}</span><span class="log-result ${log.result}">${CONTACT_RESULT_LABELS[log.result]||log.result}</span></div>
+              <div class="log-content">${log.content}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `:''}
+    ${lead.note?`<div class="order-detail-section"><div class="order-detail-title">📋 Ghi chú</div><p style="font-size:13px;color:var(--brown-m)">${lead.note}</p></div>`:''}
+  `;
+  const lead4btn = LEADS.find(l => l.id === state.currentLeadId);
+  const showOrderBtn = lead4btn && ['chot_don','deal','quay_lai'].includes(lead4btn.pipeline);
+  document.getElementById('createOrderBtnWrap').classList.toggle('hidden', !showOrderBtn);
+  document.getElementById('leadDetailModal').classList.remove('hidden');
+}
+
+function closeLeadDetailModal() { document.getElementById('leadDetailModal').classList.add('hidden'); }
+function editFromLeadDetail() { closeLeadDetailModal(); editLead(state.currentLeadId); }
+function editLead(leadId) { openLeadModal(leadId); }
+
+// ══════════════════════════════════════════════════════════════
+// CONTACT LOG
+// ══════════════════════════════════════════════════════════════
+function openContactLog(leadId) {
+  const lead = LEADS.find(l => l.id === leadId);
+  if (!lead) return;
+  state.currentLeadId = leadId;
+  document.getElementById('contactLogLeadName').textContent = lead.company;
+  document.getElementById('contactLogDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('contactLogContent').value = '';
+  document.getElementById('contactLogResult').value = 'dang_theo';
+  document.getElementById('contactLogModal').classList.remove('hidden');
+}
+
+function closeContactLogModal() { document.getElementById('contactLogModal').classList.add('hidden'); }
+
+function saveContactLog(e) {
+  e.preventDefault();
+  const lead = LEADS.find(l => l.id === state.currentLeadId);
+  if (!lead) return;
+  const newLog = {
+    date: document.getElementById('contactLogDate').value,
+    content: document.getElementById('contactLogContent').value,
+    result: document.getElementById('contactLogResult').value
+  };
+  if (!lead.contactLogs) lead.contactLogs = [];
+  lead.contactLogs.unshift(newLog);
+  lead.lastContact = newLog.date;
+  H5C.set('leads', LEADS);
+  closeContactLogModal();
+  renderLeads();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DELETE LEAD
+// ══════════════════════════════════════════════════════════════
+function createOrderFromLead() {
+  if(!_can('leads.convert_order')){alert('Không có quyền tạo đơn từ lead');return;}
+  const lead = LEADS.find(l => l.id === state.currentLeadId);
+  if (!lead) return;
+  // Build products list with prices from H5C
+  const prodList = H5C.productsList() || [];
+  const products = (lead.interestedProducts || []).map(p => {
+    const found = prodList.find(x => x.id === p.productId);
+    return { productId: p.productId, name: p.name, qty: p.qty || 1,
+             price: found ? found.price : 0, unit: found ? found.unit : '' };
+  });
+  H5C.set('pending_order', {
+    company: lead.company, phone: lead.phone, address: lead.address,
+    sales: lead.sales, fromLead: true, leadId: lead.id, products
+  });
+  window.location.href = 'orders.html';
+}
+
+function deleteLead(leadId) {
+  state.currentLeadId = leadId;
+  const lead = LEADS.find(l => l.id === leadId);
+  document.getElementById('deleteLeadName').textContent = lead ? lead.company : leadId;
+  document.getElementById('deleteLeadModal').classList.remove('hidden');
+}
+
+function closeDeleteLeadModal() { document.getElementById('deleteLeadModal').classList.add('hidden'); }
+
+function confirmDeleteLead() {
+  const index = LEADS.findIndex(l => l.id === state.currentLeadId);
+  if (index !== -1) LEADS.splice(index, 1);
+  H5C.set('leads', LEADS);
+  closeDeleteLeadModal();
+  renderLeads();
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loginPassword').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); });
+  document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('loginPassword').focus(); });
+});
+
+// ===== SHARED AUTH (sessionStorage) =====
+
+// ═══════════════════════════════════════════════════════════
+// H5C SHARED DATA STORE  (localStorage, prefix h5c_v1_)
+// Keys: employees | attendance | kpi | skus | lots
+//       orders | leads | expenses | announcements
+//       pending_order  (leads → orders handoff)
+// ═══════════════════════════════════════════════════════════
+const H5C = {
+  _k: k => 'h5c_v1_' + k,
+  get(k)        { try { const v = localStorage.getItem(this._k(k)); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  set(k, v)     { try { localStorage.setItem(this._k(k), JSON.stringify(v)); } catch(e) {} },
+  init(k, def)  { const v = this.get(k); if (v !== null) return v; this.set(k, def); return def; },
+  clear(k)      { localStorage.removeItem(this._k(k)); },
+  // Merge stored employees into a local array (for modules that read but don't own employees)
+  mergeEmployees(arr) {
+    const stored = this.get('employees');
+    if (stored && stored.length) { arr.splice(0, arr.length, ...stored); }
+  },
+  // Get active employee names for sales dropdowns
+  salesList() {
+    const emps = this.get('employees') || [];
+    const active = emps.filter(e => e.status !== 'inactive');
+    return active.map(e => e.name);
+  },
+  // Get SKUs in PRODUCTS_LIST format for orders/leads
+  productsList() {
+    const skus = this.get('skus') || [];
+    if (!skus.length) return null;
+    const UNIT_MAP = {kg:'Kg',hop:'Hộp',chiec:'Chiếc',tui:'Túi',stick:'Stick',cont:'Cont'};
+    return skus.map(s => ({
+      id: s.id, name: s.name,
+      unit: UNIT_MAP[s.unit] || s.unit || 'Cái',
+      price: s.suggestedPrice || 0
+    }));
+  }
+};
+// ═══════════════════════════════════════════════════════════
+
+const SESSION_KEY = 'h5c_erp_user';
+
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+}
+
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) { return null; }
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+// Auto-login from session on page load
+window.addEventListener('DOMContentLoaded', function() {
+LEADS = H5C.init('leads', LEADS);
+PRODUCTS_LIST = _getProductsList();
+    const saved = loadSession();
+  if (saved) {
+    state.user = saved;
+    showMain();
+  }
+});
+// ===== END SHARED AUTH =====
+</script>
+<script src="firebase-sync.js"></script>
+</body>
+</html>
