@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Chi phí</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#FBF6F0;min-height:100vh}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn .3s ease}
+input,select,button,textarea{font-family:inherit}
+.hidden{display:none!important}
+:root{--brown:#38261C;--brown-l:#5C3D2A;--brown-m:#7A5240;--green:#8FC643;--green-d:#6FA030;--green-l:#C5E08A;--cream:#FBF6F0;--cream-d:#F0E6D8;--cream-b:#E2D0BC;--white:#FFFFFF;--red:#C0392B;--orange:#D4851A;--blue:#2980B9;--purple:#9B59B6}
+.login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:var(--white);border-radius:20px;padding:40px;width:100%;max-width:400px;box-shadow:0 10px 40px rgba(56,38,28,.12);text-align:center}
+.login-logo{width:90px;height:90px;background:var(--brown);border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--green)}
+.login-title{font-size:22px;font-weight:900;color:var(--brown);margin-bottom:6px}
+.login-subtitle{font-size:12px;color:var(--brown-m);margin-bottom:6px}
+.login-slogan{font-size:11px;color:var(--green-d);font-style:italic;margin-bottom:30px}
+.login-input{width:100%;padding:14px 16px;border:1px solid var(--cream-b);border-radius:12px;font-size:14px;margin-bottom:14px}
+.login-input:focus{outline:none;border-color:var(--green)}
+.login-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--brown);color:var(--green);font-size:14px;font-weight:800;cursor:pointer}
+.login-btn:hover{background:var(--brown-l)}
+.login-error{color:var(--red);font-size:12px;margin-bottom:14px;display:none}
+.login-error.show{display:block}
+.topbar{background:var(--white);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--cream-b);position:sticky;top:0;z-index:50}
+.page-title{font-size:18px;font-weight:800;color:var(--brown)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.user-info{display:flex;align-items:center;gap:12px}
+.user-avatar{width:38px;height:38px;border-radius:50%;background:var(--green-l);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--brown)}
+.user-name{font-size:13px;font-weight:700;color:var(--brown)}
+.user-role{font-size:11px;color:var(--brown-m)}
+.logout-btn{padding:8px 16px;border:1px solid var(--cream-b);border-radius:10px;background:var(--white);color:var(--brown-m);font-size:12px;font-weight:700;cursor:pointer}
+.logout-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.content{flex:1;padding:28px}
+.expense-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--white);border-radius:12px;padding:18px 20px;border:1px solid var(--cream-b);display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(56,38,28,.1)}
+.stat-card.active{border-color:var(--green);box-shadow:0 0 0 2px var(--green-l)}
+.stat-card.highlight{background:linear-gradient(135deg,var(--brown) 0%,var(--brown-l) 100%);border:none}
+.stat-card.highlight.active{box-shadow:0 0 0 3px var(--green)}
+.stat-card.highlight .stat-label,.stat-card.highlight .stat-sub{color:rgba(255,255,255,.7)}
+.stat-card.highlight .stat-value{color:var(--green)}
+.stat-icon{font-size:28px}
+.stat-info{flex:1}
+.stat-label{font-size:11px;color:var(--brown-m);font-weight:600}
+.stat-value{font-size:16px;font-weight:900;color:var(--brown)}
+.stat-sub{font-size:11px;color:var(--brown-m);margin-top:2px}
+.stat-sub.up{color:var(--green-d)}
+.stat-sub.down{color:var(--red)}
+.stat-detail{font-size:12px;color:var(--brown-m);margin-top:4px;font-weight:600}
+.stat-detail .amount{color:var(--red);font-weight:800}
+.chart-section{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--cream-b);margin-bottom:24px}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.chart-title{font-size:14px;font-weight:800;color:var(--brown)}
+.chart-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chart-select{padding:8px 12px;border:1px solid var(--cream-b);border-radius:8px;font-size:12px;background:var(--white);color:var(--brown);font-weight:600}
+.chart-select:focus{outline:none;border-color:var(--green)}
+.chart-container{position:relative;height:280px}
+.expense-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.expense-filters{display:flex;gap:10px;flex-wrap:wrap}
+.filter-select{padding:10px 14px;border:1px solid var(--cream-b);border-radius:10px;font-size:13px;background:var(--white);color:var(--brown);min-width:130px}
+.filter-select:focus{outline:none;border-color:var(--green)}
+.filter-input{padding:10px 14px;border:1px solid var(--cream-b);border-radius:10px;font-size:13px;background:var(--white);color:var(--brown);min-width:160px}
+.btn-add{padding:10px 20px;border:none;border-radius:10px;background:var(--green);color:var(--brown);font-size:13px;font-weight:800;cursor:pointer}
+.btn-add:hover{background:var(--green-d)}
+.table-wrap{background:var(--white);border-radius:16px;border:1px solid var(--cream-b);overflow-x:auto}
+.data-table{width:100%;border-collapse:collapse;min-width:1000px}
+.data-table th{background:var(--cream-d);padding:14px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--brown-m);text-transform:uppercase}
+.data-table td{padding:14px 12px;border-bottom:1px solid var(--cream-b);font-size:13px;color:var(--brown)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--cream)}
+.expense-amount{font-weight:800;color:var(--red)}
+.expense-desc{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.badge.luong{background:#E8EAF6;color:#3949AB}
+.badge.nguyen_lieu{background:#FFF3E0;color:#E65100}
+.badge.van_hanh{background:#E3F2FD;color:#1565C0}
+.badge.marketing{background:#F3E5F5;color:#7B1FA2}
+.badge.logistics{background:#E0F7FA;color:#00838F}
+.badge.khac{background:var(--cream-d);color:var(--brown-m)}
+.type-badge{display:inline-block;padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.type-badge.dinh_phi{background:#E3F2FD;color:#1565C0}
+.type-badge.bien_phi{background:#FFF3E0;color:#E65100}
+.dept-badge{display:inline-block;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;background:var(--cream-d);color:var(--brown-m)}
+.status-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.status-badge.cho_duyet{background:#FFF8E1;color:#F57F17}
+.status-badge.da_duyet{background:#E8F5E9;color:#2E7D32}
+.status-badge.tu_choi{background:#FFEBEE;color:#C62828}
+.payment-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.payment-badge.chua_thanh_toan{background:#FFEBEE;color:#C62828}
+.payment-badge.da_thanh_toan{background:#E8F5E9;color:#2E7D32}
+.payment-badge.mot_phan{background:#FFF3E0;color:#EF6C00}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px}
+.action-btn.view{background:var(--cream-d);color:var(--brown)}
+.action-btn.view:hover{background:var(--blue);color:#fff}
+.action-btn.edit{background:var(--cream-d);color:var(--brown)}
+.action-btn.edit:hover{background:var(--orange);color:#fff}
+.action-btn.approve{background:var(--cream-d);color:var(--brown)}
+.action-btn.approve:hover{background:var(--green);color:#fff}
+.action-btn.delete{background:var(--cream-d);color:var(--brown)}
+.action-btn.delete:hover{background:var(--red);color:#fff}
+.empty-state{padding:60px 20px;text-align:center}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state .title{font-size:16px;font-weight:700;color:var(--brown);margin-bottom:8px}
+.modal-overlay{position:fixed;inset:0;background:rgba(56,38,28,.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal{background:var(--white);border-radius:20px;padding:28px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
+.modal.small{max-width:400px}
+.modal-title{font-size:17px;font-weight:900;color:var(--brown);margin-bottom:20px}
+.modal-input{width:100%;padding:12px 14px;border:1px solid var(--cream-b);border-radius:10px;font-size:14px;margin-bottom:12px}
+.modal-input:focus{outline:none;border-color:var(--green)}
+.modal-label{font-size:12px;font-weight:600;color:var(--brown-m);margin-bottom:6px;display:block}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-btns{display:flex;gap:10px;margin-top:24px}
+.modal-btn{flex:1;padding:12px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none}
+.modal-btn.cancel{background:var(--cream-d);color:var(--brown-m)}
+.modal-btn.primary{background:var(--brown);color:var(--green)}
+.modal-btn.danger{background:var(--red);color:#fff}
+.modal-btn.success{background:var(--green-d);color:#fff}
+.detail-section{margin-bottom:20px}
+.detail-title{font-size:13px;font-weight:700;color:var(--brown);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--cream-b)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-item{display:flex;flex-direction:column;gap:2px}
+.detail-label{font-size:11px;color:var(--brown-m)}
+.detail-value{font-size:13px;font-weight:600;color:var(--brown)}
+.file-upload{border:2px dashed var(--cream-b);border-radius:10px;padding:20px;text-align:center;cursor:pointer}
+.file-upload:hover{border-color:var(--green);background:var(--cream)}
+.file-upload-icon{font-size:32px;margin-bottom:8px}
+.file-upload-text{font-size:12px;color:var(--brown-m)}
+.file-preview{display:flex;align-items:center;gap:10px;padding:10px;background:var(--cream);border-radius:8px;margin-top:10px}
+.file-preview-name{flex:1;font-size:12px;color:var(--brown)}
+.file-preview-remove{color:var(--red);cursor:pointer}
+.active-filter-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-l);border-radius:99px;font-size:12px;font-weight:600;color:var(--brown);margin-bottom:16px}
+.active-filter-tag .remove{cursor:pointer;font-size:14px}
+@media(max-width:1200px){.expense-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}}
+</style>
+<script src="sidebar.js"></script>
+</head>
+<body>
+<div id="loginPage" class="login-page"><div class="login-box fade"><div class="login-logo">☕</div><div class="login-title">Hello 5 Coffee</div><div class="login-subtitle">Hệ thống Quản lý Nội bộ</div><div class="login-slogan">Tỉnh thức 5 giác quan</div><div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div><input type="email" id="loginEmail" class="login-input" placeholder="Email"><input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu"><button class="login-btn" onclick="handleLogin()">Đăng nhập</button></div></div>
+<div id="mainLayout" class="layout hidden"><aside class="sidebar"><div class="sidebar-header"><div class="sidebar-logo">☕</div><div class="sidebar-brand">Hello 5 Coffee</div><div class="sidebar-tagline">Internal Management</div></div><nav class="sidebar-nav" id="sidebarNav"></nav><div class="sidebar-footer"><div class="lang-toggle"><button class="lang-btn active" data-lang="vi" onclick="setLang('vi')">🇻🇳 VI</button><button class="lang-btn" data-lang="en" onclick="setLang('en')">🇬🇧 EN</button></div></div></aside><main class="main"><header class="topbar"><div class="page-title">Chi phí</div><div class="topbar-right"><div class="user-info"><div class="user-avatar" id="userAvatar">LN</div><div><div class="user-name" id="userName">Louis Nguyen</div><div class="user-role" id="userRole">CCO</div></div></div><button class="logout-btn" onclick="handleLogout()">🚪 Đăng xuất</button></div></header><div class="content" id="pageContent"></div></main></div>
+<div id="expenseModal" class="modal-overlay hidden"><div class="modal"><div class="modal-title" id="expenseModalTitle">💰 Thêm chi phí</div><form id="expenseForm" onsubmit="saveExpense(event)"><input type="hidden" id="expenseId"><div class="modal-row"><div class="modal-group"><label class="modal-label">Ngày *</label><input type="date" id="expenseDate" class="modal-input" required></div><div class="modal-group"><label class="modal-label">Số tiền (VNĐ) *</label><input type="number" id="expenseAmount" class="modal-input" required></div></div><div class="modal-group"><label class="modal-label">Mô tả *</label><input type="text" id="expenseDesc" class="modal-input" required></div><div class="modal-row three"><div class="modal-group"><label class="modal-label">Nhóm *</label><select id="expenseCategory" class="modal-input" required><option value="luong">Lương</option><option value="nguyen_lieu">Nguyên liệu</option><option value="van_hanh">Vận hành</option><option value="marketing">Marketing</option><option value="logistics">Logistics</option><option value="khac">Khác</option></select></div><div class="modal-group"><label class="modal-label">Phòng ban *</label><select id="expenseDept" class="modal-input" required><option value="kinh_doanh">Kinh doanh</option><option value="san_xuat">Sản xuất</option><option value="ke_toan">Kế toán</option><option value="hr">HR</option><option value="marketing">Marketing</option><option value="ban_giam_doc">Ban GĐ</option><option value="khac">Khác</option></select></div><div class="modal-group"><label class="modal-label">Loại *</label><select id="expenseType" class="modal-input" required><option value="dinh_phi">Định phí</option><option value="bien_phi">Biến phí</option></select></div></div><div class="modal-row"><div class="modal-group"><label class="modal-label">Trạng thái</label><select id="expenseStatus" class="modal-input"><option value="cho_duyet">Chờ duyệt</option><option value="da_duyet">Đã duyệt</option><option value="tu_choi">Từ chối</option></select></div><div class="modal-group"><label class="modal-label">Tình trạng chi</label><select id="expensePayment" class="modal-input"><option value="chua_thanh_toan">Chưa thanh toán</option><option value="da_thanh_toan">Đã thanh toán</option><option value="mot_phan">Một phần</option></select></div></div><div class="modal-group"><label class="modal-label">Đính kèm</label><div class="file-upload" onclick="document.getElementById('expenseFile').click()"><div class="file-upload-icon">📎</div><div class="file-upload-text">Click để chọn file</div></div><input type="file" id="expenseFile" style="display:none" onchange="handleFileSelect(event)"><div id="filePreview"></div></div><div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="expenseNote" class="modal-input" rows="2"></textarea></div><div class="modal-btns"><button type="button" class="modal-btn cancel" onclick="closeExpenseModal()">Hủy</button><button type="submit" class="modal-btn primary">💾 Lưu</button></div></form></div></div>
+<div id="expenseDetailModal" class="modal-overlay hidden"><div class="modal"><div class="modal-title">💰 Chi tiết chi phí</div><div id="expenseDetailContent"></div><div class="modal-btns"><button class="modal-btn cancel" onclick="closeExpenseDetailModal()">Đóng</button><button class="modal-btn primary" onclick="editFromDetail()">✏️ Sửa</button></div></div></div>
+<div id="approveModal" class="modal-overlay hidden"><div class="modal small"><div class="modal-title">✅ Duyệt chi phí</div><p style="margin-bottom:20px">Duyệt chi phí <strong id="approveExpenseDesc"></strong>?</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeApproveModal()">Hủy</button><button class="modal-btn danger" onclick="rejectExpense()">❌ Từ chối</button><button class="modal-btn success" onclick="approveExpense()">✅ Duyệt</button></div></div></div>
+<div id="deleteModal" class="modal-overlay hidden"><div class="modal small"><div class="modal-title">⚠️ Xác nhận xóa</div><p style="margin-bottom:20px">Bạn có chắc muốn xóa?</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeDeleteModal()">Không</button><button class="modal-btn danger" onclick="confirmDelete()">Xóa</button></div></div></div>
+<script>
+const ACCOUNTS={"admin@hello5coffee.com":{pw:"Admin@123456",user:{id:"0",name:"Louis Nguyen",role:"C_LEVEL",pos:"CCO & Co-Founder"}},"manager@hello5coffee.com":{pw:"123456",user:{id:"1",name:"Nguyễn Thị Lan",role:"MANAGER",pos:"Trưởng phòng HR"}},"finance@hello5coffee.com":{pw:"123456",user:{id:"4",name:"Phạm Thị Mai",role:"EMPLOYEE_FINANCE",pos:"Kế toán viên"}}};
+let EXPENSES=[
+{id:'CP001',date:'2025-03-01',amount:85000000,desc:'Lương tháng 3/2025',category:'luong',dept:'hr',expenseType:'dinh_phi',status:'da_duyet',payment:'da_thanh_toan',creator:'Phạm Thị Mai',note:'',file:null},
+{id:'CP002',date:'2025-03-05',amount:25000000,desc:'Nhập nguyên liệu Robusta',category:'nguyen_lieu',dept:'san_xuat',expenseType:'bien_phi',status:'da_duyet',payment:'da_thanh_toan',creator:'Louis Nguyen',note:'',file:'hoadon.pdf'},
+{id:'CP003',date:'2025-03-08',amount:5500000,desc:'Tiền điện tháng 2',category:'van_hanh',dept:'san_xuat',expenseType:'dinh_phi',status:'da_duyet',payment:'da_thanh_toan',creator:'Phạm Thị Mai',note:'',file:null},
+{id:'CP004',date:'2025-03-10',amount:15000000,desc:'Quảng cáo Facebook',category:'marketing',dept:'marketing',expenseType:'bien_phi',status:'da_duyet',payment:'mot_phan',creator:'Louis Nguyen',note:'',file:null},
+{id:'CP005',date:'2025-03-12',amount:8500000,desc:'Vận chuyển Đà Nẵng',category:'logistics',dept:'kinh_doanh',expenseType:'bien_phi',status:'cho_duyet',payment:'chua_thanh_toan',creator:'Nguyễn Văn An',note:'',file:null},
+{id:'CP006',date:'2025-03-14',amount:3200000,desc:'Văn phòng phẩm',category:'van_hanh',dept:'hr',expenseType:'bien_phi',status:'cho_duyet',payment:'chua_thanh_toan',creator:'Nguyễn Thị Lan',note:'',file:null},
+{id:'CP007',date:'2025-03-15',amount:45000000,desc:'Bao bì đóng gói',category:'nguyen_lieu',dept:'san_xuat',expenseType:'bien_phi',status:'da_duyet',payment:'chua_thanh_toan',creator:'Louis Nguyen',note:'',file:null},
+{id:'CP008',date:'2025-03-16',amount:2800000,desc:'Tiền nước tháng 2',category:'van_hanh',dept:'san_xuat',expenseType:'dinh_phi',status:'tu_choi',payment:'chua_thanh_toan',creator:'Phạm Thị Mai',note:'Sai hóa đơn',file:null},
+{id:'CP009',date:'2025-02-28',amount:82000000,desc:'Lương tháng 2/2025',category:'luong',dept:'hr',expenseType:'dinh_phi',status:'da_duyet',payment:'da_thanh_toan',creator:'Phạm Thị Mai',note:'',file:null},
+{id:'CP010',date:'2025-02-15',amount:18000000,desc:'Nguyên liệu Arabica',category:'nguyen_lieu',dept:'san_xuat',expenseType:'bien_phi',status:'da_duyet',payment:'da_thanh_toan',creator:'Louis Nguyen',note:'',file:null}
+];
+const NAV_ITEMS=[{id:'dashboard',icon:'📊',vi:'Tổng quan',roles:['all']},{id:'orders',icon:'📦',vi:'Đơn hàng',roles:['C_LEVEL','MANAGER','EMPLOYEE_SALES']},{id:'leads',icon:'🎯',vi:'Lead/CRM',roles:['C_LEVEL','MANAGER','EMPLOYEE_SALES']},{id:'expenses',icon:'💰',vi:'Chi phí',roles:['C_LEVEL','MANAGER','EMPLOYEE_FINANCE']},{id:'warehouse',icon:'🏭',vi:'Kho hàng',roles:['C_LEVEL','MANAGER']},{id:'users',icon:'👥',vi:'Nhân viên',roles:['C_LEVEL','MANAGER','EMPLOYEE_HR']},{id:'tasks',icon:'✅',vi:'Công việc',roles:['all']},{id:'projects',icon:'📋',vi:'Dự án',roles:['C_LEVEL','MANAGER']},{id:'reports',icon:'📈',vi:'Báo cáo',roles:['C_LEVEL','MANAGER']},{id:'announcements',icon:'📢',vi:'Thông báo',roles:['all']}];
+const CATEGORY_LABELS={luong:'Lương',nguyen_lieu:'Nguyên liệu',van_hanh:'Vận hành',marketing:'Marketing',logistics:'Logistics',khac:'Khác'};
+const DEPT_LABELS={kinh_doanh:'Kinh doanh',san_xuat:'Sản xuất',ke_toan:'Kế toán',hr:'HR',marketing:'Marketing',ban_giam_doc:'Ban GĐ',khac:'Khác'};
+const STATUS_LABELS={cho_duyet:'Chờ duyệt',da_duyet:'Đã duyệt',tu_choi:'Từ chối'};
+const PAYMENT_LABELS={chua_thanh_toan:'Chưa thanh toán',da_thanh_toan:'Đã thanh toán',mot_phan:'Một phần'};
+const EXPENSE_TYPE_LABELS={dinh_phi:'Định phí',bien_phi:'Biến phí'};
+const CATEGORY_COLORS={luong:'#3949AB',nguyen_lieu:'#E65100',van_hanh:'#1565C0',marketing:'#7B1FA2',logistics:'#00838F',khac:'#757575'};
+const DEPT_COLORS={kinh_doanh:'#2E7D32',san_xuat:'#E65100',ke_toan:'#1565C0',hr:'#7B1FA2',marketing:'#C2185B',ban_giam_doc:'#38261C',khac:'#757575'};
+const EXPENSE_TYPE_COLORS={dinh_phi:'#1565C0',bien_phi:'#E65100'};
+
+let state={user:null,lang:'vi',page:'expenses',currentExpenseId:null,selectedFile:null,selectedFileData:null,charts:{},chartType:'category',activeFilter:null};
+
+// === Granular Permission Engine v2 ===
+const _PERM_VIEW_MAP={dashboard:'dash.view',orders:'orders.view',leads:'leads.view',expenses:'expenses.view',warehouse:'wh.view_stock',users:'users.view',reports:'reports.view',announcements:'ann.view'};
+function _can(permId){
+  try{
+    const session=state.user; if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>a.email===(session.email||''));
+    if(!acc) return session.role==='C_LEVEL';
+    if(acc.permissions){
+      const val=acc.permissions[permId];
+      return val===true||val==='all'||val==='own';
+    }
+    if(acc.role==='C_LEVEL') return true;
+    return _roleDefault(acc.role,permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+function _canScope(permId){
+  try{
+    const session=state.user; if(!session)return 'all';
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>a.email===(session.email||''));
+    if(!acc) return session.role==='C_LEVEL'?'all':'own';
+    if(!acc.permissions){
+      if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
+      return 'own';
+    }
+    const val=acc.permissions[permId];
+    if(val==='own') return 'own';
+    if(val===true||val==='all') return 'all';
+    return 'none';
+  }catch(e){return 'all';}
+}
+function _roleDefault(role,pid){
+  const S=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
+  const F=['dash.view','dash.kpi_finance','expenses.view','expenses.view_detail','expenses.view_charts','expenses.create','expenses.edit','expenses.mark_paid','reports.view','reports.generate','reports.compare','ann.view'];
+  const H=['dash.view','users.view','users.view_salary','users.view_team','users.create','users.edit','users.attendance','users.kpi','ann.view','ann.create','ann.edit'];
+  const M_DENY=['users.manage_accounts','users.manage_permissions','orders.commission_config','wh.commission_config'];
+  if(role==='EMPLOYEE_SALES') return S.includes(pid);
+  if(role==='EMPLOYEE_FINANCE') return F.includes(pid);
+  if(role==='EMPLOYEE_HR') return H.includes(pid);
+  if(role==='MANAGER') return !M_DENY.includes(pid);
+  return false;
+}
+// === End Permission Engine ===
+
+// Format số đầy đủ với dấu chấm
+const fmt=(n)=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const getInitials=(name)=>name.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
+
+// Format ngày DD/MM/YYYY
+const formatDate=(d)=>{
+  if(!d)return '—';
+  const date=new Date(d);
+  const dd=String(date.getDate()).padStart(2,'0');
+  const mm=String(date.getMonth()+1).padStart(2,'0');
+  const yyyy=date.getFullYear();
+  return dd+'/'+mm+'/'+yyyy;
+};
+
+// Format tháng MM/YYYY
+const formatMonth=(d)=>{
+  const date=new Date(d+'-01');
+  const mm=String(date.getMonth()+1).padStart(2,'0');
+  const yyyy=date.getFullYear();
+  return mm+'/'+yyyy;
+};
+
+const generateExpenseId=()=>'CP'+String(EXPENSES.length+1).padStart(3,'0');
+const getCurrentMonth=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
+const getLastMonth=()=>{const d=new Date();d.setMonth(d.getMonth()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
+
+// Login dùng H5C accounts
+function _getAccountsForLogin() {
+  try {
+    const stored = localStorage.getItem('h5c_v1_accounts');
+    if (stored) {
+      const arr = JSON.parse(stored);
+      if (arr && arr.length) return arr;
+    }
+  } catch(e) {}
+  return [
+    {email:'admin@hello5coffee.com',   pw:'Admin@123456', role:'C_LEVEL',         name:'Louis Nguyen',   pos:'CCO & Co-Founder',       empId:'EMP001'},
+    {email:'manager@hello5coffee.com', pw:'123456',       role:'MANAGER',         name:'Nguyễn Thị Lan', pos:'Trưởng phòng HR',        empId:'EMP002'},
+    {email:'sales@hello5coffee.com',   pw:'123456',       role:'EMPLOYEE_SALES',  name:'Lê Minh Khoa',   pos:'Chuyên viên Kinh doanh', empId:'EMP003'},
+    {email:'finance@hello5coffee.com', pw:'123456',       role:'EMPLOYEE_FINANCE',name:'Phạm Thị Mai',   pos:'Kế toán viên',           empId:'EMP004'},
+    {email:'nv@hello5coffee.com',      pw:'123456',       role:'EMPLOYEE_HR',     name:'Đặng Văn Hùng',  pos:'Chuyên viên Nhân sự',    empId:'EMP002'},
+  ];
+}
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  const err=document.getElementById('loginError');
+  err.classList.remove('show');
+  const acc=ACCOUNTS[email];
+  if(!acc||acc.pw!==pw){err.classList.add('show');return;}
+  state.user=acc.user;showMain();
+}
+function handleLogout(){ clearSession();state.user=null;document.getElementById('loginPage').classList.remove('hidden');document.getElementById('mainLayout').classList.add('hidden');if(state.charts.main)state.charts.main.destroy();}
+function showMain(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('mainLayout').classList.remove('hidden');document.getElementById('userName').textContent=state.user.name;document.getElementById('userRole').textContent=state.user.pos;document.getElementById('userAvatar').textContent=getInitials(state.user.name);
+  // Read URL filter params from dashboard
+  var urlParams=new URLSearchParams(window.location.search);var filter=urlParams.get('filter');
+  if(filter==='unpaid')state.activeFilter='unpaid';
+  else if(filter==='pending')state.activeFilter='pending';
+  else if(filter)state.activeFilter=filter;
+  renderNav();renderExpenses();}
+function renderNav(){const nav=document.getElementById('sidebarNav');const role=state.user.role;const items=NAV_ITEMS.filter(i=>i.roles.includes('all')||i.roles.includes(role));nav.innerHTML=items.map(i=>'<div class="nav-item '+(state.page===i.id?'active':'')+'" onclick="navigateTo(\''+i.id+'\')"><span class="icon">'+i.icon+'</span><span>'+i.vi+'</span></div>').join('');}
+// navigateTo handled by shared auth block below
+function setLang(lang){state.lang=lang;document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));renderNav();}
+
+function setStatFilter(filter){
+  state.activeFilter=state.activeFilter===filter?null:filter;
+  renderExpenses();
+}
+
+function renderExpenses(){
+  const content=document.getElementById('pageContent');
+  const cm=getCurrentMonth(),lm=getLastMonth();
+  const thisM=EXPENSES.filter(e=>e.date.startsWith(cm)&&e.status!=='tu_choi');
+  const lastM=EXPENSES.filter(e=>e.date.startsWith(lm)&&e.status!=='tu_choi');
+  const thisTotal=thisM.reduce((s,e)=>s+e.amount,0);
+  const lastTotal=lastM.reduce((s,e)=>s+e.amount,0);
+  const change=lastTotal>0?Math.round(((thisTotal-lastTotal)/lastTotal)*100):0;
+  const pending=EXPENSES.filter(e=>e.status==='cho_duyet');
+  const pendingCount=pending.length;
+  const pendingTotal=pending.reduce((s,e)=>s+e.amount,0);
+  const unpaid=EXPENSES.filter(e=>e.payment==='chua_thanh_toan'&&e.status!=='tu_choi');
+  const unpaidCount=unpaid.length;
+  const unpaidTotal=unpaid.reduce((s,e)=>s+e.amount,0);
+  
+  // Determine chart month based on filter
+  let chartMonth=cm;
+  if(state.activeFilter==='lastMonth')chartMonth=lm;
+  
+  let html='<div class="fade">';
+  html+='<div class="expense-stats">';
+  html+='<div class="stat-card highlight'+(state.activeFilter==='thisMonth'?' active':'')+'" onclick="setStatFilter(\'thisMonth\')"><div class="stat-icon">💰</div><div class="stat-info"><div class="stat-label">Chi phí tháng này</div><div class="stat-value">'+fmt(thisTotal)+'đ</div><div class="stat-sub '+(change>=0?'down':'up')+'">'+(change>=0?'↑':'↓')+' '+Math.abs(change)+'% so với tháng trước</div></div></div>';
+  html+='<div class="stat-card'+(state.activeFilter==='lastMonth'?' active':'')+'" onclick="setStatFilter(\'lastMonth\')"><div class="stat-icon">📅</div><div class="stat-info"><div class="stat-label">Tháng trước</div><div class="stat-value">'+fmt(lastTotal)+'đ</div></div></div>';
+  html+='<div class="stat-card'+(state.activeFilter==='pending'?' active':'')+'" onclick="setStatFilter(\'pending\')"><div class="stat-icon">⏳</div><div class="stat-info"><div class="stat-label">Chờ duyệt</div><div class="stat-value">'+pendingCount+' khoản</div><div class="stat-detail">Tổng: <span class="amount">'+fmt(pendingTotal)+'đ</span></div></div></div>';
+  html+='<div class="stat-card'+(state.activeFilter==='unpaid'?' active':'')+'" onclick="setStatFilter(\'unpaid\')"><div class="stat-icon">💳</div><div class="stat-info"><div class="stat-label">Chưa thanh toán</div><div class="stat-value">'+unpaidCount+' khoản</div><div class="stat-detail">Tổng: <span class="amount">'+fmt(unpaidTotal)+'đ</span></div></div></div>';
+  html+='</div>';
+  
+  // Active filter tag
+  if(state.activeFilter){
+    const filterLabels={thisMonth:'Chi phí tháng này',lastMonth:'Chi phí tháng trước',pending:'Chờ duyệt',unpaid:'Chưa thanh toán'};
+    html+='<div class="active-filter-tag">🔍 Đang lọc: '+filterLabels[state.activeFilter]+' <span class="remove" onclick="setStatFilter(null)">✕</span></div>';
+  }
+  
+  html+='<div class="chart-section"><div class="chart-header"><div class="chart-title">📊 Biểu đồ chi phí</div><div class="chart-controls"><select class="chart-select" id="chartTypeSelect" onchange="changeChartType()"><option value="category"'+(state.chartType==='category'?' selected':'')+'>Theo nhóm</option><option value="dept"'+(state.chartType==='dept'?' selected':'')+'>Theo phòng ban</option><option value="expenseType"'+(state.chartType==='expenseType'?' selected':'')+'>Định phí/Biến phí</option></select><select class="chart-select" id="chartMonth" onchange="updateChart()"></select></div></div><div class="chart-container"><canvas id="expenseChart"></canvas></div></div>';
+  
+  html+='<div class="expense-header"><div class="expense-filters">';
+  html+='<select class="filter-select" id="filterCategory" onchange="filterExpenses()"><option value="all">Tất cả nhóm</option>';
+  Object.entries(CATEGORY_LABELS).forEach(([k,v])=>{html+='<option value="'+k+'">'+v+'</option>';});
+  html+='</select>';
+  html+='<select class="filter-select" id="filterDept" onchange="filterExpenses()"><option value="all">Tất cả phòng ban</option>';
+  Object.entries(DEPT_LABELS).forEach(([k,v])=>{html+='<option value="'+k+'">'+v+'</option>';});
+  html+='</select>';
+  html+='<select class="filter-select" id="filterExpenseType" onchange="filterExpenses()"><option value="all">Định phí & Biến phí</option><option value="dinh_phi">Định phí</option><option value="bien_phi">Biến phí</option></select>';
+  html+='<select class="filter-select" id="filterStatus" onchange="filterExpenses()"><option value="all">Tất cả trạng thái</option>';
+  Object.entries(STATUS_LABELS).forEach(([k,v])=>{html+='<option value="'+k+'">'+v+'</option>';});
+  html+='</select>';
+  html+='<select class="filter-select" id="filterPayment" onchange="filterExpenses()"><option value="all">Tình trạng chi</option>';
+  Object.entries(PAYMENT_LABELS).forEach(([k,v])=>{html+='<option value="'+k+'">'+v+'</option>';});
+  html+='</select>';
+  html+='<input type="text" class="filter-input" id="filterSearch" placeholder="🔍 Tìm..." onkeyup="filterExpenses()">';
+  html+='</div><button class="btn-add" onclick="openExpenseModal()">➕ Thêm chi phí</button></div>';
+  
+  html+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Ngày</th><th>Mô tả</th><th>Nhóm</th><th>Loại</th><th>Phòng ban</th><th>Số tiền</th><th>Trạng thái</th><th>Tình trạng chi</th><th>📎</th><th>Người tạo</th><th>Thao tác</th></tr></thead><tbody id="expenseTableBody"></tbody></table></div>';
+  html+='</div>';
+  content.innerHTML=html;
+  
+  // Populate month selector with DD/MM format
+  populateMonthSelector(chartMonth);
+  
+  setTimeout(updateChart,100);
+  renderExpenseTable();
+}
+
+function populateMonthSelector(selectedMonth){
+  const select=document.getElementById('chartMonth');
+  if(!select)return;
+  const months=[];
+  const now=new Date();
+  // 36 tháng: 12 tháng tương lai + 24 tháng quá khứ
+  for(let i=-12;i<24;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const val=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label=String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    months.push({val,label});
+  }
+  select.innerHTML=months.map(m=>'<option value="'+m.val+'"'+(m.val===selectedMonth?' selected':'')+'>'+m.label+'</option>').join('');
+}
+
+function changeChartType(){state.chartType=document.getElementById('chartTypeSelect').value;updateChart();}
+
+function updateChart(){
+  const monthSelect=document.getElementById('chartMonth');
+  let month=monthSelect?monthSelect.value:getCurrentMonth();
+  
+  // Override month based on active filter
+  if(state.activeFilter==='thisMonth')month=getCurrentMonth();
+  else if(state.activeFilter==='lastMonth')month=getLastMonth();
+  
+  let monthExp=EXPENSES.filter(e=>e.date.startsWith(month)&&e.status!=='tu_choi');
+  
+  // Apply status/payment filter for pending/unpaid
+  if(state.activeFilter==='pending'){
+    monthExp=EXPENSES.filter(e=>e.status==='cho_duyet');
+  }else if(state.activeFilter==='unpaid'){
+    monthExp=EXPENSES.filter(e=>e.payment==='chua_thanh_toan'&&e.status!=='tu_choi');
+  }
+  
+  let data={},labels,colors;
+  if(state.chartType==='category'){labels=CATEGORY_LABELS;colors=CATEGORY_COLORS;monthExp.forEach(e=>{data[e.category]=(data[e.category]||0)+e.amount;});}
+  else if(state.chartType==='dept'){labels=DEPT_LABELS;colors=DEPT_COLORS;monthExp.forEach(e=>{data[e.dept]=(data[e.dept]||0)+e.amount;});}
+  else{labels=EXPENSE_TYPE_LABELS;colors=EXPENSE_TYPE_COLORS;monthExp.forEach(e=>{data[e.expenseType]=(data[e.expenseType]||0)+e.amount;});}
+  renderChart(data,labels,colors);
+}
+
+function renderChart(data,labelMap,colorMap){
+  const ctx=document.getElementById('expenseChart');if(!ctx)return;
+  if(state.charts.main)state.charts.main.destroy();
+  const chartLabels=Object.keys(data).map(k=>labelMap[k]||k);
+  const chartValues=Object.values(data);
+  const chartColors=Object.keys(data).map(k=>colorMap[k]||'#757575');
+  if(chartLabels.length===0){state.charts.main=new Chart(ctx,{type:'doughnut',data:{labels:['Không có dữ liệu'],datasets:[{data:[1],backgroundColor:['#E0E0E0']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});return;}
+  state.charts.main=new Chart(ctx,{type:'doughnut',data:{labels:chartLabels,datasets:[{data:chartValues,backgroundColor:chartColors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'right',labels:{boxWidth:14,padding:12,font:{size:12}}}}}});
+}
+
+function renderExpenseTable(){
+  const tbody=document.getElementById('expenseTableBody');
+  const cm=getCurrentMonth(),lm=getLastMonth();
+  
+  const cf=document.getElementById('filterCategory').value;
+  const df=document.getElementById('filterDept').value;
+  const tf=document.getElementById('filterExpenseType').value;
+  const sf=document.getElementById('filterStatus').value;
+  const pf=document.getElementById('filterPayment').value;
+  const search=document.getElementById('filterSearch').value.toLowerCase();
+  
+  const _expScope=_canScope('expenses.view');
+  let filtered=(_expScope==='own')?EXPENSES.filter(e=>e.creator===state.user.name):EXPENSES;
+  
+  // Apply stat card filter
+  if(state.activeFilter==='thisMonth'){
+    filtered=filtered.filter(e=>e.date.startsWith(cm)&&e.status!=='tu_choi');
+  }else if(state.activeFilter==='lastMonth'){
+    filtered=filtered.filter(e=>e.date.startsWith(lm)&&e.status!=='tu_choi');
+  }else if(state.activeFilter==='pending'){
+    filtered=filtered.filter(e=>e.status==='cho_duyet');
+  }else if(state.activeFilter==='unpaid'){
+    filtered=filtered.filter(e=>e.payment==='chua_thanh_toan'&&e.status!=='tu_choi');
+  }
+  
+  // Apply dropdown filters
+  if(cf!=='all')filtered=filtered.filter(e=>e.category===cf);
+  if(df!=='all')filtered=filtered.filter(e=>e.dept===df);
+  if(tf!=='all')filtered=filtered.filter(e=>e.expenseType===tf);
+  if(sf!=='all')filtered=filtered.filter(e=>e.status===sf);
+  if(pf!=='all')filtered=filtered.filter(e=>e.payment===pf);
+  if(search)filtered=filtered.filter(e=>e.desc.toLowerCase().includes(search));
+  
+  filtered.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  
+  if(filtered.length===0){tbody.innerHTML='<tr><td colspan="11"><div class="empty-state"><div class="icon">📭</div><div class="title">Không có dữ liệu</div></div></td></tr>';return;}
+  
+  tbody.innerHTML=filtered.map(e=>{
+    const fileIcon=e.file?((e.fileUrl||e.fileData)?'<span title="'+e.file+'" style="cursor:pointer" onclick="event.stopPropagation();viewExpense(\''+e.id+'\')">📎</span>':'<span title="'+e.file+' (chỉ tên)" style="color:var(--cream-b)">📄</span>'):'';
+    return '<tr onclick="viewExpense(\''+e.id+'\')" style="cursor:pointer"><td>'+formatDate(e.date)+'</td><td><span class="expense-desc" title="'+e.desc+'">'+e.desc+'</span></td><td><span class="badge '+e.category+'">'+CATEGORY_LABELS[e.category]+'</span></td><td><span class="type-badge '+e.expenseType+'">'+EXPENSE_TYPE_LABELS[e.expenseType]+'</span></td><td><span class="dept-badge">'+DEPT_LABELS[e.dept]+'</span></td><td><span class="expense-amount">'+fmt(e.amount)+'đ</span></td><td><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></td><td><span class="payment-badge '+e.payment+'">'+PAYMENT_LABELS[e.payment]+'</span></td><td style="text-align:center">'+fileIcon+'</td><td>'+e.creator+'</td><td onclick="event.stopPropagation()"><div class="action-btns">'+(_can('expenses.edit')?'<button class="action-btn edit" onclick="editExpense(\''+e.id+'\')">✏️</button>':'')+''+(e.status==='cho_duyet'?(_can('expenses.approve')?'<button class="action-btn approve" onclick="openApproveModal(\''+e.id+'\')">✅</button>':''):'')+''+(_can('expenses.delete')?'<button class="action-btn delete" onclick="deleteExpense(\''+e.id+'\')">🗑️</button>':'')+'</div></td></tr>';
+  }).join('');
+}
+
+function filterExpenses(){renderExpenseTable();}
+
+function openExpenseModal(id){
+  const modal=document.getElementById('expenseModal');
+  const title=document.getElementById('expenseModalTitle');
+  state.selectedFile=null;state.selectedFileData=null;state._pendingFileObj=null;document.getElementById('filePreview').innerHTML='';
+  if(id){const e=EXPENSES.find(x=>x.id===id);if(!e)return;title.textContent='✏️ Sửa chi phí';document.getElementById('expenseId').value=e.id;document.getElementById('expenseDate').value=e.date;document.getElementById('expenseAmount').value=e.amount;document.getElementById('expenseDesc').value=e.desc;document.getElementById('expenseCategory').value=e.category;document.getElementById('expenseDept').value=e.dept;document.getElementById('expenseType').value=e.expenseType;document.getElementById('expenseStatus').value=e.status;document.getElementById('expensePayment').value=e.payment;document.getElementById('expenseNote').value=e.note||'';if(e.file){state.selectedFile=e.file;const hasFile=!!(e.fileUrl||e.fileData);document.getElementById('filePreview').innerHTML='<div class="file-preview"><span class="file-preview-name">📎 '+e.file+(hasFile?' ✅':' ⚠️')+'</span><span class="file-preview-remove" onclick="removeFile()">✕</span></div>';}}
+  else{title.textContent='💰 Thêm chi phí';document.getElementById('expenseForm').reset();document.getElementById('expenseId').value='';document.getElementById('expenseDate').value=new Date().toISOString().split('T')[0];document.getElementById('expenseStatus').value='cho_duyet';document.getElementById('expensePayment').value='chua_thanh_toan';document.getElementById('expenseType').value='bien_phi';}
+  modal.classList.remove('hidden');
+}
+function closeExpenseModal(){document.getElementById('expenseModal').classList.add('hidden');}
+function handleFileSelect(e){
+  const f=e.target.files[0];
+  if(!f)return;
+  if(f.size>10*1024*1024){alert('File quá lớn (tối đa 10MB)');return;}
+  
+  state.selectedFile=f.name;
+  state.selectedFileData=null;
+  state._pendingFileObj=f; // giữ File object để upload khi save
+  
+  const sizeTxt=f.size>1024*1024?(f.size/1024/1024).toFixed(1)+'MB':Math.round(f.size/1024)+'KB';
+  document.getElementById('filePreview').innerHTML='<div class="file-preview"><span class="file-preview-name">📎 '+f.name+' ('+sizeTxt+')</span><span class="file-preview-remove" onclick="removeFile()">✕</span></div>';
+}
+function removeFile(){state.selectedFile=null;state.selectedFileData=null;state._pendingFileObj=null;document.getElementById('filePreview').innerHTML='';document.getElementById('expenseFile').value='';}
+function saveExpense(e){
+  e.preventDefault();
+  const id=document.getElementById('expenseId').value;
+  const isEdit=!!id;
+  const oldExpense=isEdit?EXPENSES.find(x=>x.id===id):null;
+  
+  const data={id:isEdit?id:generateExpenseId(),date:document.getElementById('expenseDate').value,amount:parseInt(document.getElementById('expenseAmount').value)||0,desc:document.getElementById('expenseDesc').value,category:document.getElementById('expenseCategory').value,dept:document.getElementById('expenseDept').value,expenseType:document.getElementById('expenseType').value,status:document.getElementById('expenseStatus').value,payment:document.getElementById('expensePayment').value,note:document.getElementById('expenseNote').value,file:state.selectedFile,fileUrl:oldExpense?oldExpense.fileUrl:null,filePath:oldExpense?oldExpense.filePath:null,fileData:null,creator:isEdit?oldExpense?.creator:state.user.name};
+  
+  // If there's a new file to upload
+  if(state._pendingFileObj && window.H5CStorage && H5CStorage.ready){
+    const btn=document.querySelector('#expenseForm .modal-btn.primary');
+    if(btn){btn.textContent='⏳ Đang tải file...';btn.disabled=true;}
+    
+    H5CStorage.upload(state._pendingFileObj, 'expenses', (pct) => {
+      if(btn) btn.textContent='⏳ Tải file... '+pct+'%';
+    }).then(result => {
+      data.fileUrl=result.url;
+      data.filePath=result.path;
+      data.file=result.name;
+      _doSaveExpense(data, isEdit, id);
+      if(btn){btn.textContent='💾 Lưu';btn.disabled=false;}
+    }).catch(err => {
+      console.warn('Upload failed, saving with base64 fallback:', err);
+      // Fallback: đọc base64 nếu Storage lỗi
+      const reader=new FileReader();
+      reader.onload=function(ev){
+        data.fileData=ev.target.result;
+        _doSaveExpense(data, isEdit, id);
+        if(btn){btn.textContent='💾 Lưu';btn.disabled=false;}
+      };
+      reader.readAsDataURL(state._pendingFileObj);
+    });
+  } else {
+    // Giữ lại file cũ nếu không chọn file mới
+    if(!state.selectedFile && oldExpense){
+      data.file=null; data.fileUrl=null; data.filePath=null;
+    } else if(state.selectedFile && !state._pendingFileObj && oldExpense){
+      data.fileUrl=oldExpense.fileUrl;
+      data.filePath=oldExpense.filePath;
+      data.fileData=oldExpense.fileData;
+    }
+    _doSaveExpense(data, isEdit, id);
+  }
+}
+function _doSaveExpense(data, isEdit, id){
+  if(isEdit){const idx=EXPENSES.findIndex(x=>x.id===id);if(idx!==-1)EXPENSES[idx]=data;}else{EXPENSES.unshift(data);}
+  H5C.set('expenses', EXPENSES);
+  state._pendingFileObj=null;
+  closeExpenseModal();renderExpenses();
+}
+
+function viewExpense(id){
+  const e=EXPENSES.find(x=>x.id===id);if(!e)return;state.currentExpenseId=id;
+  // Build file section
+  let fileHtml='';
+  if(e.file){
+    const src = e.fileUrl || e.fileData || null;
+    if(src){
+      const isImage=/\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(e.file);
+      const isPdf=/\.pdf$/i.test(e.file);
+      fileHtml='<div class="detail-section"><div class="detail-title">📎 Đính kèm</div>';
+      if(isImage){
+        fileHtml+='<div style="margin-bottom:8px"><img src="'+src+'" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid var(--cream-b);cursor:pointer" onclick="window.open(this.src,\'_blank\')"></div>';
+      }
+      fileHtml+='<a href="'+src+'" download="'+e.file+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--green);color:var(--brown);border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">⬇️ Tải '+e.file+'</a>';
+      if(isPdf||isImage){
+        fileHtml+=' <a href="'+src+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--cream-d);color:var(--brown);border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;margin-left:6px">👁 Xem</a>';
+      }
+      fileHtml+='</div>';
+    }else{
+      fileHtml='<div class="detail-section"><div class="detail-title">📎 Đính kèm</div><p style="font-size:12px;color:var(--brown-m)">📄 '+e.file+' <span style="color:var(--orange)">(file cũ — chỉ có tên)</span></p></div>';
+    }
+  }
+  document.getElementById('expenseDetailContent').innerHTML='<div class="detail-section"><div class="detail-title">💵 Thông tin</div><div class="detail-grid"><div class="detail-item"><span class="detail-label">Mã</span><span class="detail-value">'+e.id+'</span></div><div class="detail-item"><span class="detail-label">Ngày</span><span class="detail-value">'+formatDate(e.date)+'</span></div><div class="detail-item" style="grid-column:span 2"><span class="detail-label">Mô tả</span><span class="detail-value">'+e.desc+'</span></div><div class="detail-item"><span class="detail-label">Số tiền</span><span class="detail-value" style="color:var(--red);font-weight:900">'+fmt(e.amount)+'đ</span></div><div class="detail-item"><span class="detail-label">Loại</span><span class="detail-value"><span class="type-badge '+e.expenseType+'">'+EXPENSE_TYPE_LABELS[e.expenseType]+'</span></span></div><div class="detail-item"><span class="detail-label">Nhóm</span><span class="detail-value"><span class="badge '+e.category+'">'+CATEGORY_LABELS[e.category]+'</span></span></div><div class="detail-item"><span class="detail-label">Phòng ban</span><span class="detail-value"><span class="dept-badge">'+DEPT_LABELS[e.dept]+'</span></span></div></div></div><div class="detail-section"><div class="detail-title">📋 Trạng thái</div><div class="detail-grid"><div class="detail-item"><span class="detail-label">Duyệt</span><span class="detail-value"><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></span></div><div class="detail-item"><span class="detail-label">Thanh toán</span><span class="detail-value"><span class="payment-badge '+e.payment+'">'+PAYMENT_LABELS[e.payment]+'</span></span></div></div></div>'+fileHtml+(e.note?'<div class="detail-section"><div class="detail-title">📝 Ghi chú</div><p>'+e.note+'</p></div>':'');
+  document.getElementById('expenseDetailModal').classList.remove('hidden');
+}
+function closeExpenseDetailModal(){document.getElementById('expenseDetailModal').classList.add('hidden');}
+function editFromDetail(){closeExpenseDetailModal();editExpense(state.currentExpenseId);}
+function editExpense(id){openExpenseModal(id);}
+
+function openApproveModal(id){const e=EXPENSES.find(x=>x.id===id);if(!e)return;state.currentExpenseId=id;document.getElementById('approveExpenseDesc').textContent=e.desc;document.getElementById('approveModal').classList.remove('hidden');}
+function closeApproveModal(){document.getElementById('approveModal').classList.add('hidden');}
+function approveExpense(){
+  if(!_can('expenses.approve')){alert('Không có quyền duyệt');return;}const e=EXPENSES.find(x=>x.id===state.currentExpenseId);if(e)e.status='da_duyet';H5C.set('expenses',EXPENSES);closeApproveModal();renderExpenses();}
+function rejectExpense(){
+  if(!_can('expenses.reject')){alert('Không có quyền từ chối');return;}const e=EXPENSES.find(x=>x.id===state.currentExpenseId);if(e)e.status='tu_choi';H5C.set('expenses',EXPENSES);closeApproveModal();renderExpenses();}
+
+function deleteExpense(id){state.currentExpenseId=id;document.getElementById('deleteModal').classList.remove('hidden');}
+function closeDeleteModal(){document.getElementById('deleteModal').classList.add('hidden');}
+function confirmDelete(){const idx=EXPENSES.findIndex(x=>x.id===state.currentExpenseId);if(idx!==-1)EXPENSES.splice(idx,1);H5C.set('expenses',EXPENSES);closeDeleteModal();renderExpenses();}
+
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('loginPassword').addEventListener('keypress',e=>{if(e.key==='Enter')handleLogin();});});
+
+// ===== SHARED AUTH (sessionStorage) =====
+
+// ═══════════════════════════════════════════════════════════
+// H5C SHARED DATA STORE  (localStorage, prefix h5c_v1_)
+// Keys: employees | attendance | kpi | skus | lots
+//       orders | leads | expenses | announcements
+//       pending_order  (leads → orders handoff)
+// ═══════════════════════════════════════════════════════════
+const H5C = {
+  _k: k => 'h5c_v1_' + k,
+  get(k)        { try { const v = localStorage.getItem(this._k(k)); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  set(k, v)     { try { localStorage.setItem(this._k(k), JSON.stringify(v)); } catch(e) {} },
+  init(k, def)  { const v = this.get(k); if (v !== null) return v; this.set(k, def); return def; },
+  clear(k)      { localStorage.removeItem(this._k(k)); },
+  // Merge stored employees into a local array (for modules that read but don't own employees)
+  mergeEmployees(arr) {
+    const stored = this.get('employees');
+    if (stored && stored.length) { arr.splice(0, arr.length, ...stored); }
+  },
+  // Get active employee names for sales dropdowns
+  salesList() {
+    const emps = this.get('employees') || [];
+    const active = emps.filter(e => e.status !== 'inactive');
+    return active.map(e => e.name);
+  },
+  // Get SKUs in PRODUCTS_LIST format for orders/leads
+  productsList() {
+    const skus = this.get('skus') || [];
+    if (!skus.length) return null;
+    const UNIT_MAP = {kg:'Kg',hop:'Hộp',chiec:'Chiếc',tui:'Túi',stick:'Stick',cont:'Cont'};
+    return skus.map(s => ({
+      id: s.id, name: s.name,
+      unit: UNIT_MAP[s.unit] || s.unit || 'Cái',
+      price: s.suggestedPrice || 0
+    }));
+  }
+};
+// ═══════════════════════════════════════════════════════════
+
+const SESSION_KEY = 'h5c_erp_user';
+
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+}
+
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) { return null; }
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function navigateTo(p) {
+  const pageMap = {
+    dashboard: 'dashboard.html',
+    leads: 'leads.html',
+    orders: 'orders.html',
+    expenses: 'expenses.html',
+    warehouse: 'warehouse.html',
+    users: 'users.html',
+    reports: 'reports.html',
+    announcements: 'announcements.html',
+  };
+  if (pageMap[p]) {
+    window.location.href = pageMap[p];
+  } else {
+    alert('Module "' + p + '" đang được phát triển!');
+  }
+}
+
+// Auto-login from session on page load
+window.addEventListener('DOMContentLoaded', function() {
+EXPENSES = H5C.init('expenses', EXPENSES);
+    const saved = loadSession();
+  if (saved) {
+    state.user = saved;
+    showMain();
+  }
+});
+// ===== END SHARED AUTH =====
+</script>
+<script src="firebase-sync.js"></script>
+</body>
+</html>
