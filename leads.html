@@ -223,7 +223,7 @@ input,select,button,textarea{font-family:inherit}
 .th-filter:hover{background:var(--cream)}
 .th-filter-icon{font-size:10px;margin-left:4px;opacity:.5}
 .th-filter.active .th-filter-icon{opacity:1;color:var(--green-d)}
-.filter-dropdown{position:absolute;top:100%;left:0;background:var(--white);border:1px solid var(--cream-b);border-radius:10px;box-shadow:0 8px 24px rgba(56,38,28,.12);padding:8px 0;min-width:160px;z-index:100;display:none}
+.filter-dropdown{position:fixed;background:var(--white);border:1px solid var(--cream-b);border-radius:10px;box-shadow:0 8px 24px rgba(56,38,28,.12);padding:8px 0;min-width:160px;z-index:9999;display:none}
 .filter-dropdown.show{display:block}
 .filter-option{padding:8px 14px;font-size:12px;color:var(--brown);cursor:pointer;display:flex;align-items:center;gap:8px}
 .filter-option:hover{background:var(--cream)}
@@ -1058,6 +1058,9 @@ function toggleColumnFilter(e, col) {
   
   // Toggle this one
   if (!wasOpen) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    dropdown.style.top  = rect.bottom + 4 + 'px';
+    dropdown.style.left = rect.left + 'px';
     dropdown.classList.add('show');
     state.openFilter = col;
   } else {
