@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Lead / CRM</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>/* Leads page-specific overrides */
+
+/* Pipeline Funnel */
+.pipeline-funnel{background:var(--h5c-surface);border-radius:var(--h5c-radius-lg);padding:24px;border:1px solid var(--h5c-border);margin-bottom:24px;box-shadow:var(--h5c-shadow-sm)}
+.funnel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.funnel-title{font-size:15px;font-weight:800;color:var(--h5c-text);display:flex;align-items:center;gap:8px}
+.funnel-summary{display:flex;gap:24px;align-items:center}
+.funnel-summary-item{text-align:center}
+.funnel-summary-label{font-size:10px;color:var(--h5c-text-secondary);text-transform:uppercase;letter-spacing:.5px}
+.funnel-summary-value{font-size:18px;font-weight:900;color:var(--h5c-text)}
+.funnel-summary-value.highlight{color:var(--h5c-copper-dark);font-size:20px}
+.funnel-toggle{display:flex;align-items:center;gap:8px;background:var(--h5c-bg-subtle);padding:4px;border-radius:var(--h5c-radius-sm)}
+.funnel-toggle-label{font-size:11px;color:var(--h5c-text-secondary);padding:0 8px}
+.funnel-toggle-btn{padding:6px 12px;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--h5c-text-secondary)}
+.funnel-toggle-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+
+.funnel-stages{display:flex;align-items:stretch;gap:0;margin-top:8px}
+.funnel-stage{flex:1;display:flex;align-items:center}
+.funnel-stage-box{flex:1;text-align:center;padding:16px 8px;background:var(--h5c-bg);border-radius:var(--h5c-radius-md);position:relative;transition:all .2s;cursor:pointer}
+.funnel-stage-box:hover{background:var(--h5c-bg-subtle);transform:translateY(-2px)}
+.funnel-stage.lead .funnel-stage-box{border-top:4px solid #3949AB}
+.funnel-stage.bao_gia .funnel-stage-box{border-top:4px solid #1565C0}
+.funnel-stage.gui_sample .funnel-stage-box{border-top:4px solid #EF6C00}
+.funnel-stage.deal .funnel-stage-box{border-top:4px solid #7B1FA2}
+.funnel-stage.chot_don .funnel-stage-box{border-top:4px solid #2E7D32}
+.funnel-stage.quay_lai .funnel-stage-box{border-top:4px solid #00838F}
+.funnel-count{font-size:28px;font-weight:900;color:var(--h5c-text)}
+.funnel-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-top:4px}
+
+.funnel-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px;min-width:60px}
+.funnel-arrow-icon{font-size:20px;color:var(--h5c-border);margin-bottom:4px}
+.funnel-conversion{font-size:13px;font-weight:800;color:#fff;background:var(--h5c-copper-dark);padding:4px 10px;border-radius:99px;white-space:nowrap}
+.funnel-conversion.low{background:var(--h5c-terracotta)}
+.funnel-conversion.medium{background:var(--h5c-amber)}
+.funnel-conversion.high{background:var(--h5c-copper-dark)}
+
+/* Leads-specific table classes */
+.leads-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.leads-filters{display:flex;gap:10px;flex-wrap:wrap}
+
+.lead-company{font-weight:700;color:var(--h5c-text)}
+.lead-contact{font-size:12px;color:var(--h5c-text-secondary)}
+.lead-value{font-weight:700;color:var(--h5c-copper-dark)}
+.order-sales{font-size:12px;color:var(--h5c-text-secondary)}
+
+/* Badges */
+.type-badge.noi_dia{background:var(--h5c-steel-light);color:var(--h5c-steel)}
+.type-badge.xuat_khau{background:var(--h5c-amber-light);color:var(--h5c-amber)}
+
+.pipeline-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.pipeline-badge.lead{background:var(--h5c-steel-light);color:var(--h5c-steel)}
+.pipeline-badge.bao_gia{background:var(--h5c-steel-light);color:var(--h5c-steel)}
+.pipeline-badge.gui_sample{background:var(--h5c-amber-light);color:var(--h5c-amber)}
+.pipeline-badge.deal{background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+.pipeline-badge.chot_don{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.pipeline-badge.quay_lai{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+
+.potential-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.potential-badge.cao{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.potential-badge.trung_binh{background:var(--h5c-amber-light);color:var(--h5c-amber)}
+.potential-badge.thap{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+
+.portrait-badge{display:inline-block;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+
+/* Action Buttons */
+.action-btns{display:flex;gap:6px}
+.action-btn{width:32px;height:32px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
+.action-btn.view{background:var(--h5c-bg-subtle);color:var(--h5c-text)}
+.action-btn.view:hover{background:var(--h5c-steel);color:#fff}
+.action-btn.edit{background:var(--h5c-bg-subtle);color:var(--h5c-text)}
+.action-btn.edit:hover{background:var(--h5c-amber);color:#fff}
+.action-btn.log{background:var(--h5c-bg-subtle);color:var(--h5c-text)}
+.action-btn.log:hover{background:var(--h5c-copper);color:#fff}
+.action-btn.delete{background:var(--h5c-bg-subtle);color:var(--h5c-text)}
+.action-btn.delete:hover{background:var(--h5c-terracotta);color:#fff}
+
+/* Order Detail Section */
+.order-detail-section{margin-bottom:20px}
+.order-detail-title{font-size:13px;font-weight:700;color:var(--h5c-text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--h5c-border)}
+.order-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.order-detail-item{display:flex;flex-direction:column;gap:2px}
+.order-detail-label{font-size:11px;color:var(--h5c-text-secondary)}
+.order-detail-value{font-size:13px;font-weight:600;color:var(--h5c-text)}
+
+.order-products-table{width:100%;border-collapse:collapse;margin-top:12px}
+.order-products-table th{background:var(--h5c-bg-subtle);padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--h5c-text-secondary)}
+.order-products-table td{padding:10px 12px;border-bottom:1px solid var(--h5c-border);font-size:13px}
+.order-products-table tr:last-child td{border-bottom:none}
+
+/* Contact Logs */
+.contact-logs{display:flex;flex-direction:column;gap:12px}
+.contact-log-item{background:var(--h5c-bg);border-radius:var(--h5c-radius-md);padding:12px 16px;border-left:3px solid var(--h5c-copper)}
+.log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.log-date{font-size:12px;font-weight:700;color:var(--h5c-text)}
+.log-result{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
+.log-result.thanh_cong{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.log-result.dang_theo{background:var(--h5c-amber-light);color:var(--h5c-amber)}
+.log-result.that_bai{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.log-content{font-size:13px;color:var(--h5c-text-secondary);line-height:1.5}
+
+/* Column Filter */
+.th-filter{position:relative;cursor:pointer;user-select:none}
+.th-filter:hover{background:var(--h5c-bg)}
+.th-filter-icon{font-size:10px;margin-left:4px;opacity:.5}
+.th-filter.active .th-filter-icon{opacity:1;color:var(--h5c-copper-dark)}
+.filter-dropdown{position:fixed;background:var(--h5c-surface);border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);box-shadow:var(--h5c-shadow-lg);padding:8px 0;min-width:160px;z-index:9999;display:none}
+.filter-dropdown.show{display:block}
+.filter-option{padding:8px 14px;font-size:12px;color:var(--h5c-text);cursor:pointer;display:flex;align-items:center;gap:8px}
+.filter-option:hover{background:var(--h5c-bg)}
+.filter-option.active{background:var(--h5c-copper-light);color:var(--h5c-text);font-weight:700}
+.filter-option-check{width:14px;height:14px;border:2px solid var(--h5c-border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.filter-option.active .filter-option-check{background:var(--h5c-copper);border-color:var(--h5c-copper);color:#fff}
+.filter-clear{padding:8px 14px;font-size:11px;color:var(--h5c-text-secondary);cursor:pointer;border-top:1px solid var(--h5c-border);margin-top:4px}
+.filter-clear:hover{color:var(--h5c-terracotta)}
+.active-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.active-filter-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--h5c-copper-light);border-radius:99px;font-size:11px;font-weight:600;color:var(--h5c-text)}
+.active-filter-tag .remove{cursor:pointer;opacity:.7}
+.active-filter-tag .remove:hover{opacity:1}
+
+/* Pipeline sales dropdown */
+.pipeline-sales-wrap{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pipeline-sales-label{font-size:11px;font-weight:700;color:var(--h5c-text-secondary)}
+.pipeline-sales-dd-wrap{position:relative;display:inline-block}
+.pipeline-sales-btn{padding:5px 12px;border-radius:var(--h5c-radius-sm);border:1px solid var(--h5c-border);background:var(--h5c-surface);font-size:11px;font-weight:600;cursor:pointer;color:var(--h5c-text);display:flex;align-items:center;gap:6px;min-width:140px;justify-content:space-between}
+.pipeline-sales-btn .arrow{font-size:9px}
+.pipeline-sales-dropdown{display:none;position:fixed;background:var(--h5c-surface);border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);box-shadow:var(--h5c-shadow-lg);padding:8px 0;min-width:200px;z-index:9999;max-height:280px;overflow-y:auto}
+.pipeline-sales-option{padding:8px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.pipeline-sales-option:hover{background:var(--h5c-bg)}
+.pipeline-sales-divider{height:1px;background:var(--h5c-border);margin:4px 0}
+.pipeline-sales-filter-info{font-size:11px;color:var(--h5c-text-secondary)}
+.pipeline-sales-filter-info strong{color:var(--h5c-text)}
+.pipeline-sales-filter-clear{cursor:pointer;color:var(--h5c-terracotta);margin-left:4px}
+.pipeline-scope-info{font-size:11px;color:var(--h5c-text-secondary);margin-top:8px}
+.ps-check{width:14px;text-align:center}
+
+/* Product row grid */
+.lead-product-header{display:grid;grid-template-columns:2fr 0.6fr 0.7fr 1fr 68px 36px;gap:8px;margin-bottom:4px;padding:0 2px}
+.lead-product-header span{font-size:10px;font-weight:700;color:var(--h5c-text-secondary);text-transform:uppercase}
+.lead-product-row{display:grid;grid-template-columns:2fr 0.6fr 0.7fr 1fr 68px 36px;gap:8px;align-items:center;margin-bottom:8px}
+.lead-product-remove{width:36px;height:36px;border:none;background:var(--h5c-terracotta-light);color:var(--h5c-terracotta);border-radius:var(--h5c-radius-sm);cursor:pointer;font-size:14px;flex-shrink:0}
+
+/* Country dropdown */
+.country-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:var(--h5c-surface);border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);box-shadow:var(--h5c-shadow-lg);max-height:200px;overflow-y:auto;z-index:9999;margin-top:2px}
+.country-option{padding:9px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--h5c-text)}
+.country-option:hover{background:var(--h5c-bg)}
+
+/* Modal form layout — required by lead modal */
+.modal-group{margin-bottom:12px}
+.modal-label{font-size:10px;font-weight:700;color:var(--h5c-text-secondary);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.2px}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal.small{max-width:440px}
+
+/* KPI Stats grid */
+.leads-stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+.stat-icon{font-size:22px;margin-bottom:8px}
+.stat-label{font-size:11px;font-weight:700;color:var(--h5c-text-secondary);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.stat-value{font-size:22px;font-weight:900;color:var(--h5c-text)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:3px}
+.stat-card.highlight{background:linear-gradient(135deg,var(--h5c-espresso),#2A1C14);border:none}
+.stat-card.highlight .stat-label{color:rgba(255,255,255,.6)}
+.stat-card.highlight .stat-value{color:var(--h5c-copper)}
+.stat-card.highlight .stat-sub{color:rgba(255,255,255,.4)}
+
+/* Charts row */
+.leads-charts-row{display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:22px}
+
+/* Empty state */
+.empty-state .text{font-size:13px;color:var(--h5c-text-muted);margin-top:6px}
+
+/* Responsive */
+@media(max-width:900px){.order-detail-grid{grid-template-columns:1fr}.leads-stats-grid{grid-template-columns:repeat(3,1fr)}.leads-charts-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button id="loginBtn" class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">☕</div>
+      <div class="sidebar-brand">Hello 5 Coffee</div>
+      <div class="sidebar-tagline">Internal Management</div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-footer">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="vi" onclick="setLang('vi')">🇻🇳 VI</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">🇬🇧 EN</button>
+      </div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title" id="pageTitle">Leads / CRM</div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">TT</div>
+          <div>
+            <div class="user-name" id="userName">—</div>
+            <div class="user-role" id="userRole">—</div>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- LEAD MODAL -->
+<div id="leadModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-title" id="leadModalTitle">Thêm Lead mới</div>
+    <form id="leadForm" onsubmit="saveLead(event)">
+      <input type="hidden" id="leadId">
+
+      <div class="modal-row">
+        <div class="modal-group">
+          <label class="modal-label">Tên doanh nghiệp *</label>
+          <input type="text" id="leadCompany" class="modal-input" placeholder="Tên công ty/doanh nghiệp" required>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Phân loại *</label>
+          <select id="leadType" class="modal-input" required>
+            <option value="noi_dia">Nội địa</option>
+            <option value="xuat_khau">Xuất khẩu</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-row">
+        <div class="modal-group">
+          <label class="modal-label">Người đại diện</label>
+          <input type="text" id="leadRepresentative" class="modal-input" placeholder="Họ tên người liên hệ">
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Chức vụ người đại diện</label>
+          <input type="text" id="leadRepTitle" class="modal-input" placeholder="Giám đốc, Trưởng phòng mua hàng...">
+        </div>
+      </div>
+
+      <div class="modal-row">
+        <div class="modal-group">
+          <label class="modal-label">Số điện thoại *</label>
+          <input type="tel" id="leadPhone" class="modal-input" placeholder="0xxx xxx xxx" required>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Email</label>
+          <input type="email" id="leadEmail" class="modal-input" placeholder="email@company.com">
+        </div>
+      </div>
+
+      <div class="modal-group">
+        <label class="modal-label">Địa chỉ</label>
+        <input type="text" id="leadAddress" class="modal-input" placeholder="Địa chỉ doanh nghiệp">
+      </div>
+
+      <div class="modal-row three">
+        <div class="modal-group" style="position:relative">
+          <label class="modal-label">Quốc gia *</label>
+          <input type="text" id="leadCountrySearch" class="modal-input" placeholder="Tìm quốc gia..." autocomplete="off"
+            oninput="filterCountryList(this.value)" onfocus="showCountryDropdown()" style="margin-bottom:0">
+          <input type="hidden" id="leadCountry" required>
+          <div id="countryDropdown" class="country-dropdown"></div>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Chân dung KH *</label>
+          <select id="leadPortrait" class="modal-input" required>
+            <option value="nha_phan_phoi">Nhà phân phối</option>
+            <option value="ban_le">Bán lẻ</option>
+            <option value="sieu_thi">Siêu thị</option>
+            <option value="horeca">Horeca</option>
+            <option value="quan_cafe">Quán cà phê</option>
+            <option value="chuoi_fnb">Chuỗi F&B</option>
+            <option value="tmdt">Thương mại điện tử</option>
+          </select>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Kênh *</label>
+          <select id="leadChannel" class="modal-input" required>
+            <option value="facebook">Facebook</option>
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="website">Website</option>
+            <option value="shopee">Shopee</option>
+            <option value="tiktok">TikTok</option>
+            <option value="telesales">Telesales</option>
+            <option value="truc_tiep">Trực tiếp</option>
+            <option value="duoc_gioi_thieu">Được giới thiệu</option>
+            <option value="hoi_cho">Hội chợ/Triển lãm</option>
+            <option value="google_ads">Google Ads</option>
+            <option value="email">Email marketing</option>
+            <option value="zalo">Zalo</option>
+            <option value="chua_ro">Chưa rõ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-row three">
+        <div class="modal-group">
+          <label class="modal-label">Pipeline *</label>
+          <select id="leadPipeline" class="modal-input" required>
+            <option value="lead">Lead</option>
+            <option value="bao_gia">Báo giá</option>
+            <option value="gui_sample">Gửi sample</option>
+            <option value="deal">Deal</option>
+            <option value="chot_don">Chốt đơn đầu</option>
+            <option value="quay_lai">Quay lại</option>
+          </select>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Tiềm năng *</label>
+          <select id="leadPotential" class="modal-input" required>
+            <option value="cao">Cao</option>
+            <option value="trung_binh">Trung bình</option>
+            <option value="thap">Thấp</option>
+          </select>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Vấn đề gặp phải</label>
+          <select id="leadIssue" class="modal-input">
+            <option value="">-- Không có --</option>
+            <option value="gia_cao">Giá cao</option>
+            <option value="khong_sp_phu_hop">Không có SP phù hợp</option>
+            <option value="thanh_toan">Vấn đề thanh toán</option>
+            <option value="sp_khong_tot">SP không tốt</option>
+            <option value="thoi_gian_giao">Thời gian giao hàng</option>
+            <option value="moq_cao">MOQ cao</option>
+            <option value="chua_ro">Chưa rõ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-row three">
+        <div class="modal-group">
+          <label class="modal-label">Ngày bắt đầu *</label>
+          <input type="date" id="leadStartDate" class="modal-input" required>
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Liên hệ cuối</label>
+          <input type="date" id="leadLastContact" class="modal-input">
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Giá trị ước tính</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" id="leadEstimatedValue" class="modal-input" placeholder="0" step="any" style="margin-bottom:0;flex:1">
+            <select id="leadEstimatedCurrency" class="modal-input" style="margin-bottom:0;width:80px;flex-shrink:0">
+              <option value="VND">VNĐ</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-group">
+        <label class="modal-label">Sales phụ trách *</label>
+        <select id="leadSales" class="modal-input" required>
+          <option value="">-- Chọn Sales --</option>
+        </select>
+      </div>
+
+      <div class="order-detail-section">
+        <div class="order-detail-title">Sản phẩm quan tâm</div>
+        <div id="leadProducts"></div>
+        <button type="button" class="btn-add" style="margin-top:12px" onclick="addLeadProductRow()">+ Thêm sản phẩm</button>
+      </div>
+
+      <div class="modal-group">
+        <label class="modal-label">Ghi chú</label>
+        <textarea id="leadNote" class="modal-input" rows="2" placeholder="Ghi chú thêm về lead..."></textarea>
+      </div>
+
+      <div class="modal-btns">
+        <button type="button" class="modal-btn cancel" onclick="closeLeadModal()">Hủy</button>
+        <button type="submit" class="modal-btn primary">Lưu Lead</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- LEAD DETAIL MODAL -->
+<div id="leadDetailModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:750px">
+    <div class="modal-title">Chi tiết Lead: <span id="detailLeadId" style="color:var(--green-d)"></span></div>
+    <div id="leadDetailContent"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeLeadDetailModal()">Đóng</button>
+      <div id="createOrderBtnWrap" class="hidden"><button class="modal-btn" style="background:#E8F0E8;color:#4A7A4D;border:1px solid #A5D6A7;font-weight:800" onclick="createOrderFromLead()">Tạo đơn hàng</button></div>
+      <button class="modal-btn primary" onclick="editFromLeadDetail()">Chỉnh sửa</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT LOG MODAL -->
+<div id="contactLogModal" class="modal-overlay hidden">
+  <div class="modal small">
+    <div class="modal-title">Ghi chú liên hệ: <span id="contactLogLeadName" style="color:var(--green-d)"></span></div>
+    <form onsubmit="saveContactLog(event)">
+      <div class="modal-group">
+        <label class="modal-label">Ngày liên hệ *</label>
+        <input type="date" id="contactLogDate" class="modal-input" required>
+      </div>
+      <div class="modal-group">
+        <label class="modal-label">Nội dung *</label>
+        <textarea id="contactLogContent" class="modal-input" rows="3" placeholder="Nội dung cuộc gọi/email/gặp mặt..." required></textarea>
+      </div>
+      <div class="modal-group">
+        <label class="modal-label">Kết quả *</label>
+        <select id="contactLogResult" class="modal-input" required>
+          <option value="thanh_cong">Thành công</option>
+          <option value="dang_theo">Đang theo</option>
+          <option value="that_bai">Thất bại</option>
+        </select>
+      </div>
+      <div class="modal-btns">
+        <button type="button" class="modal-btn cancel" onclick="closeContactLogModal()">Hủy</button>
+        <button type="submit" class="modal-btn primary">Lưu</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE LEAD MODAL -->
+<div id="deleteLeadModal" class="modal-overlay hidden">
+  <div class="modal small">
+    <div class="modal-title">Xác nhận xóa Lead</div>
+    <p style="font-size:14px;color:var(--brown-m);margin-bottom:20px">
+      Bạn có chắc muốn xóa lead <strong id="deleteLeadName"></strong>? Hành động này không thể hoàn tác.
+    </p>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeDeleteLeadModal()">Không</button>
+      <button class="modal-btn danger" onclick="confirmDeleteLead()">Xóa</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════════
+const ACCOUNTS = {
+  "admin@hello5coffee.com": {pw:"Admin@123456", user:{id:"0",name:"Louis Nguyen",role:"C_LEVEL",roleLabel:"C-Level / Co-Founder",pos:"CCO & Co-Founder",first:false}},
+  "manager@hello5coffee.com": {pw:"123456", user:{id:"1",name:"Nguyễn Thị Lan",role:"MANAGER",roleLabel:"Quản lý",pos:"Trưởng phòng HR",first:false}},
+  "sales@hello5coffee.com": {pw:"123456", user:{id:"3",name:"Lê Minh Khoa",role:"EMPLOYEE_SALES",roleLabel:"Nhân viên Sales",pos:"Chuyên viên Kinh doanh",first:false}},
+};
+
+const _DEFAULT_LEAD_PRODUCTS = [
+  {id:'P001',name:'Cà phê Robusta Rang Xay 500g',price:185000},
+  {id:'P002',name:'Cà phê Arabica Đà Lạt 250g',price:220000},
+  {id:'P003',name:'Cà phê Blend House 1kg',price:350000},
+  {id:'P004',name:'Cà phê Instant Premium 20 gói',price:150000},
+  {id:'P005',name:'Phin nhôm cao cấp',price:85000},
+  {id:'P006',name:'Phin inox 304',price:120000},
+  {id:'P007',name:'Ly sứ Hello 5 Coffee 250ml',price:95000},
+  {id:'P008',name:'Bộ Gift Set Tết 2025',price:550000},
+  {id:'P009',name:'Cà phê xuất khẩu - Container 20ft',price:450000000},
+  {id:'P010',name:'Cà phê xuất khẩu - Container 40ft',price:850000000},
+];
+
+// Dynamic: prefer H5C skus, fallback to defaults
+function _getProductsList() {
+  const skus = H5C.get('skus') || [];
+  if (skus.length) {
+    const UNIT_MAP = {kg:'Kg',hop:'Hộp',chiec:'Chiếc',tui:'Túi',stick:'Stick',cont:'Cont'};
+    return skus.map(s => ({id:s.id, name:s.name, price:s.suggestedPrice||0, unit:UNIT_MAP[s.unit]||s.unit||''}));
+  }
+  return _DEFAULT_LEAD_PRODUCTS.map(p => ({...p, unit:''}));
+}
+let PRODUCTS_LIST = _DEFAULT_LEAD_PRODUCTS.map(p => ({...p, unit:''}));
+
+// ── FULL COUNTRY LIST ──────────────────────────────────────────
+const COUNTRY_LIST = [
+  {value:'vietnam',flag:'🇻🇳',label:'Việt Nam'},
+  {value:'japan',flag:'🇯🇵',label:'Nhật Bản'},
+  {value:'korea',flag:'🇰🇷',label:'Hàn Quốc'},
+  {value:'china',flag:'🇨🇳',label:'Trung Quốc'},
+  {value:'taiwan',flag:'🇹🇼',label:'Đài Loan'},
+  {value:'hongkong',flag:'🇭🇰',label:'Hồng Kông'},
+  {value:'singapore',flag:'🇸🇬',label:'Singapore'},
+  {value:'thailand',flag:'🇹🇭',label:'Thái Lan'},
+  {value:'malaysia',flag:'🇲🇾',label:'Malaysia'},
+  {value:'indonesia',flag:'🇮🇩',label:'Indonesia'},
+  {value:'philippines',flag:'🇵🇭',label:'Philippines'},
+  {value:'myanmar',flag:'🇲🇲',label:'Myanmar'},
+  {value:'cambodia',flag:'🇰🇭',label:'Campuchia'},
+  {value:'laos',flag:'🇱🇦',label:'Lào'},
+  {value:'india',flag:'🇮🇳',label:'Ấn Độ'},
+  {value:'bangladesh',flag:'🇧🇩',label:'Bangladesh'},
+  {value:'pakistan',flag:'🇵🇰',label:'Pakistan'},
+  {value:'srilanka',flag:'🇱🇰',label:'Sri Lanka'},
+  {value:'usa',flag:'🇺🇸',label:'Mỹ (USA)'},
+  {value:'canada',flag:'🇨🇦',label:'Canada'},
+  {value:'mexico',flag:'🇲🇽',label:'Mexico'},
+  {value:'brazil',flag:'🇧🇷',label:'Brazil'},
+  {value:'argentina',flag:'🇦🇷',label:'Argentina'},
+  {value:'chile',flag:'🇨🇱',label:'Chile'},
+  {value:'colombia',flag:'🇨🇴',label:'Colombia'},
+  {value:'uk',flag:'🇬🇧',label:'Anh (UK)'},
+  {value:'france',flag:'🇫🇷',label:'Pháp'},
+  {value:'germany',flag:'🇩🇪',label:'Đức'},
+  {value:'italy',flag:'🇮🇹',label:'Ý'},
+  {value:'spain',flag:'🇪🇸',label:'Tây Ban Nha'},
+  {value:'netherlands',flag:'🇳🇱',label:'Hà Lan'},
+  {value:'belgium',flag:'🇧🇪',label:'Bỉ'},
+  {value:'switzerland',flag:'🇨🇭',label:'Thụy Sĩ'},
+  {value:'sweden',flag:'🇸🇪',label:'Thụy Điển'},
+  {value:'norway',flag:'🇳🇴',label:'Na Uy'},
+  {value:'denmark',flag:'🇩🇰',label:'Đan Mạch'},
+  {value:'finland',flag:'🇫🇮',label:'Phần Lan'},
+  {value:'poland',flag:'🇵🇱',label:'Ba Lan'},
+  {value:'russia',flag:'🇷🇺',label:'Nga'},
+  {value:'ukraine',flag:'🇺🇦',label:'Ukraine'},
+  {value:'turkey',flag:'🇹🇷',label:'Thổ Nhĩ Kỳ'},
+  {value:'uae',flag:'🇦🇪',label:'UAE'},
+  {value:'saudi',flag:'🇸🇦',label:'Ả Rập Xê Út'},
+  {value:'israel',flag:'🇮🇱',label:'Israel'},
+  {value:'iran',flag:'🇮🇷',label:'Iran'},
+  {value:'egypt',flag:'🇪🇬',label:'Ai Cập'},
+  {value:'nigeria',flag:'🇳🇬',label:'Nigeria'},
+  {value:'southafrica',flag:'🇿🇦',label:'Nam Phi'},
+  {value:'ethiopia',flag:'🇪🇹',label:'Ethiopia'},
+  {value:'kenya',flag:'🇰🇪',label:'Kenya'},
+  {value:'ghana',flag:'🇬🇭',label:'Ghana'},
+  {value:'australia',flag:'🇦🇺',label:'Úc'},
+  {value:'newzealand',flag:'🇳🇿',label:'New Zealand'},
+  {value:'eu',flag:'🇪🇺',label:'EU (Chung)'},
+  {value:'other',flag:'🌍',label:'Quốc gia khác'},
+];
+
+function filterCountryList(q) {
+  const dd = document.getElementById('countryDropdown');
+  if (!dd) return;
+  const norm = q.toLowerCase().trim();
+  const filtered = norm ? COUNTRY_LIST.filter(c =>
+    c.label.toLowerCase().includes(norm) || c.value.toLowerCase().includes(norm)
+  ) : COUNTRY_LIST;
+  renderCountryDropdown(filtered);
+  dd.style.display = filtered.length ? 'block' : 'none';
+}
+
+function showCountryDropdown() {
+  const dd = document.getElementById('countryDropdown');
+  if (!dd) return;
+  renderCountryDropdown(COUNTRY_LIST);
+  dd.style.display = 'block';
+  document.addEventListener('click', hideCountryDropdown, {once:true});
+}
+
+function renderCountryDropdown(list) {
+  const dd = document.getElementById('countryDropdown');
+  if (!dd) return;
+  dd.innerHTML = list.map(c => `
+    <div class="country-option" onclick="selectCountry('${c.value}','${c.flag} ${c.label}')">
+      <span>${c.flag}</span><span>${c.label}</span>
+    </div>
+  `).join('');
+}
+
+function selectCountry(value, label) {
+  document.getElementById('leadCountry').value = value;
+  document.getElementById('leadCountrySearch').value = label;
+  document.getElementById('countryDropdown').style.display = 'none';
+}
+
+function hideCountryDropdown(e) {
+  const dd = document.getElementById('countryDropdown');
+  const input = document.getElementById('leadCountrySearch');
+  if (dd && !dd.contains(e.target) && e.target !== input) {
+    dd.style.display = 'none';
+  }
+}
+
+let LEADS = [];
+
+const NAV_ITEMS = [
+  {id:'dashboard',icon:'📊',vi:'Tổng quan',en:'Dashboard',roles:['all']},
+  {id:'orders',icon:'📦',vi:'Đơn hàng',en:'Orders',roles:['C_LEVEL','MANAGER','EMPLOYEE_SALES']},
+  {id:'leads',icon:'🎯',vi:'Lead / CRM',en:'Lead / CRM',roles:['C_LEVEL','MANAGER','EMPLOYEE_SALES']},
+  {id:'expenses',icon:'💰',vi:'Chi phí',en:'Expenses',roles:['C_LEVEL','MANAGER','EMPLOYEE_FINANCE']},
+  {id:'warehouse',icon:'🏭',vi:'Kho hàng',en:'Warehouse',roles:['C_LEVEL','MANAGER']},
+  {id:'users',icon:'👥',vi:'Nhân viên',en:'Employees',roles:['C_LEVEL','MANAGER','EMPLOYEE_HR']},
+  {id:'reports',icon:'📈',vi:'Báo cáo',en:'Reports',roles:['C_LEVEL','MANAGER']},
+  {id:'announcements',icon:'📢',vi:'Thông báo',en:'Announcements',roles:['all']},
+];
+
+const LEAD_TYPE_LABELS = {noi_dia:'Nội địa',xuat_khau:'Xuất khẩu'};
+const PIPELINE_LABELS = {lead:'Lead',bao_gia:'Báo giá',gui_sample:'Gửi sample',deal:'Deal',chot_don:'Chốt đơn đầu',quay_lai:'Quay lại'};
+const POTENTIAL_LABELS = {cao:'Cao',trung_binh:'Trung bình',thap:'Thấp'};
+const CHANNEL_LABELS = {facebook:'Facebook',instagram:'Instagram',linkedin:'LinkedIn',website:'Website',shopee:'Shopee',tiktok:'TikTok',telesales:'Telesales',truc_tiep:'Trực tiếp',duoc_gioi_thieu:'Được giới thiệu',hoi_cho:'Hội chợ/Triển lãm',google_ads:'Google Ads',email:'Email marketing',zalo:'Zalo',chua_ro:'Chưa rõ'};
+const COUNTRY_LABELS = {vietnam:'🇻🇳 Việt Nam',japan:'🇯🇵 Nhật Bản',korea:'🇰🇷 Hàn Quốc',usa:'🇺🇸 Mỹ',eu:'🇪🇺 EU',china:'🇨🇳 Trung Quốc',taiwan:'🇹🇼 Đài Loan',singapore:'🇸🇬 Singapore',australia:'🇦🇺 Úc',other:'Khác'};
+const PORTRAIT_LABELS = {nha_phan_phoi:'Nhà phân phối',ban_le:'Bán lẻ',sieu_thi:'Siêu thị',horeca:'Horeca',quan_cafe:'Quán cà phê',chuoi_fnb:'Chuỗi F&B',tmdt:'Thương mại điện tử'};
+const ISSUE_LABELS = {gia_cao:'Giá cao',khong_sp_phu_hop:'Không có SP phù hợp',thanh_toan:'Vấn đề thanh toán',sp_khong_tot:'SP không tốt',thoi_gian_giao:'Thời gian giao hàng',moq_cao:'MOQ cao',chua_ro:'Chưa rõ'};
+const CONTACT_RESULT_LABELS = {thanh_cong:'Thành công',dang_theo:'Đang theo',that_bai:'Thất bại'};
+
+let state = {user:null,lang:'vi',page:'leads',charts:{},currentLeadId:null,columnFilters:{type:[],pipeline:[],portrait:[],potential:[],country:[],sales:[]},openFilter:null,conversionMode:'previous',pipelineSalesFilter:[],usdRate:null,usdRateLoading:false,usdRateSource:'loading'};
+
+// ── Tỉ giá USD/VND ──────────────────────────────────────────
+async function fetchUsdRate(){
+  state.usdRateLoading=true;
+  state.usdRateSource='loading';
+  _renderRateWidget();
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const data = await res.json();
+    if(data&&data.rates&&data.rates.VND){
+      state.usdRate = Math.round(data.rates.VND);
+      state.usdRateSource = 'live';
+    } else {
+      throw new Error('Không có dữ liệu VND');
+    }
+  } catch(e) {
+    state.usdRate = null;
+    state.usdRateSource = 'error';
+    console.warn('Fetch rate failed:', e);
+  }
+  state.usdRateLoading=false;
+  _renderRateWidget();
+  render();
+}
+
+function setUsdRateManual(val){
+  const n=parseInt(val);
+  if(!n||n<10000||n>100000)return;
+  state.usdRate=n;
+  state.usdRateSource='manual';
+  _renderRateWidget();
+  render();
+}
+
+function _renderRateWidget(){
+  const el=document.getElementById('usdRateWidget');
+  if(!el)return;
+  const loading=state.usdRateSource==='loading';
+  const error=state.usdRateSource==='error';
+  const fmtRate=state.usdRate?new Intl.NumberFormat('vi-VN').format(state.usdRate):null;
+  const badge=state.usdRateSource==='live'
+    ?'<span style="background:#E8F5E9;color:#2E7D32;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px">LIVE</span>'
+    :state.usdRateSource==='manual'
+    ?'<span style="background:#FFF3E0;color:#E65100;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px">THỦ CÔNG</span>'
+    :'';
+  const rateDisplay = loading
+    ? '<span style="font-size:12px;color:var(--brown-m)">⏳ Đang lấy tỉ giá thực...</span>'
+    : error
+    ? '<span style="font-size:12px;color:var(--red)">⚠️ Không lấy được tỉ giá — nhập thủ công bên dưới</span>'
+    : `<span style="font-size:13px;font-weight:800;color:var(--brown)">$1 = ${fmtRate}đ</span> ${badge}`;
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--brown-m)">💱 Tỉ giá USD/VNĐ:</span>
+      ${rateDisplay}
+      <button onclick="fetchUsdRate()" title="Lấy tỉ giá thực từ internet"
+        style="padding:3px 8px;border:1px solid var(--cream-b);border-radius:5px;background:var(--white);font-size:10px;font-weight:700;cursor:pointer;color:var(--brown-m)">
+        🔄 Cập nhật
+      </button>
+      <span style="font-size:10px;color:var(--cream-b)">|</span>
+      <span style="font-size:10px;color:var(--brown-m)">Nhập tạm:</span>
+      <input type="number" id="rateOverrideInput" value="${state.usdRate||''}" placeholder="VD: 25800" min="10000" max="100000" step="100"
+        style="width:90px;padding:3px 6px;border:1px solid var(--cream-b);border-radius:5px;font-size:11px;font-weight:700"
+        onchange="setUsdRateManual(this.value)" onkeydown="if(event.key==='Enter')setUsdRateManual(this.value)">
+    </div>
+  `;
+}
+
+function _toVND(val,currency){if(!state.usdRate)return currency==='VND'?(val||0):0;return currency==='USD'?(val||0)*state.usdRate:(val||0);}
+function _toUSD(val,currency){if(!state.usdRate)return currency==='USD'?(val||0):0;return currency==='VND'?(val||0)/state.usdRate:(val||0);}
+const fmtUSD=(n)=>'$'+new Intl.NumberFormat('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n||0));
+
+// === Granular Permission Engine v2 ===
+const _PERM_VIEW_MAP={dashboard:'dash.view',orders:'orders.view',leads:'leads.view',expenses:'expenses.view',warehouse:'wh.view_stock',users:'users.view',reports:'reports.view',announcements:'ann.view'};
+function _can(permId){
+  try{
+    const session=state.user; if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>a.email===(session.email||''));
+    if(!acc) return session.role==='C_LEVEL';
+    if(acc.permissions){
+      const val=acc.permissions[permId];
+      return val===true||val==='all'||val==='own';
+    }
+    if(acc.role==='C_LEVEL') return true;
+    return _roleDefault(acc.role,permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+function _canScope(permId){
+  try{
+    const session=state.user; if(!session)return 'all';
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>a.email===(session.email||''));
+    if(!acc) return session.role==='C_LEVEL'?'all':'own';
+    if(!acc.permissions){
+      if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
+      return 'own';
+    }
+    const val=acc.permissions[permId];
+    if(val==='own') return 'own';
+    if(val===true||val==='all') return 'all';
+    return 'none';
+  }catch(e){return 'all';}
+}
+function _roleDefault(role,pid){
+  const S=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
+  const F=['dash.view','dash.kpi_finance','expenses.view','expenses.view_detail','expenses.view_charts','expenses.create','expenses.edit','expenses.mark_paid','reports.view','reports.generate','reports.compare','ann.view'];
+  const H=['dash.view','users.view','users.view_salary','users.view_team','users.create','users.edit','users.attendance','users.kpi','ann.view','ann.create','ann.edit'];
+  const M_DENY=['users.manage_accounts','users.manage_permissions','orders.commission_config','wh.commission_config'];
+  if(role==='EMPLOYEE_SALES') return S.includes(pid);
+  if(role==='EMPLOYEE_FINANCE') return F.includes(pid);
+  if(role==='EMPLOYEE_HR') return H.includes(pid);
+  if(role==='MANAGER') return !M_DENY.includes(pid);
+  return false;
+}
+// === End Permission Engine ===
+
+// ══════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════
+const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const fmtB = (n) => {if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return(n/1e6).toFixed(0)+' tr';return fmt(n);};
+const fmtCurrency = (n, currency) => currency==='USD' ? '$'+new Intl.NumberFormat('en-US',{minimumFractionDigits:0,maximumFractionDigits:2}).format(n||0) : fmt(n)+'đ';
+const getInitials = (name) => name.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
+const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+const generateLeadId = () => {let id;do{id='LD'+Date.now().toString(36).toUpperCase();}while(LEADS.find(x=>x.id===id));return id;};
+
+// ══════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════
+function _getAccountsForLogin() {
+  try {
+    const stored = localStorage.getItem('h5c_v1_accounts');
+    if (stored) { const arr = JSON.parse(stored); if (arr && arr.length) return arr; }
+  } catch(e) {}
+  return Object.entries(ACCOUNTS).map(([email, v]) => ({
+    email, pw: v.pw, role: v.user.role, name: v.user.name,
+    pos: v.user.pos, empId: v.user.id
+  }));
+}
+
+function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  errorEl.classList.remove('show');
+
+  const h5cAccounts = _getAccountsForLogin();
+  const h5cAcc = h5cAccounts.find(a => a.email.toLowerCase() === email);
+  if (h5cAcc && h5cAcc.pw === password) {
+    const userObj = {id: h5cAcc.empId || h5cAcc.email, name: h5cAcc.name, role: h5cAcc.role, pos: h5cAcc.pos, email: h5cAcc.email};
+    btn.textContent = 'Đang đăng nhập...'; btn.disabled = true;
+    setTimeout(() => { state.user = userObj; saveSession(userObj); showMain(); btn.textContent = 'Đăng nhập'; btn.disabled = false; }, 400);
+    return;
+  }
+  const acc = ACCOUNTS[document.getElementById('loginEmail').value.trim()];
+  if (!acc || acc.pw !== password) { errorEl.classList.add('show'); return; }
+  btn.textContent = 'Đang đăng nhập...'; btn.disabled = true;
+  setTimeout(() => { state.user = acc.user; saveSession(state.user); showMain(); btn.textContent = 'Đăng nhập'; btn.disabled = false; }, 400);
+}
+
+function handleLogout() {
+  state.user = null;
+  clearSession();
+  document.getElementById('loginPage').classList.remove('hidden');
+  document.getElementById('mainLayout').classList.add('hidden');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════
+const _DEPT_LABELS={kinh_doanh:'Kinh doanh',san_xuat:'Sản xuất',marketing:'Marketing',hr:'HR',ke_toan:'Kế toán',ban_gd:'Ban GĐ',it:'IT'};
+function _getUserRoleDisplay(user){const emps=H5C.get('employees')||[];const emp=emps.find(e=>e.id===user.id||e.id===user.empId||(user.email&&e.email===user.email));if(emp){const dept=_DEPT_LABELS[emp.dept]||emp.dept||'';const pos=emp.position||user.pos||'';return dept&&pos?dept+' - '+pos:(dept||pos||user.pos||'');}return user.pos||'';}
+function showMain() {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent = state.user.name;
+  document.getElementById('userRole').textContent = _getUserRoleDisplay(state.user);
+  document.getElementById('userAvatar').textContent = getInitials(state.user.name);
+  // Read URL filter params from dashboard
+  const urlParams = new URLSearchParams(window.location.search);
+  const filter = urlParams.get('filter');
+  if (filter) { state.columnFilters.pipeline = [filter]; }
+  renderNav();
+  renderLeads();
+  // Fetch tỉ giá live sau khi login
+  fetchUsdRate();
+}
+
+function renderNav() {
+  const nav = document.getElementById('sidebarNav');
+  const role = state.user.role;
+  const items = NAV_ITEMS.filter(item => item.roles.includes('all') || item.roles.includes(role));
+  nav.innerHTML = items.map(item => `
+    <div class="nav-item ${state.page === item.id ? 'active' : ''}" onclick="navigateTo('${item.id}')">
+      <span class="icon">${item.icon}</span>
+      <span>${state.lang === 'vi' ? item.vi : item.en}</span>
+    </div>
+  `).join('');
+}
+
+function navigateTo(page) {
+  const pageMap = {
+    dashboard: 'dashboard.html', leads: 'leads.html', orders: 'orders.html',
+    expenses: 'expenses.html', warehouse: 'warehouse.html',
+    users: 'users.html', reports: 'reports.html', announcements: 'announcements.html',
+  };
+  if (page === 'leads') { state.page = page; renderNav(); renderLeads(); }
+  else if (pageMap[page]) { window.location.href = pageMap[page]; }
+  else { alert('Module "' + page + '" đang được phát triển!'); }
+}
+
+function setLang(lang) {
+  state.lang = lang;
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
+  renderNav();
+  renderLeads();
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEADS PAGE
+// ══════════════════════════════════════════════════════════════
+function render() {
+  const _l=H5C.get('leads');if(_l)LEADS=_l;
+  if(state.user)renderLeads();
+}
+function renderLeads() {
+  const content = document.getElementById('pageContent');
+
+  // Lọc theo scope trước — EMPLOYEE_SALES chỉ thấy leads của mình
+  const _scope = _canScope('leads.view');
+  let scopedLeads = (_scope === 'own')
+    ? LEADS.filter(l => l.sales === state.user.name)
+    : LEADS;
+
+  // Lọc theo bộ lọc sales của funnel (chỉ cho manager/c_level)
+  if (_scope !== 'own' && state.pipelineSalesFilter.length > 0) {
+    scopedLeads = scopedLeads.filter(l => state.pipelineSalesFilter.includes(l.sales));
+  }
+
+  // Lấy danh sách sales thực tế để hiện dropdown
+  const allSalesNames = [...new Set(LEADS.map(l => l.sales).filter(Boolean))];
+
+  // Calculate pipeline counts
+  const pipelineCounts = {
+    lead:       scopedLeads.filter(l => l.pipeline === 'lead').length,
+    bao_gia:    scopedLeads.filter(l => l.pipeline === 'bao_gia').length,
+    gui_sample: scopedLeads.filter(l => l.pipeline === 'gui_sample').length,
+    deal:       scopedLeads.filter(l => l.pipeline === 'deal').length,
+    chot_don:   scopedLeads.filter(l => l.pipeline === 'chot_don').length,
+    quay_lai:   scopedLeads.filter(l => l.pipeline === 'quay_lai').length
+  };
+
+  const total      = scopedLeads.length;
+  // Tổng thuần từng loại tiền (không quy đổi)
+  const rawVND = scopedLeads.reduce((s,l)=>(l.estimatedCurrency||'VND')==='VND'?s+(l.estimatedValue||0):s, 0);
+  const rawUSD = scopedLeads.reduce((s,l)=>(l.estimatedCurrency||'VND')==='USD'?s+(l.estimatedValue||0):s, 0);
+  // Grand total quy về VND (chỉ tính được khi có tỉ giá)
+  const grandTotalVND = state.usdRate ? rawVND + rawUSD * state.usdRate : rawVND;
+  // Backward compat
+  const totalValueVND = grandTotalVND;
+  const totalValueUSD = state.usdRate ? rawVND / state.usdRate + rawUSD : rawUSD;
+  const closedCount = pipelineCounts.chot_don + pipelineCounts.quay_lai;
+  const overallRate = total > 0 ? Math.round((closedCount / total) * 100) : 0;
+
+  // Calculate cumulative counts (from this stage onwards)
+  const cumulative = {
+    lead: total,
+    bao_gia: total - pipelineCounts.lead,
+    gui_sample: total - pipelineCounts.lead - pipelineCounts.bao_gia,
+    deal: pipelineCounts.deal + pipelineCounts.chot_don + pipelineCounts.quay_lai,
+    chot_don: pipelineCounts.chot_don + pipelineCounts.quay_lai,
+    quay_lai: pipelineCounts.quay_lai
+  };
+
+  // Calculate conversion rates based on mode
+  const getConversionRates = () => {
+    if (state.conversionMode === 'total') {
+      // So với tổng Lead ban đầu
+      return {
+        to_baogia: total > 0 ? Math.round((cumulative.bao_gia / total) * 100) : 0,
+        to_sample: total > 0 ? Math.round((cumulative.gui_sample / total) * 100) : 0,
+        to_deal: total > 0 ? Math.round((cumulative.deal / total) * 100) : 0,
+        to_chot: total > 0 ? Math.round((cumulative.chot_don / total) * 100) : 0,
+        to_quaylai: total > 0 ? Math.round((pipelineCounts.quay_lai / total) * 100) : 0
+      };
+    } else {
+      // So với giai đoạn trước
+      return {
+        to_baogia: cumulative.lead > 0 ? Math.round((cumulative.bao_gia / cumulative.lead) * 100) : 0,
+        to_sample: cumulative.bao_gia > 0 ? Math.round((cumulative.gui_sample / cumulative.bao_gia) * 100) : 0,
+        to_deal: cumulative.gui_sample > 0 ? Math.round((cumulative.deal / cumulative.gui_sample) * 100) : 0,
+        to_chot: cumulative.deal > 0 ? Math.round((cumulative.chot_don / cumulative.deal) * 100) : 0,
+        to_quaylai: cumulative.chot_don > 0 ? Math.round((pipelineCounts.quay_lai / cumulative.chot_don) * 100) : 0
+      };
+    }
+  };
+
+  const rates = getConversionRates();
+
+  const getConversionClass = (rate) => {
+    if (rate >= 70) return 'high';
+    if (rate >= 40) return 'medium';
+    return 'low';
+  };
+
+  const highPotential = scopedLeads.filter(l => l.potential === 'cao').length;
+  const inPipelineCount = scopedLeads.filter(l => ['lead','bao_gia','gui_sample','deal'].includes(l.pipeline)).length;
+
+  let html = `<div class="fade">
+    <!-- Tỉ giá widget -->
+    <div id="usdRateWidget" style="background:var(--white);border:1px solid var(--cream-b);border-radius:10px;padding:10px 16px;margin-bottom:14px"></div>
+
+    <!-- KPI Stats -->
+    <div class="leads-stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-label">Tổng Lead</div>
+        <div class="stat-value">${total}</div>
+        <div class="stat-sub">${scopedLeads.filter(l=>l.type==='xuat_khau').length} xuất khẩu · ${scopedLeads.filter(l=>l.type==='noi_dia').length} nội địa</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-icon">💰</div>
+        <div class="stat-label">Giá trị pipeline</div>
+        <div class="stat-value">${fmtB(grandTotalVND)}đ</div>
+        <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;margin-top:4px">
+          ${rawVND>0?`<span>🇻🇳 ${fmtB(rawVND)}đ VND</span>`:''}
+          ${rawUSD>0?`<span>🇺🇸 ${fmtUSD(rawUSD)} USD</span>`:''}
+          ${rawUSD>0&&state.usdRate?`<span style="font-size:10px;color:var(--h5c-text-secondary)">(≈ ${fmtB(rawUSD*state.usdRate)}đ theo tỉ giá)</span>`:''}
+          ${!state.usdRate&&rawUSD>0?'<span style="color:#E65100;font-size:10px">⚠ Chưa có tỉ giá để quy đổi USD</span>':''}
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-label">Tiềm năng cao</div>
+        <div class="stat-value">${highPotential}</div>
+        <div class="stat-sub">${total > 0 ? Math.round(highPotential/total*100) : 0}% tổng số lead</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Đã chốt đơn</div>
+        <div class="stat-value">${closedCount}</div>
+        <div class="stat-sub">Tỉ lệ ${overallRate}%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-label">Đang theo dõi</div>
+        <div class="stat-value">${inPipelineCount}</div>
+        <div class="stat-sub">Chưa chốt đơn</div>
+      </div>
+    </div>
+
+    <!-- Pipeline Funnel -->
+    <div class="pipeline-funnel">
+      <div class="funnel-header">
+        <div class="funnel-title">Pipeline & Tỉ lệ chuyển đổi</div>
+        <div class="funnel-summary">
+          <div class="funnel-summary-item">
+            <div class="funnel-summary-label">Tổng Lead</div>
+            <div class="funnel-summary-value">${total}</div>
+          </div>
+          <div class="funnel-summary-item">
+            <div class="funnel-summary-label">Giá trị dự kiến</div>
+            <div class="funnel-summary-value highlight">${fmtB(grandTotalVND)}đ</div>
+            <div style="font-size:10px;color:var(--h5c-text-secondary);margin-top:3px;line-height:1.6">
+              ${rawVND>0?`<span>🇻🇳 ${fmtB(rawVND)}đ</span>`:''}
+              ${rawVND>0&&rawUSD>0?' · ':''}
+              ${rawUSD>0?`<span>🇺🇸 ${fmtUSD(rawUSD)}</span>`:''}
+            </div>
+          </div>
+          <div class="funnel-summary-item">
+            <div class="funnel-summary-label">Tỉ lệ chốt</div>
+            <div class="funnel-summary-value highlight">${overallRate}%</div>
+          </div>
+        </div>
+        ${_canScope('leads.view') !== 'own' ? `
+        <div class="pipeline-sales-wrap">
+          <span class="pipeline-sales-label">Xem theo:</span>
+          <div class="pipeline-sales-dd-wrap">
+            <button class="pipeline-sales-btn" onclick="togglePipelineSalesDropdown(event)">
+              <span>${state.pipelineSalesFilter.length === 0 ? 'Toàn công ty' : state.pipelineSalesFilter.length === 1 ? state.pipelineSalesFilter[0] : state.pipelineSalesFilter.length + ' sales'}</span>
+              <span class="arrow">▼</span>
+            </button>
+            <div id="pipelineSalesDropdown" class="pipeline-sales-dropdown">
+              <div class="pipeline-sales-option" data-sales-name="__all__" onclick="setPipelineSalesFilter([])" style="font-weight:${state.pipelineSalesFilter.length===0?'700':'400'};color:${state.pipelineSalesFilter.length===0?'var(--green-d)':'var(--brown)'}">
+                <span class="ps-check">${state.pipelineSalesFilter.length===0?'✓':''}</span> Toàn công ty
+              </div>
+              <div class="pipeline-sales-divider"></div>
+              ${allSalesNames.map(name => `
+              <div class="pipeline-sales-option" data-sales-name="${name}" onclick="togglePipelineSales('${name}')" style="font-weight:${state.pipelineSalesFilter.includes(name)?'700':'400'};color:${state.pipelineSalesFilter.includes(name)?'var(--green-d)':'var(--brown)'}">
+                <span class="ps-check">${state.pipelineSalesFilter.includes(name)?'✓':''}</span> ${name}
+              </div>`).join('')}
+            </div>
+          </div>
+          ${state.pipelineSalesFilter.length > 0 ? `<span class="pipeline-sales-filter-info">→ đang lọc: <strong>${state.pipelineSalesFilter.join(', ')}</strong> <span class="pipeline-sales-filter-clear" onclick="setPipelineSalesFilter([])">✕</span></span>` : ''}
+        </div>` : `<div class="pipeline-scope-info">Đang xem leads của bạn</div>`}
+        <div class="funnel-toggle" style="margin-top:10px">
+          <span class="funnel-toggle-label">Tính % theo:</span>
+          <button class="funnel-toggle-btn ${state.conversionMode==='previous'?'active':''}" onclick="setConversionMode('previous')">Giai đoạn trước</button>
+          <button class="funnel-toggle-btn ${state.conversionMode==='total'?'active':''}" onclick="setConversionMode('total')">Tổng Lead</button>
+        </div>
+      </div>
+
+      <div class="funnel-stages">
+        <div class="funnel-stage lead" onclick="_filterByPipeline('lead')" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.lead}</div>
+            <div class="funnel-label">Lead</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_baogia)}">${rates.to_baogia}%</div>
+        </div>
+        <div class="funnel-stage bao_gia" onclick="_filterByPipeline('bao_gia')" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.bao_gia}</div>
+            <div class="funnel-label">Báo giá</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_sample)}">${rates.to_sample}%</div>
+        </div>
+        <div class="funnel-stage gui_sample" onclick="_filterByPipeline('gui_sample')" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.gui_sample}</div>
+            <div class="funnel-label">Gửi sample</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_deal)}">${rates.to_deal}%</div>
+        </div>
+        <div class="funnel-stage deal" onclick="_filterByPipeline('deal')" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.deal}</div>
+            <div class="funnel-label">Deal</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_chot)}">${rates.to_chot}%</div>
+        </div>
+        <div class="funnel-stage chot_don" onclick="_filterByPipeline('chot_don')" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.chot_don}</div>
+            <div class="funnel-label">Chốt đơn</div>
+          </div>
+        </div>
+        <div class="funnel-arrow">
+          <div class="funnel-arrow-icon">→</div>
+          <div class="funnel-conversion ${getConversionClass(rates.to_quaylai)}">${rates.to_quaylai}%</div>
+        </div>
+        <div class="funnel-stage quay_lai" onclick="_filterByPipeline('quay_lai')" title="Bấm để lọc">
+          <div class="funnel-stage-box">
+            <div class="funnel-count">${pipelineCounts.quay_lai}</div>
+            <div class="funnel-label">Quay lại</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="leads-charts-row">
+      <div class="chart-card">
+        <div class="chart-title">📊 Leads theo kênh tiếp cận</div>
+        <div class="chart-container" style="height:200px"><canvas id="channelChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🎯 Phân bổ Pipeline</div>
+        <div class="chart-container" style="height:200px"><canvas id="pipelineChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="leads-header">
+      <div class="leads-filters">
+        <input type="text" class="filter-input" id="filterLeadSearch" placeholder="Tìm tên, SĐT, công ty..." onkeyup="filterLeads()">
+      </div>
+      <button class="btn-add" onclick="openLeadModal()" style="${_can('leads.create')?'':'display:none'}">+ Thêm Lead</button>
+    </div>
+
+    <!-- Active Filters -->
+    <div class="active-filters" id="activeFilters"></div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="data-table leads-table">
+        <thead>
+          <tr>
+            <th>Công ty</th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'type')">
+              Loại <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-type"></div>
+            </th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'pipeline')">
+              Pipeline <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-pipeline"></div>
+            </th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'portrait')">
+              Chân dung <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-portrait"></div>
+            </th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'potential')">
+              Tiềm năng <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-potential"></div>
+            </th>
+            <th>Giá trị ước tính</th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'country')">
+              Quốc gia <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-country"></div>
+            </th>
+            <th class="th-filter" onclick="toggleColumnFilter(event,'sales')">
+              Sales <span class="th-filter-icon">▼</span>
+              <div class="filter-dropdown" id="filter-sales"></div>
+            </th>
+            <th>Liên hệ cuối</th>
+            <th style="width:120px">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="leadsTableBody"></tbody>
+      </table>
+    </div>
+  </div>`;
+  content.innerHTML = html;
+  _renderRateWidget();
+
+  // Initialize filter dropdowns
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+  renderCharts();
+
+  // Close filter when clicking outside
+  document.addEventListener('click', closeAllFilters);
+}
+
+function _filterByPipeline(pipeline) {
+  // Toggle: click same pipeline again to clear filter
+  if (state.columnFilters.pipeline.length === 1 && state.columnFilters.pipeline[0] === pipeline) {
+    state.columnFilters.pipeline = [];
+  } else {
+    state.columnFilters.pipeline = [pipeline];
+  }
+  renderLeadsTable();
+  // Scroll to table
+  const table = document.querySelector('.leads-table-wrap');
+  if (table) table.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function setConversionMode(mode) {
+  state.conversionMode = mode;
+  renderLeads();
+}
+
+function setPipelineSalesFilter(names) {
+  state.pipelineSalesFilter = names;
+  renderLeads();
+}
+
+function togglePipelineSales(name) {
+  const idx = state.pipelineSalesFilter.indexOf(name);
+  if (idx === -1) state.pipelineSalesFilter.push(name);
+  else state.pipelineSalesFilter.splice(idx, 1);
+  renderLeads();
+}
+
+function togglePipelineSalesDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('pipelineSalesDropdown');
+  if (!dd) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  const isOpen = dd.style.display === 'block';
+  dd.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    setTimeout(() => {
+      document.addEventListener('click', function _close(ev) {
+        if (!dd.contains(ev.target)) {
+          dd.style.display = 'none';
+          document.removeEventListener('click', _close);
+          // Re-render sau khi đóng dropdown
+          renderLeads();
+        }
+      });
+    }, 0);
+  }
+}
+
+function togglePipelineSales(name) {
+  const idx = state.pipelineSalesFilter.indexOf(name);
+  if (idx === -1) state.pipelineSalesFilter.push(name);
+  else state.pipelineSalesFilter.splice(idx, 1);
+
+  // Chỉ update UI dropdown + button label, không re-render toàn trang
+  _updatePipelineDropdownUI();
+}
+
+function _updatePipelineDropdownUI() {
+  // Update label trên button
+  const btn = document.querySelector('.pipeline-sales-btn span:first-child');
+  if (btn) {
+    btn.textContent = state.pipelineSalesFilter.length === 0
+      ? 'Toàn công ty'
+      : state.pipelineSalesFilter.length === 1
+        ? state.pipelineSalesFilter[0]
+        : state.pipelineSalesFilter.length + ' sales';
+  }
+
+  // Update checkmarks trong dropdown
+  const dd = document.getElementById('pipelineSalesDropdown');
+  if (!dd) return;
+  dd.querySelectorAll('[data-sales-name]').forEach(el => {
+    const name = el.dataset.salesName;
+    const checked = state.pipelineSalesFilter.includes(name);
+    el.querySelector('.ps-check').textContent = checked ? '✓' : '';
+    el.style.fontWeight = checked ? '700' : '400';
+    el.style.color = checked ? 'var(--green-d)' : 'var(--brown)';
+  });
+
+  // Update "Toàn công ty" option
+  const allOpt = dd.querySelector('[data-sales-name="__all__"]');
+  if (allOpt) {
+    const isAll = state.pipelineSalesFilter.length === 0;
+    allOpt.querySelector('.ps-check').textContent = isAll ? '✓' : '';
+    allOpt.style.fontWeight = isAll ? '700' : '400';
+    allOpt.style.color = isAll ? 'var(--green-d)' : 'var(--brown)';
+  }
+}
+
+function renderLeadsTable() {
+  const tbody = document.getElementById('leadsTableBody');
+  const searchFilter = document.getElementById('filterLeadSearch').value.toLowerCase();
+
+  const _scope = _canScope('leads.view');
+  let filtered = (_scope==='own') ? LEADS.filter(l=>l.sales===state.user.name) : LEADS;
+
+  // Apply column filters
+  if (state.columnFilters.type.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.type.includes(l.type));
+  }
+  if (state.columnFilters.pipeline.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.pipeline.includes(l.pipeline));
+  }
+  if (state.columnFilters.portrait.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.portrait.includes(l.portrait));
+  }
+  if (state.columnFilters.potential.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.potential.includes(l.potential));
+  }
+  if (state.columnFilters.country.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.country.includes(l.country));
+  }
+  if (state.columnFilters.sales.length > 0) {
+    filtered = filtered.filter(l => state.columnFilters.sales.includes(l.sales));
+  }
+
+  // Apply search filter
+  if (searchFilter) {
+    filtered = filtered.filter(l =>
+      l.company.toLowerCase().includes(searchFilter) ||
+      l.phone.includes(searchFilter) ||
+      (l.email && l.email.toLowerCase().includes(searchFilter))
+    );
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">📭</div><div class="title">Không có lead nào</div><div class="text">Thử thay đổi bộ lọc hoặc thêm lead mới</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(lead => `
+    <tr onclick="viewLead('${lead.id}')" style="cursor:pointer">
+      <td><div class="lead-company">${lead.company}</div><div class="lead-contact">${lead.phone}</div></td>
+      <td><span class="type-badge ${lead.type}">${LEAD_TYPE_LABELS[lead.type]}</span></td>
+      <td><span class="pipeline-badge ${lead.pipeline}">${PIPELINE_LABELS[lead.pipeline]}</span></td>
+      <td><span class="portrait-badge">${PORTRAIT_LABELS[lead.portrait]||lead.portrait}</span></td>
+      <td><span class="potential-badge ${lead.potential}">${POTENTIAL_LABELS[lead.potential]}</span></td>
+      <td><span class="lead-value">${lead.estimatedValue?fmtCurrency(lead.estimatedValue,lead.estimatedCurrency):'—'}</span></td>
+      <td>${COUNTRY_LABELS[lead.country]||lead.country}</td>
+      <td><span class="order-sales">${lead.sales}</span></td>
+      <td>${formatDate(lead.lastContact)}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="action-btns">
+          ${_can('leads.edit')?`<button class="action-btn edit" title="Sửa" onclick="editLead('${lead.id}')">✏️</button>`:''}
+          ${_can('leads.contact_log')?`<button class="action-btn log" title="Ghi chú liên hệ" onclick="openContactLog('${lead.id}')">📝</button>`:''}
+          ${_can('leads.delete')?`<button class="action-btn delete" title="Xóa" onclick="deleteLead('${lead.id}')">🗑️</button>`:''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Update header filter indicators
+  updateFilterIndicators();
+}
+
+function filterLeads() { renderLeadsTable(); }
+
+// ══════════════════════════════════════════════════════════════
+// COLUMN FILTERS
+// ══════════════════════════════════════════════════════════════
+const FILTER_OPTIONS = {
+  type: Object.entries(LEAD_TYPE_LABELS).map(([k,v]) => ({value:k,label:v})),
+  pipeline: Object.entries(PIPELINE_LABELS).map(([k,v]) => ({value:k,label:v})),
+  portrait: Object.entries(PORTRAIT_LABELS).map(([k,v]) => ({value:k,label:v})),
+  potential: Object.entries(POTENTIAL_LABELS).map(([k,v]) => ({value:k,label:v})),
+  country: Object.entries(COUNTRY_LABELS).map(([k,v]) => ({value:k,label:v})),
+  get sales() {
+    // Lấy từ nhân viên thực tế trong Firebase
+    const emps = H5C.get('employees') || [];
+    const names = emps.filter(e => e.status !== 'inactive').map(e => e.name);
+    // Merge với tên đã có trong leads (backward compat)
+    const fromLeads = LEADS.map(l => l.sales).filter(Boolean);
+    return [...new Set([...names, ...fromLeads])].map(s => ({value:s, label:s}));
+  }
+};
+
+function initFilterDropdowns() {
+  Object.keys(FILTER_OPTIONS).forEach(col => {
+    const dropdown = document.getElementById(`filter-${col}`);
+    if (!dropdown) return;
+
+    dropdown.innerHTML = FILTER_OPTIONS[col].map(opt => `
+      <div class="filter-option ${state.columnFilters[col].includes(opt.value)?'active':''}"
+           onclick="toggleFilterOption(event,'${col}','${opt.value}')">
+        <span class="filter-option-check">${state.columnFilters[col].includes(opt.value)?'✓':''}</span>
+        ${opt.label}
+      </div>
+    `).join('') + `
+      <div class="filter-clear" onclick="clearColumnFilter(event,'${col}')">✕ Xóa bộ lọc</div>
+    `;
+  });
+}
+
+function toggleColumnFilter(e, col) {
+  e.stopPropagation();
+  const dropdown = document.getElementById(`filter-${col}`);
+  const wasOpen = dropdown.classList.contains('show');
+
+  // Close all dropdowns
+  document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
+
+  if (!wasOpen) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    dropdown.style.top  = (rect.bottom + 4) + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.classList.add('show');
+    state.openFilter = col;
+    // Đóng khi click ra ngoài
+    setTimeout(() => {
+      document.addEventListener('click', function _close() {
+        dropdown.classList.remove('show');
+        document.removeEventListener('click', _close);
+      });
+    }, 0);
+  } else {
+    state.openFilter = null;
+  }
+}
+
+function toggleFilterOption(e, col, value) {
+  e.stopPropagation();
+
+  const idx = state.columnFilters[col].indexOf(value);
+  if (idx === -1) {
+    state.columnFilters[col].push(value);
+  } else {
+    state.columnFilters[col].splice(idx, 1);
+  }
+
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+}
+
+function clearColumnFilter(e, col) {
+  e.stopPropagation();
+  state.columnFilters[col] = [];
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+  document.getElementById(`filter-${col}`).classList.remove('show');
+}
+
+function removeActiveFilter(col, value) {
+  const idx = state.columnFilters[col].indexOf(value);
+  if (idx !== -1) {
+    state.columnFilters[col].splice(idx, 1);
+  }
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+}
+
+function clearAllFilters() {
+  Object.keys(state.columnFilters).forEach(col => {
+    state.columnFilters[col] = [];
+  });
+  initFilterDropdowns();
+  renderActiveFilters();
+  renderLeadsTable();
+}
+
+function renderActiveFilters() {
+  const container = document.getElementById('activeFilters');
+  if (!container) return;
+
+  const labels = {
+    type: LEAD_TYPE_LABELS,
+    pipeline: PIPELINE_LABELS,
+    portrait: PORTRAIT_LABELS,
+    potential: POTENTIAL_LABELS,
+    country: COUNTRY_LABELS,
+    sales: null
+  };
+
+  const colNames = {
+    type: 'Loại',
+    pipeline: 'Pipeline',
+    portrait: 'Chân dung',
+    potential: 'Tiềm năng',
+    country: 'Quốc gia',
+    sales: 'Sales'
+  };
+
+  let tags = [];
+  Object.keys(state.columnFilters).forEach(col => {
+    state.columnFilters[col].forEach(value => {
+      const label = labels[col] ? labels[col][value] : value;
+      tags.push(`
+        <span class="active-filter-tag">
+          ${colNames[col]}: ${label}
+          <span class="remove" onclick="removeActiveFilter('${col}','${value}')">✕</span>
+        </span>
+      `);
+    });
+  });
+
+  if (tags.length > 0) {
+    tags.push(`<span class="active-filter-tag" style="background:var(--cream-d);cursor:pointer" onclick="clearAllFilters()">Xóa tất cả ✕</span>`);
+  }
+
+  container.innerHTML = tags.join('');
+}
+
+function updateFilterIndicators() {
+  document.querySelectorAll('.th-filter').forEach(th => {
+    const col = th.querySelector('.filter-dropdown')?.id?.replace('filter-','');
+    if (col && state.columnFilters[col]?.length > 0) {
+      th.classList.add('active');
+    } else {
+      th.classList.remove('active');
+    }
+  });
+}
+
+function closeAllFilters(e) {
+  if (!e.target.closest('.th-filter')) {
+    document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
+    state.openFilter = null;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════════════════════
+function renderCharts() {
+  if (typeof Chart === 'undefined') return;
+  if (state.charts.channel) { try { state.charts.channel.destroy(); } catch(e){} state.charts.channel = null; }
+  if (state.charts.pipeline) { try { state.charts.pipeline.destroy(); } catch(e){} state.charts.pipeline = null; }
+
+  const _scope = _canScope('leads.view');
+  let data = (_scope === 'own') ? LEADS.filter(l => l.sales === state.user.name) : LEADS;
+  if (_scope !== 'own' && state.pipelineSalesFilter.length > 0) {
+    data = data.filter(l => state.pipelineSalesFilter.includes(l.sales));
+  }
+
+  // Bar chart: leads by channel (top 7)
+  const channelCtx = document.getElementById('channelChart');
+  if (channelCtx) {
+    const counts = {};
+    data.forEach(l => {
+      const label = CHANNEL_LABELS[l.channel] || l.channel || 'Khác';
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 7);
+    const PALETTE = ['#8FC643','#4A7FB5','#7B5EA7','#4A7A4D','#D4851A','#C44536','#00838F'];
+    state.charts.channel = new Chart(channelCtx, {
+      type: 'bar',
+      data: {
+        labels: sorted.map(([k]) => k),
+        datasets: [{
+          data: sorted.map(([, v]) => v),
+          backgroundColor: sorted.map((_, i) => PALETTE[i % PALETTE.length]),
+          borderRadius: 6,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} lead` } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#6B5B4E' } },
+          y: { grid: { color: '#F0EAE2' }, ticks: { font: { size: 11 }, color: '#6B5B4E', stepSize: 1 }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // Doughnut: pipeline distribution
+  const pipelineCtx = document.getElementById('pipelineChart');
+  if (pipelineCtx) {
+    const stages = ['lead','bao_gia','gui_sample','deal','chot_don','quay_lai'];
+    const stageColors = ['#3949AB','#1565C0','#EF6C00','#7B1FA2','#2E7D32','#00838F'];
+    const stageCounts = stages.map(s => data.filter(l => l.pipeline === s).length);
+    if (stageCounts.some(c => c > 0)) {
+      state.charts.pipeline = new Chart(pipelineCtx, {
+        type: 'doughnut',
+        data: {
+          labels: stages.map(s => PIPELINE_LABELS[s]),
+          datasets: [{ data: stageCounts, backgroundColor: stageColors, borderWidth: 0, hoverOffset: 4 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#6B5B4E', padding: 10, boxWidth: 12 } }
+          },
+          cutout: '62%'
+        }
+      });
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEAD MODAL
+// ══════════════════════════════════════════════════════════════
+function _populateLeadSalesSelect(selected) {
+  const sel = document.getElementById('leadSales');
+  if (!sel) return;
+
+  // Lấy nhân viên thực tế từ Firebase
+  const emps = H5C.get('employees') || [];
+  const activeEmps = emps.filter(e => e.status !== 'inactive');
+
+  let names = [];
+  if (activeEmps.length > 0) {
+    // Ưu tiên lấy phòng kinh doanh + ban GĐ
+    const salesDepts = activeEmps.filter(e =>
+      e.dept === 'kinh_doanh' || e.dept === 'ban_gd'
+    ).map(e => e.name);
+
+    // Nếu không có ai trong kinh doanh → lấy tất cả active
+    names = salesDepts.length > 0 ? salesDepts : activeEmps.map(e => e.name);
+  } else {
+    // Chưa có data Firebase → fallback danh sách đã có trong leads
+    names = [...new Set(LEADS.map(l => l.sales).filter(Boolean))];
+  }
+
+  // Nếu đang là scope 'own' → chỉ cho chọn tên mình
+  const _scope = _canScope('leads.view');
+  if (_scope === 'own') {
+    names = [state.user.name];
+  }
+
+  sel.innerHTML = '<option value="">-- Chọn Sales --</option>' +
+    [...new Set(names)].map(n =>
+      `<option value="${n}"${n === selected ? ' selected' : ''}>${n}</option>`
+    ).join('');
+}
+
+function openLeadModal(leadId = null) {
+  const modal = document.getElementById('leadModal');
+  const title = document.getElementById('leadModalTitle');
+  if (leadId) {
+    const lead = LEADS.find(l => l.id === leadId);
+    if (!lead) return;
+    title.textContent = `Chỉnh sửa Lead`;
+    document.getElementById('leadId').value = lead.id;
+    document.getElementById('leadCompany').value = lead.company;
+    if (document.getElementById('leadRepresentative')) document.getElementById('leadRepresentative').value = lead.representative || '';
+    if (document.getElementById('leadRepTitle')) document.getElementById('leadRepTitle').value = lead.repTitle || '';
+    document.getElementById('leadPhone').value = lead.phone;
+    document.getElementById('leadEmail').value = lead.email || '';
+    document.getElementById('leadAddress').value = lead.address || '';
+    document.getElementById('leadType').value = lead.type;
+    document.getElementById('leadChannel').value = lead.channel;
+    document.getElementById('leadCountry').value = lead.country;
+    if (document.getElementById('leadCountrySearch')) {
+      const found = COUNTRY_LIST.find(c => c.value === lead.country);
+      document.getElementById('leadCountrySearch').value = found ? found.flag + ' ' + found.label : (lead.countryLabel || lead.country);
+    }
+    document.getElementById('leadPortrait').value = lead.portrait;
+    document.getElementById('leadPipeline').value = lead.pipeline;
+    document.getElementById('leadPotential').value = lead.potential;
+    document.getElementById('leadIssue').value = lead.issue || '';
+    document.getElementById('leadStartDate').value = lead.startDate;
+    document.getElementById('leadLastContact').value = lead.lastContact;
+    document.getElementById('leadEstimatedValue').value = lead.estimatedValue || '';
+    const estCurrEl = document.getElementById('leadEstimatedCurrency');
+    if (estCurrEl) estCurrEl.value = lead.estimatedCurrency || 'VND';
+    _populateLeadSalesSelect(lead.sales);
+    document.getElementById('leadNote').value = lead.note || '';
+    renderLeadProductRows(lead.interestedProducts || []);
+  } else {
+    title.textContent = 'Thêm Lead mới';
+    document.getElementById('leadForm').reset();
+    document.getElementById('leadId').value = '';
+    document.getElementById('leadStartDate').value = new Date().toISOString().split('T')[0];
+    _populateLeadSalesSelect('');
+    renderLeadProductRows([{productId:'',qty:1}]);
+  }
+  modal.classList.remove('hidden');
+}
+
+function closeLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
+
+function renderLeadProductRows(products) {
+  const container = document.getElementById('leadProducts');
+  if (products.length === 0) products = [{productId:'',qty:1,quotedPrice:'',unit:''}];
+  // Header row
+  container.innerHTML = `
+    <div class="lead-product-header">
+      <span>Sản phẩm</span>
+      <span>ĐVT</span>
+      <span>Số lượng</span>
+      <span>Giá báo</span>
+      <span>Tiền tệ</span>
+      <span></span>
+    </div>
+  ` + products.map((p,i) => {
+    const prod = PRODUCTS_LIST.find(pr => pr.id === p.productId);
+    const unit = p.unit || prod?.unit || '';
+    const quotedPrice = p.quotedPrice !== undefined ? p.quotedPrice : (prod?.price || '');
+    const currency = p.quotedCurrency || 'VND';
+    return `
+    <div class="lead-product-row" data-lead-row="${i}">
+      <select class="modal-input" id="leadProduct_${i}" style="margin-bottom:0" onchange="onLeadProductChange(${i})">
+        <option value="">-- Chọn SP --</option>
+        ${PRODUCTS_LIST.map(pr=>`<option value="${pr.id}" ${p.productId===pr.id?'selected':''}>${pr.name}</option>`).join('')}
+      </select>
+      <input type="text" class="modal-input" id="leadUnit_${i}" value="${unit}" placeholder="kg, hộp..." style="margin-bottom:0">
+      <input type="number" class="modal-input" id="leadQty_${i}" min="1" value="${p.qty||1}" style="margin-bottom:0">
+      <input type="number" class="modal-input" id="leadPrice_${i}" value="${quotedPrice}" placeholder="Giá báo" step="any" style="margin-bottom:0">
+      <select class="modal-input" id="leadPriceCurrency_${i}" style="margin-bottom:0"
+        onchange="document.getElementById('leadPrice_${i}').step=this.value==='USD'?'0.01':'1'">
+        <option value="VND" ${currency==='VND'?'selected':''}>VNĐ</option>
+        <option value="USD" ${currency==='USD'?'selected':''}>USD</option>
+      </select>
+      <button type="button" class="lead-product-remove" onclick="removeLeadProductRow(${i})">✕</button>
+    </div>
+    `;
+  }).join('');
+}
+
+function onLeadProductChange(i) {
+  const sel = document.getElementById(`leadProduct_${i}`);
+  const prod = PRODUCTS_LIST.find(p => p.id === sel.value);
+  if (!prod) return;
+  const unitEl  = document.getElementById(`leadUnit_${i}`);
+  const priceEl = document.getElementById(`leadPrice_${i}`);
+  if (unitEl && !unitEl.value)  unitEl.value  = prod.unit || '';
+  if (priceEl && !priceEl.value) priceEl.value = prod.price || '';
+}
+
+function addLeadProductRow() {
+  const container = document.getElementById('leadProducts');
+  const rows = container.querySelectorAll('[data-lead-row]');
+  const i = rows.length;
+  const div = document.createElement('div');
+  div.className = 'lead-product-row';
+  div.dataset.leadRow = i;
+  div.innerHTML = `
+    <select class="modal-input" id="leadProduct_${i}" style="margin-bottom:0" onchange="onLeadProductChange(${i})">
+      <option value="">-- Chọn SP --</option>
+      ${PRODUCTS_LIST.map(pr=>`<option value="${pr.id}">${pr.name}</option>`).join('')}
+    </select>
+    <input type="text"   class="modal-input" id="leadUnit_${i}"  placeholder="kg, hộp..." style="margin-bottom:0">
+    <input type="number" class="modal-input" id="leadQty_${i}"   min="1" value="1" style="margin-bottom:0">
+    <input type="number" class="modal-input" id="leadPrice_${i}" placeholder="Giá báo" step="any" style="margin-bottom:0">
+    <select class="modal-input" id="leadPriceCurrency_${i}" style="margin-bottom:0">
+      <option value="VND">VNĐ</option>
+      <option value="USD">USD</option>
+    </select>
+    <button type="button" class="lead-product-remove" onclick="removeLeadProductRow(${i})">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function removeLeadProductRow(index) {
+  const row = document.querySelector(`[data-lead-row="${index}"]`);
+  if (row) row.remove();
+}
+
+function saveLead(e) {
+  e.preventDefault();
+  const leadId = document.getElementById('leadId').value;
+  const isEdit = !!leadId;
+  const container = document.getElementById('leadProducts');
+  const rows = container.querySelectorAll('[data-lead-row]');
+  const interestedProducts = [];
+  rows.forEach(row => {
+    const idx = row.dataset.leadRow;
+    const productSelect = document.getElementById(`leadProduct_${idx}`);
+    const qtyInput = document.getElementById(`leadQty_${idx}`);
+    if (productSelect && qtyInput && productSelect.value) {
+      const product = PRODUCTS_LIST.find(p => p.id === productSelect.value);
+      const unitEl  = document.getElementById(`leadUnit_${idx}`);
+      const priceEl = document.getElementById(`leadPrice_${idx}`);
+      const currEl = document.getElementById(`leadPriceCurrency_${idx}`);
+      if (product) interestedProducts.push({
+        productId:      product.id,
+        name:           product.name,
+        qty:            parseInt(qtyInput.value) || 1,
+        unit:           unitEl?.value || product.unit || '',
+        quotedPrice:    parseFloat(priceEl?.value) || 0,
+        quotedCurrency: currEl?.value || 'VND'
+      });
+    }
+  });
+  const leadData = {
+    id: isEdit ? leadId : generateLeadId(),
+    company: document.getElementById('leadCompany').value,
+    representative: document.getElementById('leadRepresentative')?.value || '',
+    repTitle: document.getElementById('leadRepTitle')?.value || '',
+    phone: document.getElementById('leadPhone').value,
+    email: document.getElementById('leadEmail').value,
+    address: document.getElementById('leadAddress').value,
+    type: document.getElementById('leadType').value,
+    channel: document.getElementById('leadChannel').value,
+    country: document.getElementById('leadCountry').value,
+    countryLabel: document.getElementById('leadCountrySearch')?.value || '',
+    portrait: document.getElementById('leadPortrait').value,
+    pipeline: document.getElementById('leadPipeline').value,
+    potential: document.getElementById('leadPotential').value,
+    issue: document.getElementById('leadIssue').value,
+    startDate: document.getElementById('leadStartDate').value,
+    lastContact: document.getElementById('leadLastContact').value || document.getElementById('leadStartDate').value,
+    estimatedValue:    parseFloat(document.getElementById('leadEstimatedValue').value) || 0,
+    estimatedCurrency: document.getElementById('leadEstimatedCurrency')?.value || 'VND',
+    sales: document.getElementById('leadSales').value,
+    note: document.getElementById('leadNote').value,
+    interestedProducts: interestedProducts,
+    contactLogs: isEdit ? (LEADS.find(l=>l.id===leadId)?.contactLogs||[]) : []
+  };
+  if (isEdit) { const index = LEADS.findIndex(l=>l.id===leadId); if(index!==-1) LEADS[index]=leadData; }
+  else { LEADS.unshift(leadData); }
+  H5C.set('leads', LEADS);
+  closeLeadModal();
+  renderLeads();
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEAD DETAIL
+// ══════════════════════════════════════════════════════════════
+function viewLead(leadId) {
+  const lead = LEADS.find(l => l.id === leadId);
+  if (!lead) return;
+  state.currentLeadId = leadId;
+  document.getElementById('detailLeadId').textContent = lead.company;
+  const content = document.getElementById('leadDetailContent');
+  content.innerHTML = `
+    <div class="order-detail-section">
+      <div class="order-detail-title">Thông tin doanh nghiệp</div>
+      <div class="order-detail-grid">
+        <div class="order-detail-item"><span class="order-detail-label">Tên công ty</span><span class="order-detail-value">${lead.company}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Loại</span><span class="order-detail-value"><span class="type-badge ${lead.type}">${LEAD_TYPE_LABELS[lead.type]}</span></span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Chân dung KH</span><span class="order-detail-value">${PORTRAIT_LABELS[lead.portrait]||lead.portrait}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Quốc gia</span><span class="order-detail-value">${COUNTRY_LABELS[lead.country]||lead.country}</span></div>
+      </div>
+    </div>
+    <div class="order-detail-section">
+      <div class="order-detail-title">Thông tin liên hệ</div>
+      <div class="order-detail-grid">
+        <div class="order-detail-item"><span class="order-detail-label">Số điện thoại</span><span class="order-detail-value">${lead.phone}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Email</span><span class="order-detail-value">${lead.email||'—'}</span></div>
+        <div class="order-detail-item" style="grid-column:span 2"><span class="order-detail-label">Địa chỉ</span><span class="order-detail-value">${lead.address||'—'}</span></div>
+      </div>
+    </div>
+    <div class="order-detail-section">
+      <div class="order-detail-title">Trạng thái & Đánh giá</div>
+      <div class="order-detail-grid">
+        <div class="order-detail-item"><span class="order-detail-label">Pipeline</span><span class="order-detail-value"><span class="pipeline-badge ${lead.pipeline}">${PIPELINE_LABELS[lead.pipeline]}</span></span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Tiềm năng</span><span class="order-detail-value"><span class="potential-badge ${lead.potential}">${POTENTIAL_LABELS[lead.potential]}</span></span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Kênh</span><span class="order-detail-value">${CHANNEL_LABELS[lead.channel]||lead.channel}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Sales phụ trách</span><span class="order-detail-value">${lead.sales}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Vấn đề gặp phải</span><span class="order-detail-value">${ISSUE_LABELS[lead.issue]||lead.issue||'—'}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Giá trị ước tính</span><span class="order-detail-value" style="color:var(--green-d);font-weight:800">${lead.estimatedValue?fmtCurrency(lead.estimatedValue,lead.estimatedCurrency):'—'}</span></div>
+      </div>
+    </div>
+    <div class="order-detail-section">
+      <div class="order-detail-title">Timeline</div>
+      <div class="order-detail-grid" style="grid-template-columns:1fr 1fr">
+        <div class="order-detail-item"><span class="order-detail-label">Ngày bắt đầu</span><span class="order-detail-value">${formatDate(lead.startDate)}</span></div>
+        <div class="order-detail-item"><span class="order-detail-label">Liên hệ cuối</span><span class="order-detail-value">${formatDate(lead.lastContact)}</span></div>
+      </div>
+    </div>
+    ${lead.interestedProducts&&lead.interestedProducts.length>0?`
+      <div class="order-detail-section">
+        <div class="order-detail-title">Sản phẩm quan tâm</div>
+        <table class="order-products-table">
+          <thead><tr><th>Sản phẩm</th><th style="width:60px;text-align:center">ĐVT</th><th style="width:80px;text-align:center">SL</th><th style="width:130px;text-align:right">Giá báo</th></tr></thead>
+          <tbody>${lead.interestedProducts.map(p=>`<tr><td>${p.name}</td><td style="text-align:center">${p.unit||''}</td><td style="text-align:center">${p.qty}</td><td style="text-align:right;font-weight:700;color:var(--green-d)">${p.quotedPrice?fmtCurrency(p.quotedPrice,p.quotedCurrency):'—'}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    `:''}
+    ${lead.contactLogs&&lead.contactLogs.length>0?`
+      <div class="order-detail-section">
+        <div class="order-detail-title">Lịch sử liên hệ</div>
+        <div class="contact-logs">
+          ${lead.contactLogs.map(log=>`
+            <div class="contact-log-item">
+              <div class="log-header"><span class="log-date">${formatDate(log.date)}</span><span class="log-result ${log.result}">${CONTACT_RESULT_LABELS[log.result]||log.result}</span></div>
+              <div class="log-content">${log.content}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `:''}
+    ${lead.note?`<div class="order-detail-section"><div class="order-detail-title">Ghi chú</div><p style="font-size:13px;color:var(--brown-m)">${lead.note}</p></div>`:''}
+  `;
+  const lead4btn = LEADS.find(l => l.id === state.currentLeadId);
+  const showOrderBtn = lead4btn && ['chot_don','deal','quay_lai'].includes(lead4btn.pipeline);
+  document.getElementById('createOrderBtnWrap').classList.toggle('hidden', !showOrderBtn);
+  document.getElementById('leadDetailModal').classList.remove('hidden');
+}
+
+function closeLeadDetailModal() { document.getElementById('leadDetailModal').classList.add('hidden'); }
+function editFromLeadDetail() { closeLeadDetailModal(); editLead(state.currentLeadId); }
+function editLead(leadId) { openLeadModal(leadId); }
+
+// ══════════════════════════════════════════════════════════════
+// CONTACT LOG
+// ══════════════════════════════════════════════════════════════
+function openContactLog(leadId) {
+  const lead = LEADS.find(l => l.id === leadId);
+  if (!lead) return;
+  state.currentLeadId = leadId;
+  document.getElementById('contactLogLeadName').textContent = lead.company;
+  document.getElementById('contactLogDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('contactLogContent').value = '';
+  document.getElementById('contactLogResult').value = 'dang_theo';
+  document.getElementById('contactLogModal').classList.remove('hidden');
+}
+
+function closeContactLogModal() { document.getElementById('contactLogModal').classList.add('hidden'); }
+
+function saveContactLog(e) {
+  e.preventDefault();
+  const lead = LEADS.find(l => l.id === state.currentLeadId);
+  if (!lead) return;
+  const newLog = {
+    date: document.getElementById('contactLogDate').value,
+    content: document.getElementById('contactLogContent').value,
+    result: document.getElementById('contactLogResult').value
+  };
+  if (!lead.contactLogs) lead.contactLogs = [];
+  lead.contactLogs.unshift(newLog);
+  lead.lastContact = newLog.date;
+  H5C.set('leads', LEADS);
+  closeContactLogModal();
+  renderLeads();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DELETE LEAD
+// ══════════════════════════════════════════════════════════════
+function createOrderFromLead() {
+  if(!_can('leads.convert_order')){alert('Không có quyền tạo đơn từ lead');return;}
+  const lead = LEADS.find(l => l.id === state.currentLeadId);
+  if (!lead) return;
+  // Build products list with prices from H5C
+  const prodList = H5C.productsList() || [];
+  const products = (lead.interestedProducts || []).map(p => {
+    const found = prodList.find(x => x.id === p.productId);
+    return { productId: p.productId, name: p.name, qty: p.qty || 1,
+             price: found ? found.price : 0, unit: found ? found.unit : '' };
+  });
+  H5C.set('pending_order', {
+    company: lead.company, phone: lead.phone, address: lead.address,
+    sales: lead.sales, fromLead: true, leadId: lead.id, products
+  });
+  window.location.href = 'orders.html';
+}
+
+function deleteLead(leadId) {
+  state.currentLeadId = leadId;
+  const lead = LEADS.find(l => l.id === leadId);
+  document.getElementById('deleteLeadName').textContent = lead ? lead.company : leadId;
+  document.getElementById('deleteLeadModal').classList.remove('hidden');
+}
+
+function closeDeleteLeadModal() { document.getElementById('deleteLeadModal').classList.add('hidden'); }
+
+function confirmDeleteLead() {
+  const index = LEADS.findIndex(l => l.id === state.currentLeadId);
+  if (index !== -1) LEADS.splice(index, 1);
+  H5C.set('leads', LEADS);
+  closeDeleteLeadModal();
+  renderLeads();
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loginPassword').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); });
+  document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('loginPassword').focus(); });
+});
+
+// ===== SHARED AUTH (sessionStorage) =====
+
+// ═══════════════════════════════════════════════════════════
+// H5C SHARED DATA STORE  (localStorage, prefix h5c_v1_)
+// Keys: employees | attendance | kpi | skus | lots
+//       orders | leads | expenses | announcements
+//       pending_order  (leads → orders handoff)
+// ═══════════════════════════════════════════════════════════
+const H5C = {
+  _k: k => 'h5c_v1_' + k,
+  get(k)        { try { const v = localStorage.getItem(this._k(k)); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  set(k, v)     { try { localStorage.setItem(this._k(k), JSON.stringify(v)); } catch(e) {} },
+  init(k, def)  { const v = this.get(k); if (v !== null) return v; this.set(k, def); return def; },
+  clear(k)      { localStorage.removeItem(this._k(k)); },
+  // Merge stored employees into a local array (for modules that read but don't own employees)
+  mergeEmployees(arr) {
+    const stored = this.get('employees');
+    if (stored && stored.length) { arr.splice(0, arr.length, ...stored); }
+  },
+  // Get active employee names for sales dropdowns
+  salesList() {
+    const emps = this.get('employees') || [];
+    const active = emps.filter(e => e.status !== 'inactive');
+    return active.map(e => e.name);
+  },
+  // Get SKUs in PRODUCTS_LIST format for orders/leads
+  productsList() {
+    const skus = this.get('skus') || [];
+    if (!skus.length) return null;
+    const UNIT_MAP = {kg:'Kg',hop:'Hộp',chiec:'Chiếc',tui:'Túi',stick:'Stick',cont:'Cont'};
+    return skus.map(s => ({
+      id: s.id, name: s.name,
+      unit: UNIT_MAP[s.unit] || s.unit || 'Cái',
+      price: s.suggestedPrice || 0
+    }));
+  }
+};
+// ═══════════════════════════════════════════════════════════
+
+const SESSION_KEY = 'h5c_erp_user';
+
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+}
+
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) { return null; }
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+// Auto-login from session on page load
+window.addEventListener('DOMContentLoaded', function() {
+LEADS = H5C.init('leads', LEADS);
+PRODUCTS_LIST = _getProductsList();
+    const saved = loadSession();
+  if (saved) {
+    state.user = saved;
+    showMain();
+  }
+});
+// ===== END SHARED AUTH =====
+</script>
+<script src="firebase-sync.js?v=3"></script>
+</body>
+</html>
