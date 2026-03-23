@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Thông báo</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<style>/* Announcements page-specific overrides */
+.announce-list{display:flex;flex-direction:column;gap:12px}
+.announce-card{background:var(--white,#FFF);border-radius:12px;padding:16px;border:1px solid var(--cream-b,#E2D0BC);cursor:pointer;transition:all .2s}
+.announce-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.announce-card.pinned{border-left:4px solid var(--orange,#D4851A);background:linear-gradient(90deg,#FFF8E1 0%,var(--white,#FFF) 20%)}
+.announce-card.unread{border-left:4px solid var(--green,#8FC643)}
+.announce-card.pending{opacity:.7;border-left:4px solid var(--blue,#2980B9)}
+.announce-card.scheduled{opacity:.8;border-left:4px solid #4A7FB5;background:linear-gradient(90deg,#E6EFF8 0%,var(--white,#FFF) 20%)}
+.announce-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.announce-title{font-size:14px;font-weight:700;color:var(--brown,#38261C);display:flex;align-items:center;gap:6px}
+.announce-meta{font-size:10px;color:var(--brown-m,#7A5240)}
+.announce-badges{display:flex;gap:6px;flex-wrap:wrap}
+.announce-badge{padding:3px 8px;border-radius:99px;font-size:9px;font-weight:700}
+.announce-badge.type-internal{background:#E6EFF8;color:#4A7FB5}
+.announce-badge.type-official{background:#F0EAE2;color:#6B5B4E}
+.announce-badge.type-news{background:#E8F0E8;color:#4A7A4D}
+.announce-badge.type-event{background:#FFF4E6;color:#D4851A}
+.announce-badge.type-reminder{background:#FBE8E6;color:#C44536}
+.announce-badge.type-birthday{background:#FFF4E6;color:#D4851A}
+.announce-badge.type-holiday{background:#E8F0E8;color:#4A7A4D}
+.announce-badge.important{background:#FBE8E6;color:#C44536}
+.announce-badge.pending{background:#FFF4E6;color:#D4851A}
+.announce-badge.approved{background:#E8F0E8;color:#4A7A4D}
+.announce-badge.rejected{background:#FBE8E6;color:#C44536}
+.announce-badge.scheduled{background:#E6EFF8;color:#4A7FB5}
+.announce-excerpt{font-size:12px;color:var(--brown-m,#7A5240);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.announce-footer{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--brown-m,#7A5240)}
+.announce-target{display:flex;align-items:center;gap:4px}
+.read-progress{display:flex;align-items:center;gap:6px}
+.read-bar{width:60px;height:4px;background:#E0E0E0;border-radius:2px;overflow:hidden}
+.read-bar-fill{height:100%;background:var(--green,#8FC643);border-radius:2px}
+.detail-content{font-size:13px;line-height:1.8;color:var(--brown,#38261C);margin:16px 0;padding:16px;background:var(--cream,#FBF6F0);border-radius:8px}
+.detail-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;padding:12px;background:var(--cream-d,#F0E6D8);border-radius:8px;font-size:11px}
+.detail-info-item{display:flex;flex-direction:column;gap:2px}
+.detail-info-label{color:var(--brown-m,#7A5240);font-size:10px}
+.detail-info-value{font-weight:600;color:var(--brown,#38261C)}
+.read-list{margin-top:16px;padding-top:16px;border-top:1px solid var(--cream-b,#E2D0BC)}
+.read-list-title{font-size:12px;font-weight:700;color:var(--brown,#38261C);margin-bottom:10px}
+.read-list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.read-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;font-size:11px}
+.read-item.read{background:#E8F0E8}
+.read-item.unread{background:#FBE8E6}
+.read-avatar{width:24px;height:24px;border-radius:50%;background:var(--green-l,#C5E08A);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--brown,#38261C)}
+.checkbox-row{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:11px}
+.checkbox-row input{width:16px;height:16px}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--white,#FFF);border-radius:10px;padding:14px;border:1px solid var(--cream-b,#E2D0BC)}
+.stat-card.highlight{background:linear-gradient(135deg,var(--brown,#38261C),var(--brown-l,#5C3D2A));border:none}
+.stat-card.highlight .stat-label{color:rgba(255,255,255,.7)}
+.stat-card.highlight .stat-value{color:var(--green,#8FC643)}
+.stat-card.warning{border-left:3px solid var(--orange,#D4851A)}
+.stat-card.danger{border-left:3px solid #C44536}
+.stat-icon{font-size:18px;margin-bottom:4px}
+.stat-label{font-size:10px;color:var(--brown-m,#7A5240);font-weight:600}
+.stat-value{font-size:16px;font-weight:900;color:var(--brown,#38261C)}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.section-filters{display:flex;gap:8px;flex-wrap:wrap}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:12px}
+.modal-label{font-size:10px;font-weight:600;color:var(--brown-m,#7A5240);margin-bottom:4px;display:block}
+.modal.large{max-width:700px}
+.modal-btn.success{background:var(--green,#8FC643);color:var(--brown,#38261C)}
+.birthday-banner{background:linear-gradient(135deg,#FFD54F,#FF8A65);border-radius:16px;padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;color:#5D4037;box-shadow:0 4px 20px rgba(255,138,101,.3)}
+.upcoming-section{background:linear-gradient(135deg,#FAFAFA,#F5F0EB);border:1px solid var(--cream-b,#E2D0BC);border-radius:14px;padding:18px;margin-bottom:20px}
+.upcoming-title{font-size:14px;font-weight:900;color:var(--brown,#38261C);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.upcoming-badge{font-size:10px;font-weight:600;color:var(--brown-m,#7A5240);background:var(--cream-d,#F0E6D8);padding:3px 10px;border-radius:99px}
+.upcoming-grid{display:grid;gap:14px}
+.upcoming-grid.two-col{grid-template-columns:1fr 1fr}
+.upcoming-subtitle{font-size:12px;font-weight:800;color:var(--brown-m,#7A5240);margin-bottom:10px}
+.upcoming-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--white,#FFF);border-radius:8px;margin-bottom:6px;border:1px solid var(--cream-b,#E2D0BC)}
+.upcoming-date{min-width:44px;text-align:center;background:var(--cream-d,#F0E6D8);border-radius:6px;padding:4px 8px}
+.upcoming-date-text{font-size:14px;font-weight:900;color:var(--brown,#38261C)}
+.upcoming-name{font-size:12px;font-weight:700;color:var(--brown,#38261C)}
+.upcoming-sub{font-size:10px;color:var(--brown-m,#7A5240)}
+.upcoming-days{font-size:11px;font-weight:700;color:#D4851A;white-space:nowrap}
+.tab-bar-announce{display:flex;align-items:center;gap:20px;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--cream-b,#E2D0BC);flex-wrap:wrap}
+.tab-bar-announce .tab-group{display:flex;gap:6px;flex-wrap:wrap}
+.tab-btn-announce{padding:10px 16px;border:1px solid var(--cream-b,#E2D0BC);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:var(--white,#FFF);color:var(--brown-m,#7A5240)}
+.tab-btn-announce.active{background:var(--green,#8FC643);color:var(--brown,#38261C);border-color:var(--green,#8FC643)}
+.tab-count{padding:2px 6px;border-radius:99px;font-size:9px;margin-left:4px;color:#fff}
+.holiday-info-box{background:var(--cream,#FBF6F0);border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px;color:var(--brown-m,#7A5240);line-height:1.6}
+.holiday-section-title{font-size:13px;font-weight:800;color:var(--brown,#38261C);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.holiday-bday-box{background:var(--white,#FFF);border:1px solid var(--cream-b,#E2D0BC);border-radius:10px;padding:14px}
+.holiday-bday-hint{font-size:10px;color:var(--brown-m,#7A5240)}
+.holiday-list-header{font-size:13px;font-weight:800;color:var(--brown,#38261C);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.holiday-item{background:var(--white,#FFF);border:1px solid var(--cream-b,#E2D0BC);border-radius:10px;padding:14px;margin-bottom:8px}
+.holiday-item.disabled{opacity:.5}
+.people-checkboxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:10px;background:var(--cream,#FBF6F0);border-radius:8px;max-height:150px;overflow-y:auto}
+@media(max-width:768px){.modal-row{grid-template-columns:1fr}.upcoming-grid.two-col{grid-template-columns:1fr}}
+</style>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button id="loginBtn" class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">☕</div>
+      <div class="sidebar-brand">Hello 5 Coffee</div>
+      <div class="sidebar-tagline">Internal Management</div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-footer">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="vi" onclick="setLang('vi')">🇻🇳 VI</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">🇬🇧 EN</button>
+      </div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title" id="pageTitle">Thông báo</div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">TT</div>
+          <div>
+            <div class="user-name" id="userName">—</div>
+            <div class="user-role" id="userRole">—</div>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<div id="announceModal" class="modal-overlay hidden"><div class="modal large"><div class="modal-title" id="announceModalTitle">Tạo thông báo</div><form onsubmit="saveAnnounce(event)"><input type="hidden" id="annId"><div class="modal-group"><label class="modal-label">Tiêu đề *</label><input type="text" id="annTitle" class="modal-input" required></div><div class="modal-row three"><div class="modal-group"><label class="modal-label">Loại thông báo</label><select id="annType" class="modal-input"><option value="internal">Nội bộ</option><option value="official">Công văn</option><option value="news">Tin tức</option><option value="event">Sự kiện</option><option value="reminder">Nhắc nhở</option></select></div><div class="modal-group"><label class="modal-label">Đối tượng</label><select id="annTarget" class="modal-input" onchange="toggleTargetOptions()"><option value="all">Toàn công ty</option><option value="dept">Theo phòng ban</option><option value="select">Chọn người</option></select></div><div class="modal-group" id="deptGroup"><label class="modal-label">Phòng ban</label><select id="annDept" class="modal-input"><option value="">-- Chọn PB --</option><option value="kinh_doanh">Kinh doanh</option><option value="san_xuat">Sản xuất</option><option value="marketing">Marketing</option><option value="hr">HR</option><option value="ke_toan">Kế toán</option><option value="ban_gd">Ban GĐ</option><option value="it">IT</option></select></div></div><div class="modal-group" id="selectPeopleGroup" style="display:none"><label class="modal-label">Chọn người nhận</label><div id="peopleCheckboxes" class="people-checkboxes"></div></div><div class="modal-group"><label class="modal-label">Nội dung *</label><textarea id="annContent" class="modal-input" rows="5" required></textarea></div><div class="modal-row"><div class="checkbox-row"><input type="checkbox" id="annPinned"><label for="annPinned">Ghim thông báo</label></div><div class="checkbox-row"><input type="checkbox" id="annAnonymous"><label for="annAnonymous">Đăng ẩn danh</label></div></div><div class="checkbox-row"><input type="checkbox" id="annScheduled" onchange="toggleSchedule()"><label for="annScheduled">Hẹn giờ đăng</label></div><div class="modal-row" id="scheduleGroup" style="display:none"><div class="modal-group"><label class="modal-label">Ngày đăng</label><input type="date" id="annScheduleDate" class="modal-input"></div><div class="modal-group"><label class="modal-label">Giờ đăng</label><input type="time" id="annScheduleTime" class="modal-input"></div></div><div class="modal-btns"><button type="button" class="modal-btn cancel" onclick="closeModal('announceModal')">Hủy</button><button type="submit" class="modal-btn primary">Gửi</button></div></form></div></div>
+
+<div id="detailModal" class="modal-overlay hidden"><div class="modal large"><div id="detailContent"></div><div class="modal-btns" id="detailBtns"></div></div></div>
+
+<div id="deleteModal" class="modal-overlay hidden"><div class="modal"><div class="modal-title">Xác nhận xóa</div><p style="margin-bottom:14px;font-size:12px">Xóa thông báo này?</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('deleteModal')">Không</button><button class="modal-btn danger" onclick="confirmDelete()">Xóa</button></div></div></div>
+
+<!-- HOLIDAY CONFIG MODAL -->
+<div id="holidayModal" class="modal-overlay hidden">
+<div class="modal large">
+  <div class="modal-title">Cài đặt Ngày lễ & Sinh nhật tự động</div>
+
+  <div class="holiday-info-box">
+    Hệ thống sẽ <strong>tự động phát thông báo</strong> vào đúng ngày lễ và sinh nhật nhân viên.<br>
+    Bạn có thể thêm/bớt ngày lễ, bật/tắt từng ngày, và chỉnh sửa nội dung lời chúc.
+  </div>
+
+  <!-- Birthday config -->
+  <div style="margin-bottom:20px">
+    <div class="holiday-section-title">Sinh nhật nhân viên</div>
+    <div class="holiday-bday-box">
+      <div class="modal-group">
+        <label class="modal-label">Mẫu lời chúc sinh nhật (dùng {name} cho tên NV)</label>
+        <textarea id="bdayTemplate" class="modal-input" rows="3"></textarea>
+      </div>
+      <div class="holiday-bday-hint">Tự động phát thông báo lúc 8:00 sáng ngày sinh nhật</div>
+    </div>
+  </div>
+
+  <!-- Holiday list -->
+  <div>
+    <div class="holiday-list-header">
+      <span>Danh sách ngày lễ</span>
+      <button class="btn-add" onclick="addHoliday()">Thêm ngày lễ</button>
+    </div>
+    <div id="holidayList"></div>
+  </div>
+
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('holidayModal')">Đóng</button>
+    <button class="modal-btn primary" onclick="saveHolidayConfig()">Lưu cài đặt</button>
+  </div>
+</div>
+</div>
+
+<script>
+const ACCOUNTS={
+  "admin@hello5coffee.com":{pw:"Admin@123456",user:{id:'0',name:"Louis Nguyen",role:'C_LEVEL',pos:"CCO & Co-Founder",dept:'ban_gd'}},
+  "manager@hello5coffee.com":{pw:"123456",user:{id:'1',name:"Nguyễn Thị Lan",role:'MANAGER',pos:"Trưởng phòng HR",dept:'hr'}},
+  "sales@hello5coffee.com":{pw:"123456",user:{id:'3',name:"Lê Minh Khoa",role:'EMPLOYEE_SALES',pos:"Chuyên viên Kinh doanh",dept:'kinh_doanh'}},
+  "finance@hello5coffee.com":{pw:"123456",user:{id:'4',name:"Phạm Thị Mai",role:'EMPLOYEE_FINANCE',pos:"Kế toán viên",dept:'ke_toan'}},
+  "nv@hello5coffee.com":{pw:"123456",user:{id:'2',name:"Đặng Văn Hùng",role:'EMPLOYEE_HR',pos:"Chuyên viên Nhân sự",dept:'hr'}}
+};
+
+const EMPLOYEES=[
+  {id:'EMP001',name:'Louis Nguyen',role:'C_LEVEL',dept:'ban_gd'},
+  {id:'EMP002',name:'Nguyễn Thị Lan',role:'MANAGER',dept:'hr'},
+  {id:'EMP003',name:'Trần Văn An',role:'EMPLOYEE_HR',dept:'kinh_doanh'},
+  {id:'EMP004',name:'Phạm Thị Mai',role:'EMPLOYEE_HR',dept:'ke_toan'},
+  {id:'EMP005',name:'Lê Hoàng Nam',role:'MANAGER',dept:'san_xuat'},
+  {id:'EMP006',name:'Võ Thị Hương',role:'EMPLOYEE_HR',dept:'marketing'},
+  {id:'EMP007',name:'Đặng Minh Tuấn',role:'EMPLOYEE_HR',dept:'it'}
+];
+
+let ANNOUNCEMENTS=[
+  {id:'ANN001',title:'Thông báo nghỉ Tết Nguyên Đán 2025',type:'official',target:'all',dept:'',content:'Công ty thông báo lịch nghỉ Tết Nguyên Đán 2025 từ ngày 25/01 đến hết ngày 02/02/2025. Đề nghị các phòng ban sắp xếp công việc và bàn giao trước kỳ nghỉ.\n\nChúc toàn thể CBNV một năm mới an khang thịnh vượng!',pinned:true,anonymous:false,createdBy:'EMP001',createdAt:'2025-01-15 09:00',status:'approved',approvedBy:'EMP001',readBy:['EMP001','EMP002','EMP003','EMP004','EMP005']},
+  {id:'ANN002',title:'Họp tổng kết Q1/2025',type:'event',target:'all',dept:'',content:'Kính mời toàn thể CBNV tham dự buổi họp tổng kết Q1/2025:\n\n📅 Thời gian: 14:00 - 17:00, Thứ 6 ngày 28/03/2025\n📍 Địa điểm: Phòng họp tầng 5\n\nNội dung:\n- Báo cáo kết quả kinh doanh Q1\n- Kế hoạch Q2/2025\n- Trao thưởng nhân viên xuất sắc',pinned:true,anonymous:false,createdBy:'EMP001',createdAt:'2025-03-05 10:30',status:'approved',approvedBy:'EMP001',readBy:['EMP001','EMP002','EMP006']},
+  {id:'ANN003',title:'Cập nhật quy trình chấm công mới',type:'internal',target:'all',dept:'',content:'Từ ngày 01/04/2025, công ty áp dụng hệ thống chấm công mới qua app mobile. Vui lòng liên hệ phòng IT để được hướng dẫn cài đặt.\n\nLưu ý: Hệ thống cũ sẽ ngừng hoạt động từ 15/04/2025.',pinned:false,anonymous:false,createdBy:'EMP002',createdAt:'2025-03-06 14:00',status:'approved',approvedBy:'EMP001',readBy:['EMP001','EMP002','EMP003']},
+  {id:'ANN004',title:'Nhắc nhở: Deadline báo cáo tháng 3',type:'reminder',target:'dept',dept:'ke_toan',content:'Nhắc nhở phòng Kế toán hoàn thành báo cáo tháng 3 trước 17:00 ngày 05/04/2025.',pinned:false,anonymous:false,createdBy:'EMP001',createdAt:'2025-03-07 08:00',status:'approved',approvedBy:'EMP001',readBy:['EMP004']},
+  {id:'ANN005',title:'Góp ý về chế độ phúc lợi',type:'internal',target:'all',dept:'',content:'Mình thấy công ty nên xem xét thêm chế độ bảo hiểm sức khỏe cho gia đình nhân viên. Đây là phúc lợi rất thiết thực và nhiều công ty đã áp dụng.',pinned:false,anonymous:true,createdBy:'EMP003',createdAt:'2025-03-06 16:30',status:'pending',approvedBy:null,readBy:[]},
+  {id:'ANN006',title:'Đề xuất tổ chức team building Q2',type:'event',target:'all',dept:'',content:'Phòng HR đề xuất tổ chức chương trình team building vào tháng 5/2025 tại Đà Lạt. Dự kiến 2 ngày 1 đêm, chi phí dự kiến 50 triệu đồng.',pinned:false,anonymous:false,createdBy:'EMP002',createdAt:'2025-03-07 09:15',status:'pending',approvedBy:null,readBy:[]}
+];
+
+
+const NAV_ITEMS=[{id:'dashboard',icon:'📊',label:'Tổng quan'},{id:'orders',icon:'📦',label:'Đơn hàng'},{id:'leads',icon:'🎯',label:'Lead/CRM'},{id:'expenses',icon:'💰',label:'Chi phí'},{id:'warehouse',icon:'🏭',label:'Kho hàng'},{id:'users',icon:'👥',label:'Nhân viên'},{id:'tasks',icon:'✅',label:'Công việc'},{id:'projects',icon:'📋',label:'Dự án'},{id:'reports',icon:'📈',label:'Báo cáo'},{id:'announcements',icon:'📢',label:'Thông báo'}];
+
+const TYPE_LABELS={internal:'Nội bộ',official:'Công văn',news:'Tin tức',event:'Sự kiện',reminder:'Nhắc nhở',birthday:'Sinh nhật',holiday:'Ngày lễ'};
+const TYPE_ICONS={internal:'📋',official:'📜',news:'📰',event:'🎉',reminder:'⏰',birthday:'🎂',holiday:'🎊'};
+const DEPT_LABELS={kinh_doanh:'Kinh doanh',san_xuat:'Sản xuất',marketing:'Marketing',hr:'HR',ke_toan:'Kế toán',ban_gd:'Ban GĐ',it:'IT'};
+const TARGET_LABELS={all:'Toàn công ty',dept:'Theo phòng ban',select:'Chọn người'};
+
+// ═══ DEFAULT HOLIDAYS (annual) ═══
+const DEFAULT_HOLIDAYS=[
+  {id:'HL001',date:'01-01',name:'Tết Dương Lịch',content:'🎊 Chúc mừng năm mới!\n\nChúc toàn thể CBNV Hello 5 Coffee một năm mới an khang, thịnh vượng, vạn sự như ý! 🎉',annual:true,enabled:true},
+  {id:'HL002',date:'03-08',name:'Quốc tế Phụ nữ 8/3',content:'💐 Chúc mừng ngày Quốc tế Phụ nữ 8/3!\n\nChúc tất cả chị em trong công ty luôn xinh đẹp, hạnh phúc và thành công! 🌷',annual:true,enabled:true},
+  {id:'HL003',date:'04-30',name:'Giải phóng miền Nam 30/4',content:'🇻🇳 Kỷ niệm ngày Giải phóng miền Nam, thống nhất đất nước 30/4!\n\nChúc toàn thể CBNV có kỳ nghỉ lễ vui vẻ và ý nghĩa!',annual:true,enabled:true},
+  {id:'HL004',date:'05-01',name:'Quốc tế Lao động 1/5',content:'⭐ Chúc mừng ngày Quốc tế Lao động 1/5!\n\nCảm ơn sự cống hiến và nỗ lực của toàn thể CBNV Hello 5 Coffee!',annual:true,enabled:true},
+  {id:'HL005',date:'10-20',name:'Ngày Phụ nữ Việt Nam 20/10',content:'🌹 Chúc mừng ngày Phụ nữ Việt Nam 20/10!\n\nChúc tất cả chị em luôn tỏa sáng, tự tin và hạnh phúc! 💝',annual:true,enabled:true},
+  {id:'HL006',date:'11-20',name:'Ngày Nhà giáo Việt Nam 20/11',content:'📚 Tri ân ngày Nhà giáo Việt Nam 20/11!\n\nGửi lời cảm ơn chân thành đến tất cả thầy cô — những người đã dìu dắt chúng ta trưởng thành.',annual:true,enabled:true},
+];
+
+let HOLIDAYS = [];
+let BIRTHDAY_CONTENT_TEMPLATE = '🎂🎉 Chúc mừng sinh nhật {name}!\n\nToàn thể Hello 5 Coffee chúc {name} tuổi mới nhiều niềm vui, sức khỏe và thành công! 🎊🎁';
+
+let state={user:null,tab:'all',deleteId:null,filterType:'all',filterStatus:'all'};
+
+const getInitials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
+const getEmpName=id=>{if(id==='SYSTEM')return'🤖 Hệ thống';const emps=H5C.get('employees')||EMPLOYEES;const e=emps.find(x=>x.id===id);return e?e.name:'Ẩn danh';};
+const formatDateTime=d=>{const dt=new Date(d.replace(' ','T'));return dt.getDate()+'/'+(dt.getMonth()+1)+'/'+dt.getFullYear()+' '+dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0');};
+
+// ═══ BIRTHDAY HELPERS ═══
+function _getActiveEmployees(){
+  const emps=H5C.get('employees')||EMPLOYEES;
+  return emps.filter(e=>e.status!=='inactive');
+}
+
+function _getBirthdaysToday(){
+  const now=new Date();
+  const d=now.getDate(),m=now.getMonth()+1;
+  return _getActiveEmployees().filter(e=>{
+    if(!e.birthday)return false;
+    const bd=new Date(e.birthday);
+    return bd.getDate()===d&&bd.getMonth()+1===m;
+  });
+}
+
+function _getBirthdaysThisMonth(){
+  const now=new Date();
+  const m=now.getMonth()+1;
+  return _getActiveEmployees().filter(e=>{
+    if(!e.birthday)return false;
+    const bd=new Date(e.birthday);
+    return bd.getMonth()+1===m;
+  }).sort((a,b)=>new Date(a.birthday).getDate()-new Date(b.birthday).getDate());
+}
+
+function _getUpcomingBirthdays(days){
+  days=days||7;
+  const now=new Date();
+  const thisYear=now.getFullYear();
+  return _getActiveEmployees().filter(e=>{
+    if(!e.birthday)return false;
+    const bd=new Date(e.birthday);
+    let next=new Date(thisYear,bd.getMonth(),bd.getDate());
+    if(next<now)next=new Date(thisYear+1,bd.getMonth(),bd.getDate());
+    const diff=Math.floor((next-now)/(1000*60*60*24));
+    return diff>0&&diff<=days;
+  }).sort((a,b)=>{
+    const bd1=new Date(a.birthday),bd2=new Date(b.birthday);
+    let n1=new Date(thisYear,bd1.getMonth(),bd1.getDate());
+    let n2=new Date(thisYear,bd2.getMonth(),bd2.getDate());
+    if(n1<now)n1=new Date(thisYear+1,bd1.getMonth(),bd1.getDate());
+    if(n2<now)n2=new Date(thisYear+1,bd2.getMonth(),bd2.getDate());
+    return n1-n2;
+  });
+}
+
+function _daysUntilBirthday(birthday){
+  const now=new Date();
+  const bd=new Date(birthday);
+  const thisYear=now.getFullYear();
+  let next=new Date(thisYear,bd.getMonth(),bd.getDate());
+  if(next<=now)next=new Date(thisYear+1,bd.getMonth(),bd.getDate());
+  return Math.ceil((next-now)/(1000*60*60*24));
+}
+
+function _formatBdayDate(bd){
+  const dt=new Date(bd);
+  return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
+}
+
+// ═══ AUTO-GENERATE ANNOUNCEMENTS ═══
+function _autoGenerateAnnouncements(){
+  const now=new Date();
+  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const todayMD=String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  let changed=false;
+
+  // CLEANUP: Remove wrongly auto-generated holiday announcements from previous bug
+  const before=ANNOUNCEMENTS.length;
+  ANNOUNCEMENTS=ANNOUNCEMENTS.filter(a=>{
+    if(!a.autoGenerated||a.type!=='holiday')return true;
+    const parts=a.id.match(/^AUTO_HOLIDAY_(.+?)_(\d{4}-\d{2}-\d{2})$/);
+    if(!parts)return true;
+    const hlId=parts[1],genDate=parts[2];
+    const holiday=HOLIDAYS.find(h=>h.id===hlId);
+    if(!holiday)return false;
+    const genMD=genDate.slice(5);
+    if(holiday.annual&&genMD!==holiday.date)return false;
+    return true;
+  });
+  if(ANNOUNCEMENTS.length!==before)changed=true;
+
+  // 1. Auto birthday announcements
+  const bdayToday=_getBirthdaysToday();
+  bdayToday.forEach(emp=>{
+    const autoId='AUTO_BDAY_'+emp.id+'_'+todayKey;
+    if(!ANNOUNCEMENTS.find(a=>a.id===autoId)){
+      const content=BIRTHDAY_CONTENT_TEMPLATE.replace(/\{name\}/g,emp.name);
+      ANNOUNCEMENTS.push({
+        id:autoId,title:'🎂 Chúc mừng sinh nhật '+emp.name+'!',type:'birthday',
+        target:'all',dept:'',content:content,pinned:false,anonymous:false,
+        createdBy:'SYSTEM',createdAt:todayKey+' 08:00',status:'approved',
+        approvedBy:'SYSTEM',readBy:[],autoGenerated:true
+      });
+      changed=true;
+    }
+  });
+
+  // 2. Auto holiday announcements
+  HOLIDAYS.filter(h=>h.enabled).forEach(holiday=>{
+    if(todayMD===holiday.date){
+      const autoId='AUTO_HOLIDAY_'+holiday.id+'_'+todayKey;
+      if(!ANNOUNCEMENTS.find(a=>a.id===autoId)){
+        ANNOUNCEMENTS.push({
+          id:autoId,title:'🎊 '+holiday.name,type:'holiday',
+          target:'all',dept:'',content:holiday.content,pinned:false,anonymous:false,
+          createdBy:'SYSTEM',createdAt:todayKey+' 00:00',status:'approved',
+          approvedBy:'SYSTEM',readBy:[],autoGenerated:true
+        });
+        changed=true;
+      }
+    }
+  });
+
+  if(changed)H5C.set('announcements',ANNOUNCEMENTS);
+}
+
+// ═══ UPCOMING HOLIDAYS & BIRTHDAYS (Manager/C-Level only) ═══
+function _getUpcomingHolidays(days){
+  days=days||30;
+  const now=new Date();
+  const thisYear=now.getFullYear();
+  return HOLIDAYS.filter(h=>h.enabled).map(h=>{
+    const parts=h.date.split('-');
+    const mm=parseInt(parts[0]),dd=parseInt(parts[1]);
+    let next=new Date(thisYear,mm-1,dd);
+    if(next<=now)next=new Date(thisYear+1,mm-1,dd);
+    const diff=Math.ceil((next-now)/(1000*60*60*24));
+    return {...h,nextDate:next,daysUntil:diff};
+  }).filter(h=>h.daysUntil>0&&h.daysUntil<=days).sort((a,b)=>a.daysUntil-b.daysUntil);
+}
+
+function _renderUpcomingSection(){
+  if(!_can('ann.approve'))return'';
+
+  const upHolidays=_getUpcomingHolidays(60);
+  const upBdays=_getUpcomingBirthdays(30);
+
+  if(!upHolidays.length&&!upBdays.length)return'';
+
+  let h='<div class="upcoming-section">';
+  h+='<div class="upcoming-title">📅 Sắp tới <span class="upcoming-badge">Chỉ quản lý thấy</span></div>';
+
+  h+='<div class="upcoming-grid'+(upHolidays.length&&upBdays.length?' two-col':'')+'">';
+
+  if(upHolidays.length){
+    h+='<div>';
+    h+='<div class="upcoming-subtitle">🎊 Ngày lễ sắp tới</div>';
+    upHolidays.forEach(hl=>{
+      const dd=hl.date.split('-')[1],mm=hl.date.split('-')[0];
+      h+='<div class="upcoming-item">';
+      h+='<div class="upcoming-date"><div class="upcoming-date-text">'+dd+'/'+mm+'</div></div>';
+      h+='<div style="flex:1"><div class="upcoming-name">'+hl.name+'</div></div>';
+      h+='<div class="upcoming-days">còn '+hl.daysUntil+' ngày</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  if(upBdays.length){
+    h+='<div>';
+    h+='<div class="upcoming-subtitle">🎂 Sinh nhật sắp tới</div>';
+    upBdays.slice(0,5).forEach(e=>{
+      const days=_daysUntilBirthday(e.birthday);
+      h+='<div class="upcoming-item">';
+      h+='<div class="user-avatar" style="width:32px;height:32px;font-size:11px">'+getInitials(e.name)+'</div>';
+      h+='<div style="flex:1"><div class="upcoming-name">'+e.name+'</div><div class="upcoming-sub">'+_formatBdayDate(e.birthday)+'</div></div>';
+      h+='<div class="upcoming-days">còn '+days+' ngày</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  h+='</div></div>';
+  return h;
+}
+
+// === Granular Permission Engine v2 — FIXED ===
+const _ROLE_PERMS={
+  MANAGER:{
+    'dash.view':true,'dash.kpi_finance':true,'dash.ar_ap':true,'dash.top_sales':true,
+    'orders.view':'all','orders.create':true,'orders.edit':'all','orders.update_progress':true,
+    'orders.approve_edit':true,'orders.approve_cancel':true,'orders.approve_restore':true,
+    'orders.approve_request':true,'orders.submit_request':true,'orders.commission_config':true,
+    'leads.view':'all','leads.create':true,'leads.edit':'all','leads.delete':true,'leads.convert_order':true,
+    'expenses.view':'all','expenses.create':true,'expenses.edit':'all','expenses.approve':true,'expenses.reject':true,
+    'wh.view_stock':true,
+    'users.view':true,'users.view_salary':true,'users.manage_attendance':true,'users.evaluate_kpi':true,
+    'reports.view':true,
+    'ann.view':true,'ann.create':true,'ann.approve':true,'ann.edit':true,'ann.delete':true,
+  },
+  EMPLOYEE_SALES:{
+    'dash.view':true,'dash.top_sales':true,
+    'orders.view':'own','orders.create':true,'orders.edit':'own','orders.update_progress':true,
+    'orders.request_cancel':true,'orders.submit_request':true,
+    'leads.view':'own','leads.create':true,'leads.edit':'own','leads.convert_order':true,
+    'ann.view':true,
+  },
+  EMPLOYEE_FINANCE:{
+    'dash.view':true,'dash.kpi_finance':true,'dash.ar_ap':true,
+    'expenses.view':'all','expenses.create':true,'expenses.edit':'own','expenses.mark_paid':true,
+    'reports.view':true,
+    'ann.view':true,
+  },
+  EMPLOYEE_HR:{
+    'dash.view':true,
+    'users.view':true,'users.view_salary':true,'users.manage_attendance':true,'users.evaluate_kpi':true,
+    'ann.view':true,'ann.create':true,'ann.edit':true,
+  },
+};
+
+function _findAccount(session){
+  if(!session) return null;
+  try{
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    return accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+  }catch(e){return null;}
+}
+
+function _getPerms(acc){
+  if(!acc) return {};
+  if(acc.role==='C_LEVEL') return null;
+  if(acc.permissions) return acc.permissions;
+  return _ROLE_PERMS[acc.role]||{};
+}
+
+function _can(permId){
+  try{
+    const session=state.user; if(!session)return false;
+    if(session.role==='C_LEVEL') return true;
+    const acc=_findAccount(session);
+    if(!acc) return false;
+    if(acc.role==='C_LEVEL') return true;
+    const perms=_getPerms(acc);
+    if(!perms) return true;
+    const val=perms[permId];
+    return val===true||val==='all'||val==='own';
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+// === End Permission Engine ===
+
+function canApprove(ann){
+  return _can('ann.approve');
+}
+
+function needsApproval(){
+  return !_can('ann.approve');
+}
+
+function getTargetEmployees(ann){
+  if(ann.target==='all')return EMPLOYEES;
+  if(ann.target==='dept')return EMPLOYEES.filter(e=>e.dept===ann.dept);
+  if(ann.target==='select'&&ann.selectedPeople)return EMPLOYEES.filter(e=>ann.selectedPeople.includes(e.id));
+  return EMPLOYEES;
+}
+
+// Login dùng H5C accounts
+function _getAccountsForLogin() {
+  try {
+    const stored = localStorage.getItem('h5c_v1_accounts');
+    if (stored) {
+      const arr = JSON.parse(stored);
+      if (arr && arr.length) return arr;
+    }
+  } catch(e) {}
+  return [
+    {email:'admin@hello5coffee.com',   pw:'Admin@123456', role:'C_LEVEL',         name:'Louis Nguyen',   pos:'CCO & Co-Founder',       empId:'EMP001'},
+    {email:'manager@hello5coffee.com', pw:'123456',       role:'MANAGER',         name:'Nguyễn Thị Lan', pos:'Trưởng phòng HR',        empId:'EMP002'},
+    {email:'sales@hello5coffee.com',   pw:'123456',       role:'EMPLOYEE_SALES',  name:'Lê Minh Khoa',   pos:'Chuyên viên Kinh doanh', empId:'EMP003'},
+    {email:'finance@hello5coffee.com', pw:'123456',       role:'EMPLOYEE_FINANCE',name:'Phạm Thị Mai',   pos:'Kế toán viên',           empId:'EMP004'},
+    {email:'nv@hello5coffee.com',      pw:'123456',       role:'EMPLOYEE_HR',     name:'Đặng Văn Hùng',  pos:'Chuyên viên Nhân sự',    empId:'EMP002'},
+  ];
+}
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const accounts=_getAccountsForLogin();
+  const acc=accounts.find(a=>a.email.toLowerCase()===email);
+  if(!acc||acc.pw!==pw){document.getElementById('loginError').classList.add('show');return;}
+  const userObj={id:acc.empId||acc.email,name:acc.name,role:acc.role,pos:acc.pos,email:acc.email};
+  state.user=userObj;saveSession(userObj);showMain();
+}
+function handleLogout(){ clearSession();state.user=null;document.getElementById('loginPage').classList.remove('hidden');document.getElementById('mainLayout').classList.add('hidden');}
+const _DEPT_LABELS={kinh_doanh:'Kinh doanh',san_xuat:'Sản xuất',marketing:'Marketing',hr:'HR',ke_toan:'Kế toán',ban_gd:'Ban GĐ',it:'IT'};
+function _getUserRoleDisplay(user){const emps=H5C.get('employees')||[];const emp=emps.find(e=>e.id===user.id||e.id===user.empId||(user.email&&e.email===user.email));if(emp){const dept=_DEPT_LABELS[emp.dept]||emp.dept||'';const pos=emp.position||user.pos||'';return dept&&pos?dept+' - '+pos:(dept||pos||user.pos||'');}return user.pos||'';}
+function showMain(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('mainLayout').classList.remove('hidden');document.getElementById('userName').textContent=state.user.name;document.getElementById('userRole').textContent=_getUserRoleDisplay(state.user);document.getElementById('userAvatar').textContent=getInitials(state.user.name);renderNav();render();}
+function renderNav(){document.getElementById('sidebarNav').innerHTML=NAV_ITEMS.map(i=>'<div class="nav-item '+(i.id==='announcements'?'active':'')+'" onclick="navigateTo(\''+i.id+'\')"><span>'+i.icon+'</span><span>'+i.label+'</span></div>').join('');}
+
+function switchTab(t){state.tab=t;render();}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+function render(){
+  const _a=H5C.get('announcements');if(_a)ANNOUNCEMENTS=_a;
+  const _h=H5C.get('holidays');if(_h)HOLIDAYS=_h;
+  H5C.mergeEmployees(EMPLOYEES);
+const c=document.getElementById('pageContent');
+const approved=ANNOUNCEMENTS.filter(a=>a.status==='approved');
+const pending=ANNOUNCEMENTS.filter(a=>a.status==='pending');
+const myUnread=approved.filter(a=>!a.readBy.includes(state.user.id)&&canSeeAnn(a)).length;
+const pinned=approved.filter(a=>a.pinned).length;
+
+let h='<div class="fade">';
+
+// Today's birthday banner
+const todayBdays=_getBirthdaysToday();
+if(todayBdays.length){
+  h+='<div class="birthday-banner">';
+  h+='<div style="font-size:48px">🎂</div>';
+  h+='<div style="flex:1"><div style="font-size:16px;font-weight:900;margin-bottom:4px">Hôm nay là sinh nhật!</div>';
+  h+='<div style="font-size:14px;font-weight:700">'+todayBdays.map(e=>'🎉 '+e.name+' ('+(DEPT_LABELS[e.dept]||e.dept)+')').join(' &nbsp;·&nbsp; ')+'</div>';
+  h+='<div style="font-size:11px;margin-top:4px;opacity:.8">Hãy gửi lời chúc mừng đến đồng nghiệp nhé!</div>';
+  h+='</div></div>';
+}
+
+// Upcoming section
+h+=_renderUpcomingSection();
+
+// Tabs
+h+='<div class="tab-bar-announce">';
+h+='<div class="tab-group">';
+const scheduled=ANNOUNCEMENTS.filter(a=>a.status==='scheduled');
+const tabs=[{id:'all',icon:'📋',label:'Tất cả'},{id:'unread',icon:'🔔',label:'Chưa đọc',count:myUnread},{id:'pinned',icon:'📌',label:'Ghim'},{id:'birthday',icon:'🎂',label:'Sinh nhật'},{id:'scheduled',icon:'⏰',label:'Hẹn giờ',count:scheduled.length},{id:'pending',icon:'⏳',label:'Chờ duyệt',count:pending.length}];
+tabs.forEach(t=>{
+  if(t.id==='pending'&&!_can('ann.create'))return;
+  if(t.id==='scheduled'&&scheduled.filter(s=>s.createdBy===state.user.id||_can('ann.approve')).length===0)return;
+  const isActive=state.tab===t.id;
+  h+='<button onclick="switchTab(\''+t.id+'\')" class="tab-btn-announce'+(isActive?' active':'')+'">'+t.icon+' '+t.label+(t.count?' <span class="tab-count" style="background:'+(isActive?'var(--brown,#38261C)':'#4A7FB5')+'">'+t.count+'</span>':'')+'</button>';
+});
+h+='</div></div>';
+
+// Stats
+h+='<div class="stats-row">';
+h+='<div class="stat-card highlight"><div class="stat-icon">📢</div><div class="stat-label">Tổng thông báo</div><div class="stat-value">'+approved.length+'</div></div>';
+h+='<div class="stat-card"><div class="stat-icon">📌</div><div class="stat-label">Đang ghim</div><div class="stat-value">'+pinned+'</div></div>';
+h+='<div class="stat-card '+(myUnread>0?'warning':'')+'"><div class="stat-icon">🔔</div><div class="stat-label">Chưa đọc</div><div class="stat-value">'+myUnread+'</div></div>';
+if(scheduled.length>0)h+='<div class="stat-card"><div class="stat-icon">⏰</div><div class="stat-label">Hẹn giờ</div><div class="stat-value">'+scheduled.length+'</div></div>';
+if(_can('ann.approve'))h+='<div class="stat-card '+(pending.length>0?'danger':'')+'"><div class="stat-icon">⏳</div><div class="stat-label">Chờ duyệt</div><div class="stat-value">'+pending.length+'</div></div>';
+h+='</div>';
+
+// Header
+h+='<div class="section-header"><div class="section-filters"><select class="filter-select" id="fType" onchange="state.filterType=this.value;render()"><option value="all">Tất cả loại</option>'+Object.entries(TYPE_LABELS).map(([k,v])=>'<option value="'+k+'"'+(state.filterType===k?' selected':'')+'>'+TYPE_ICONS[k]+' '+v+'</option>').join('')+'</select></div><div style="display:flex;gap:8px">'+(_can('ann.approve')?'<button class="btn-secondary" onclick="openHolidayConfig()">Ngày lễ & Sinh nhật</button>':'')+(_can('ann.create')?'<button class="btn-add" onclick="openAnnounceModal()">Tạo thông báo</button>':'')+'</div></div>';
+
+// List
+h+='<div class="announce-list">';
+
+let list=[];
+if(state.tab==='all')list=approved.filter(a=>canSeeAnn(a));
+else if(state.tab==='unread')list=approved.filter(a=>canSeeAnn(a)&&!a.readBy.includes(state.user.id));
+else if(state.tab==='pinned')list=approved.filter(a=>canSeeAnn(a)&&a.pinned);
+else if(state.tab==='birthday')list=approved.filter(a=>canSeeAnn(a)&&(a.type==='birthday'||a.type==='holiday'));
+else if(state.tab==='scheduled')list=scheduled.filter(a=>a.createdBy===state.user.id||_can('ann.approve'));
+else if(state.tab==='pending')list=pending.filter(a=>canApprove(a)||a.createdBy===state.user.id);
+
+if(state.filterType!=='all')list=list.filter(a=>a.type===state.filterType);
+
+// Sort: pinned first, then by date
+list.sort((a,b)=>{
+  if(a.pinned&&!b.pinned)return -1;
+  if(!a.pinned&&b.pinned)return 1;
+  return new Date(b.createdAt.replace(' ','T'))-new Date(a.createdAt.replace(' ','T'));
+});
+
+list.forEach(a=>{
+  const isUnread=!a.readBy.includes(state.user.id);
+  const targetEmps=getTargetEmployees(a);
+  const readCount=a.readBy.length;
+  const readPct=targetEmps.length>0?Math.round(readCount/targetEmps.length*100):0;
+  const author=a.anonymous?'Ẩn danh':getEmpName(a.createdBy);
+
+  let cardClass='announce-card';
+  if(a.pinned)cardClass+=' pinned';
+  else if(a.status==='scheduled')cardClass+=' scheduled';
+  else if(a.status==='pending')cardClass+=' pending';
+  else if(isUnread)cardClass+=' unread';
+
+  h+='<div class="'+cardClass+'" onclick="openDetail(\''+a.id+'\')">';
+  h+='<div class="announce-header"><div class="announce-title">'+(a.pinned?'📌 ':'')+a.title+'</div><div class="announce-badges">';
+  h+='<span class="announce-badge type-'+a.type+'">'+TYPE_ICONS[a.type]+' '+TYPE_LABELS[a.type]+'</span>';
+  if(a.status==='pending')h+='<span class="announce-badge pending">Chờ duyệt</span>';
+  if(a.status==='scheduled')h+='<span class="announce-badge scheduled">'+formatDateTime(a.scheduledAt)+'</span>';
+  h+='</div></div>';
+  h+='<div class="announce-excerpt">'+a.content.replace(/\n/g,' ')+'</div>';
+  h+='<div class="announce-footer"><div class="announce-target"><span>'+author+'</span><span>·</span><span>'+formatDateTime(a.createdAt)+'</span><span>·</span><span>'+(a.target==='all'?'Toàn công ty':a.target==='dept'?DEPT_LABELS[a.dept]:'Chọn người')+'</span></div>';
+  if(a.status==='approved')h+='<div class="read-progress"><div class="read-bar"><div class="read-bar-fill" style="width:'+readPct+'%"></div></div><span>'+readCount+'/'+targetEmps.length+' đã đọc</span></div>';
+  if(a.status==='scheduled')h+='<div style="color:#4A7FB5;font-weight:600">Sẽ đăng lúc '+formatDateTime(a.scheduledAt)+'</div>';
+  h+='</div></div>';
+});
+
+if(list.length===0)h+='<div class="empty-state">Không có thông báo</div>';
+
+h+='</div></div>';
+c.innerHTML=h;
+}
+
+function canSeeAnn(a){
+  if(a.target==='all')return true;
+  if(a.target==='dept')return a.dept===state.user.dept||a.createdBy===state.user.id;
+  if(a.target==='select')return (a.selectedPeople&&a.selectedPeople.includes(state.user.id))||a.createdBy===state.user.id;
+  return true;
+}
+
+function toggleTargetOptions(){
+  const target=document.getElementById('annTarget').value;
+  const deptGroup=document.getElementById('deptGroup');
+  const selectGroup=document.getElementById('selectPeopleGroup');
+
+  deptGroup.style.display=target==='dept'?'block':'none';
+  selectGroup.style.display=target==='select'?'block':'none';
+
+  if(target==='select'){
+    let h='';
+    EMPLOYEES.forEach(e=>{
+      h+='<div class="checkbox-row" style="padding:4px 0"><input type="checkbox" id="emp_'+e.id+'" value="'+e.id+'"><label for="emp_'+e.id+'">'+e.name+'</label></div>';
+    });
+    document.getElementById('peopleCheckboxes').innerHTML=h;
+  }
+}
+
+function getSelectedPeople(){
+  const checkboxes=document.querySelectorAll('#peopleCheckboxes input:checked');
+  return Array.from(checkboxes).map(cb=>cb.value);
+}
+
+function toggleSchedule(){
+  const checked=document.getElementById('annScheduled').checked;
+  document.getElementById('scheduleGroup').style.display=checked?'grid':'none';
+  if(checked){
+    const now=new Date();
+    now.setHours(now.getHours()+1);
+    document.getElementById('annScheduleDate').value=now.toISOString().split('T')[0];
+    document.getElementById('annScheduleTime').value=String(now.getHours()).padStart(2,'0')+':00';
+  }
+}
+
+function openAnnounceModal(id){
+  const m=document.getElementById('announceModal');
+  if(id){
+    const a=ANNOUNCEMENTS.find(x=>x.id===id);
+    document.getElementById('announceModalTitle').textContent='Sửa thông báo';
+    document.getElementById('annId').value=a.id;
+    document.getElementById('annTitle').value=a.title;
+    document.getElementById('annType').value=a.type;
+    document.getElementById('annTarget').value=a.target;
+    document.getElementById('annDept').value=a.dept||'';
+    document.getElementById('annContent').value=a.content;
+    document.getElementById('annPinned').checked=a.pinned;
+    document.getElementById('annAnonymous').checked=a.anonymous;
+    document.getElementById('annScheduled').checked=!!a.scheduledAt;
+    if(a.scheduledAt){
+      document.getElementById('annScheduleDate').value=a.scheduledAt.split(' ')[0];
+      document.getElementById('annScheduleTime').value=a.scheduledAt.split(' ')[1];
+      document.getElementById('scheduleGroup').style.display='grid';
+    }else{
+      document.getElementById('scheduleGroup').style.display='none';
+    }
+    toggleTargetOptions();
+    if(a.target==='select'&&a.selectedPeople){
+      a.selectedPeople.forEach(pid=>{
+        const cb=document.getElementById('emp_'+pid);
+        if(cb)cb.checked=true;
+      });
+    }
+  }else{
+    document.getElementById('announceModalTitle').textContent='Tạo thông báo';
+    document.getElementById('annId').value='';
+    document.getElementById('annTitle').value='';
+    document.getElementById('annType').value='internal';
+    document.getElementById('annTarget').value='all';
+    document.getElementById('annDept').value='';
+    document.getElementById('annContent').value='';
+    document.getElementById('annPinned').checked=false;
+    document.getElementById('annAnonymous').checked=false;
+    document.getElementById('annScheduled').checked=false;
+    document.getElementById('scheduleGroup').style.display='none';
+    document.getElementById('deptGroup').style.display='none';
+    document.getElementById('selectPeopleGroup').style.display='none';
+  }
+  m.classList.remove('hidden');
+}
+
+function saveAnnounce(e){
+  e.preventDefault();
+  const id=document.getElementById('annId').value;
+  const target=document.getElementById('annTarget').value;
+  const isScheduled=document.getElementById('annScheduled').checked;
+  const scheduleDate=document.getElementById('annScheduleDate').value;
+  const scheduleTime=document.getElementById('annScheduleTime').value;
+
+  let status='approved';
+  if(needsApproval())status='pending';
+  else if(isScheduled&&scheduleDate&&scheduleTime)status='scheduled';
+
+  const data={
+    id:id||(function(){let aid;do{aid='ANN'+Date.now().toString(36).toUpperCase();}while(ANNOUNCEMENTS.find(x=>x.id===aid));return aid;})(),
+    title:document.getElementById('annTitle').value,
+    type:document.getElementById('annType').value,
+    target:target,
+    dept:target==='dept'?document.getElementById('annDept').value:'',
+    selectedPeople:target==='select'?getSelectedPeople():[],
+    content:document.getElementById('annContent').value,
+    pinned:document.getElementById('annPinned').checked,
+    anonymous:document.getElementById('annAnonymous').checked,
+    scheduledAt:isScheduled&&scheduleDate&&scheduleTime?scheduleDate+' '+scheduleTime:null,
+    createdBy:state.user.id,
+    createdAt:new Date().toISOString().replace('T',' ').substring(0,16),
+    status:status,
+    approvedBy:needsApproval()?null:state.user.id,
+    readBy:status==='approved'?[state.user.id]:[]
+  };
+
+  if(id){
+    const i=ANNOUNCEMENTS.findIndex(x=>x.id===id);
+    if(i>=0){data.readBy=ANNOUNCEMENTS[i].readBy;data.status=ANNOUNCEMENTS[i].status;data.approvedBy=ANNOUNCEMENTS[i].approvedBy;ANNOUNCEMENTS[i]=data;}
+  }else{
+    ANNOUNCEMENTS.push(data);
+  }
+
+  closeModal('announceModal');
+  H5C.set('announcements', ANNOUNCEMENTS);
+  if(data.status==='pending')alert('Thông báo đã được gửi và đang chờ duyệt!');
+  render();
+}
+
+function openDetail(id){
+  const a=ANNOUNCEMENTS.find(x=>x.id===id);
+  if(!a)return;
+
+  // Mark as read
+  if(a.status==='approved'&&!a.readBy.includes(state.user.id)){
+    a.readBy.push(state.user.id);
+    H5C.set('announcements',ANNOUNCEMENTS);
+  }
+
+  const author=a.anonymous?'Ẩn danh':getEmpName(a.createdBy);
+  const targetEmps=getTargetEmployees(a);
+
+  let h='<div class="modal-title" style="display:flex;justify-content:space-between;align-items:flex-start">';
+  h+='<div>'+(a.pinned?'📌 ':'')+a.title+'</div>';
+  h+='<div class="announce-badges"><span class="announce-badge type-'+a.type+'">'+TYPE_ICONS[a.type]+' '+TYPE_LABELS[a.type]+'</span>';
+  if(a.status==='pending')h+='<span class="announce-badge pending">Chờ duyệt</span>';
+  if(a.status==='scheduled')h+='<span class="announce-badge scheduled">Hẹn giờ</span>';
+  if(a.status==='approved')h+='<span class="announce-badge approved">Đã duyệt</span>';
+  h+='</div></div>';
+
+  h+='<div class="detail-info"><div class="detail-info-item"><div class="detail-info-label">Người đăng</div><div class="detail-info-value">'+author+'</div></div><div class="detail-info-item"><div class="detail-info-label">Thời gian tạo</div><div class="detail-info-value">'+formatDateTime(a.createdAt)+'</div></div>';
+  if(a.scheduledAt)h+='<div class="detail-info-item"><div class="detail-info-label">Hẹn đăng lúc</div><div class="detail-info-value" style="color:#4A7FB5;font-weight:700">'+formatDateTime(a.scheduledAt)+'</div></div>';
+  h+='<div class="detail-info-item"><div class="detail-info-label">Đối tượng</div><div class="detail-info-value">'+(a.target==='all'?'Toàn công ty':a.target==='dept'?DEPT_LABELS[a.dept]:a.selectedPeople?a.selectedPeople.map(id=>getEmpName(id)).join(', '):'Chọn người')+'</div></div>';
+  if(a.approvedBy)h+='<div class="detail-info-item"><div class="detail-info-label">Người duyệt</div><div class="detail-info-value">'+getEmpName(a.approvedBy)+'</div></div>';
+  h+='</div>';
+
+  h+='<div class="detail-content">'+a.content.replace(/\n/g,'<br>')+'</div>';
+
+  // Read list
+  if(a.status==='approved'){
+    h+='<div class="read-list"><div class="read-list-title">Trạng thái đã đọc ('+a.readBy.length+'/'+targetEmps.length+')</div><div class="read-list-grid">';
+    targetEmps.forEach(e=>{
+      const hasRead=a.readBy.includes(e.id);
+      h+='<div class="read-item '+(hasRead?'read':'unread')+'"><div class="read-avatar">'+getInitials(e.name)+'</div><span>'+e.name+'</span><span style="margin-left:auto">'+(hasRead?'✅':'⏳')+'</span></div>';
+    });
+    h+='</div></div>';
+  }
+
+  document.getElementById('detailContent').innerHTML=h;
+
+  // Buttons
+  let btns='<button class="modal-btn cancel" onclick="closeModal(\'detailModal\');render()">Đóng</button>';
+
+  if(a.status==='pending'&&canApprove(a)){
+    btns+='<button class="modal-btn danger" onclick="rejectAnnounce(\''+a.id+'\')">Từ chối</button>';
+    btns+='<button class="modal-btn success" onclick="approveAnnounce(\''+a.id+'\')">Duyệt</button>';
+  }else if(a.status==='scheduled'&&(a.createdBy===state.user.id||_can('ann.approve'))){
+    btns+='<button class="modal-btn danger" onclick="closeModal(\'detailModal\');deleteAnnounce(\''+a.id+'\')">Hủy</button>';
+    btns+='<button class="modal-btn success" onclick="publishNow(\''+a.id+'\')">Đăng ngay</button>';
+  }else if(a.status==='approved'&&(a.createdBy===state.user.id||_can('ann.approve'))){
+    btns+='<button class="modal-btn danger" onclick="closeModal(\'detailModal\');deleteAnnounce(\''+a.id+'\')">Xóa</button>';
+  }
+  document.getElementById('detailBtns').innerHTML=btns;
+
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+
+function approveAnnounce(id){
+  const a=ANNOUNCEMENTS.find(x=>x.id===id);
+  if(a){a.status='approved';a.approvedBy=state.user.id;a.readBy=[state.user.id];a.scheduledAt=null;}
+  H5C.set('announcements',ANNOUNCEMENTS);
+  closeModal('detailModal');render();
+}
+
+function publishNow(id){
+  const a=ANNOUNCEMENTS.find(x=>x.id===id);
+  if(a){a.status='approved';a.scheduledAt=null;a.readBy=[state.user.id];}
+  H5C.set('announcements',ANNOUNCEMENTS);
+  closeModal('detailModal');render();
+}
+
+function rejectAnnounce(id){
+  ANNOUNCEMENTS=ANNOUNCEMENTS.filter(a=>a.id!==id);
+  H5C.set('announcements',ANNOUNCEMENTS);
+  closeModal('detailModal');render();
+}
+
+function deleteAnnounce(id){
+  if(!_can('ann.delete')){alert('Không có quyền xóa');return;}
+  state.deleteId=id;
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function confirmDelete(){
+  ANNOUNCEMENTS=ANNOUNCEMENTS.filter(a=>a.id!==state.deleteId);
+  H5C.set('announcements',ANNOUNCEMENTS);
+  closeModal('deleteModal');render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// HOLIDAY CONFIG FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+function openHolidayConfig(){
+  document.getElementById('bdayTemplate').value=
+    H5C.get('birthday_template')||BIRTHDAY_CONTENT_TEMPLATE;
+  _renderHolidayList();
+  document.getElementById('holidayModal').classList.remove('hidden');
+}
+
+function _renderHolidayList(){
+  const container=document.getElementById('holidayList');
+  if(!container)return;
+  if(!HOLIDAYS.length){
+    container.innerHTML='<div class="empty-state">Chưa có ngày lễ nào. Bấm "Thêm ngày lễ" để bắt đầu.</div>';
+    return;
+  }
+  container.innerHTML=HOLIDAYS.map((h,i)=>{
+    const dd=h.date.split('-')[1]||h.date.split('-')[0];
+    const mm=h.date.split('-')[0];
+    return '<div class="holiday-item'+(h.enabled?'':' disabled')+'">'
+      +'<div style="display:flex;align-items:flex-start;gap:12px">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;min-width:100px">'
+      +'<input type="checkbox" '+(h.enabled?'checked':'')+' onchange="toggleHoliday('+i+')" style="width:16px;height:16px;cursor:pointer">'
+      +'<div class="upcoming-date">'
+      +'<div class="upcoming-date-text">'+dd+'/'+mm+'</div>'
+      +'</div></div>'
+      +'<div style="flex:1">'
+      +'<input type="text" value="'+h.name.replace(/"/g,'&quot;')+'" onchange="updateHoliday('+i+',\'name\',this.value)" placeholder="Tên ngày lễ" class="modal-input" style="font-weight:700;margin-bottom:6px">'
+      +'<textarea onchange="updateHoliday('+i+',\'content\',this.value)" placeholder="Nội dung lời chúc..." rows="2" class="modal-input" style="resize:vertical">'+h.content.replace(/</g,'&lt;')+'</textarea>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">'
+      +'<input type="text" value="'+h.date+'" onchange="updateHoliday('+i+',\'date\',this.value)" placeholder="MM-DD" class="modal-input" style="width:60px;padding:4px 6px;font-size:10px;text-align:center" title="Định dạng: MM-DD (vd: 03-08)">'
+      +'<button onclick="removeHoliday('+i+')" class="modal-btn danger" style="padding:4px 8px;font-size:11px;flex:none" title="Xóa">Xóa</button>'
+      +'</div></div></div>';
+  }).join('');
+}
+
+function addHoliday(){
+  HOLIDAYS.push({
+    id:'HL'+Date.now(),date:'01-01',name:'Ngày lễ mới',
+    content:'🎊 Lời chúc mừng nhân ngày lễ!\n\nChúc toàn thể CBNV Hello 5 Coffee có ngày lễ vui vẻ và ý nghĩa!',
+    annual:true,enabled:true
+  });
+  _renderHolidayList();
+}
+
+function removeHoliday(idx){
+  if(!confirm('Xóa ngày lễ "'+HOLIDAYS[idx].name+'"?'))return;
+  HOLIDAYS.splice(idx,1);
+  _renderHolidayList();
+}
+
+function toggleHoliday(idx){
+  HOLIDAYS[idx].enabled=!HOLIDAYS[idx].enabled;
+  _renderHolidayList();
+}
+
+function updateHoliday(idx,field,value){
+  HOLIDAYS[idx][field]=value;
+}
+
+function saveHolidayConfig(){
+  // Save birthday template
+  const tmpl=document.getElementById('bdayTemplate').value.trim();
+  if(tmpl)H5C.set('birthday_template',tmpl);
+
+  // Save holidays
+  H5C.set('holidays',HOLIDAYS);
+
+  closeModal('holidayModal');
+
+  // Re-run auto-generate in case holidays changed
+  _autoGenerateAnnouncements();
+  render();
+  if(typeof showToast==='function')showToast('Đã lưu cài đặt ngày lễ','success');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('loginPassword').addEventListener('keypress',e=>{if(e.key==='Enter')handleLogin();});});
+
+// ===== SHARED AUTH (sessionStorage) =====
+
+// ═══════════════════════════════════════════════════════════
+// H5C SHARED DATA STORE  (localStorage, prefix h5c_v1_)
+// Keys: employees | attendance | kpi | skus | lots
+//       orders | leads | expenses | announcements
+//       pending_order  (leads → orders handoff)
+// ═══════════════════════════════════════════════════════════
+const H5C = {
+  _k: k => 'h5c_v1_' + k,
+  get(k)        { try { const v = localStorage.getItem(this._k(k)); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  set(k, v)     { try { localStorage.setItem(this._k(k), JSON.stringify(v)); } catch(e) {} },
+  init(k, def)  { const v = this.get(k); if (v !== null) return v; this.set(k, def); return def; },
+  clear(k)      { localStorage.removeItem(this._k(k)); },
+  mergeEmployees(arr) {
+    const stored = this.get('employees');
+    if (stored && stored.length) { arr.splice(0, arr.length, ...stored); }
+  },
+  salesList() {
+    const emps = this.get('employees') || [];
+    const active = emps.filter(e => e.status !== 'inactive');
+    return active.map(e => e.name);
+  },
+  productsList() {
+    const skus = this.get('skus') || [];
+    if (!skus.length) return null;
+    const UNIT_MAP = {kg:'Kg',hop:'Hộp',chiec:'Chiếc',tui:'Túi',stick:'Stick',cont:'Cont'};
+    return skus.map(s => ({
+      id: s.id, name: s.name,
+      unit: UNIT_MAP[s.unit] || s.unit || 'Cái',
+      price: s.suggestedPrice || 0
+    }));
+  }
+};
+// ═══════════════════════════════════════════════════════════
+
+const SESSION_KEY = 'h5c_erp_user';
+
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+}
+
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) { return null; }
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function navigateTo(p) {
+  const pageMap = {
+    dashboard: 'dashboard.html',
+    leads: 'leads.html',
+    orders: 'orders.html',
+    expenses: 'expenses.html',
+    warehouse: 'warehouse.html',
+    users: 'users.html',
+    reports: 'reports.html',
+    announcements: 'announcements.html',
+  };
+  if (pageMap[p]) {
+    window.location.href = pageMap[p];
+  } else {
+    alert('Module "' + p + '" đang được phát triển!');
+  }
+}
+
+// Auto-login from session on page load
+window.addEventListener('DOMContentLoaded', function() {
+  H5C.mergeEmployees(EMPLOYEES);
+  ANNOUNCEMENTS = H5C.init('announcements', ANNOUNCEMENTS);
+  HOLIDAYS = H5C.init('holidays', DEFAULT_HOLIDAYS);
+
+  // Load custom birthday template if saved
+  const savedTmpl = H5C.get('birthday_template');
+  if(savedTmpl) BIRTHDAY_CONTENT_TEMPLATE = savedTmpl;
+
+  const saved = loadSession();
+  if (saved) {
+    state.user = saved;
+
+    // Auto-generate birthday & holiday announcements for today
+    _autoGenerateAnnouncements();
+
+    showMain();
+  }
+});
+// ===== END SHARED AUTH =====
+
+function setLang(l) {
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+}
+</script>
+<script src="firebase-sync.js?v=3"></script>
+</body>
+</html>
