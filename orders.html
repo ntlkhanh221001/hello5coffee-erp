@@ -1756,7 +1756,7 @@ function lockProductRows(){
   const container=document.getElementById('productRows');
   const addBtn=document.querySelector('.add-product-btn');
   container.querySelectorAll('.product-row').forEach(row=>{
-    row.querySelectorAll('select.sku-select,.qty-input,.cost-input,.price-input').forEach(el=>{el.disabled=true;el.style.opacity='0.65';el.style.cursor='not-allowed';});
+    row.querySelectorAll('select.sku-select,.qty-input,.cost-input').forEach(el=>{el.disabled=true;el.style.opacity='0.65';el.style.cursor='not-allowed';});
     const rb=row.querySelector('.remove-btn');
     if(rb){rb.disabled=true;rb.style.opacity='0.25';}
   });
