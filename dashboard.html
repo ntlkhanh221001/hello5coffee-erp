@@ -743,9 +743,9 @@ function renderRevenueChart() {
 function renderChannelChart() {
   const ctx = document.getElementById('channelChart'); if (!ctx) return;
   const orders = _dashScopedData().orders.filter(o => o.status !== 'cancelled').filter(_dashDateFilter('createdAt'));
-  const _CHLBL={facebook:'Facebook',instagram:'Instagram',linkedin:'LinkedIn',website:'Website',shopee:'Shopee',lazada:'Lazada',tiktok:'TikTok',telesales:'Telesales',truc_tiep:'Trực tiếp',duoc_gioi_thieu:'Được giới thiệu',hoi_cho:'Hội chợ',google_ads:'Google Ads',email:'Email',zalo:'Zalo',dai_ly:'Đại lý',chua_ro:'Chưa rõ'};
+  const _CHLBL={facebook:'Facebook',instagram:'Instagram',linkedin:'LinkedIn',website:'Website',shopee:'Shopee',lazada:'Lazada',tiktok:'TikTok',telesales:'Telesales',truc_tiep:'Trực tiếp',duoc_gioi_thieu:'Được giới thiệu',hoi_cho:'Hội chợ',google_ads:'Google Ads',email:'Email',zalo:'Zalo',dai_ly:'Đại lý',chua_ro:'Chưa rõ',buon_si:'Chưa rõ',buon:'Chưa rõ',le:'Chưa rõ'};
   const channelMap = {};
-  orders.forEach(o => { const ch = _CHLBL[o.channel] || o.channel || 'Khác'; channelMap[ch] = (channelMap[ch] || 0) + (o.total || 0); });
+  orders.forEach(o => { const ch = _CHLBL[o.channel] || (o.channel ? 'Chưa rõ' : 'Chưa rõ'); channelMap[ch] = (channelMap[ch] || 0) + (o.total || 0); });
   const hasData = Object.keys(channelMap).length > 0;
   const labels = hasData ? Object.keys(channelMap) : ['Chưa có dữ liệu'];
   const data = hasData ? Object.values(channelMap) : [0];

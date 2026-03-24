@@ -326,7 +326,8 @@ function getReportData(module, dateFrom, dateTo) {
     const byStatus = {};
     orders.forEach(o => { const lbl=ORDER_STATUS_LABELS[o.status]||o.status||'Khác'; byStatus[lbl]=(byStatus[lbl]||0)+1; });
     const byChannel = {};
-    orders.forEach(o => { const ch=CHANNEL_LABELS[o.channel]||o.channel||'Khác'; byChannel[ch]=(byChannel[ch]||0)+(o.total||0); });
+    const _LEGACY_CH={buon_si:'Chưa rõ',buon:'Chưa rõ',le:'Chưa rõ'};
+    orders.forEach(o => { const ch=CHANNEL_LABELS[o.channel]||_LEGACY_CH[o.channel]||'Chưa rõ'; byChannel[ch]=(byChannel[ch]||0)+(o.total||0); });
     const prodMap = {};
     orders.forEach(o => (o.products||[]).forEach(p => {
       if(!prodMap[p.name]) prodMap[p.name]={name:p.name,qty:0,revenue:0};
