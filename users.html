@@ -591,7 +591,16 @@ const ACCOUNTS={
   "finance@hello5coffee.com": {pw:"123456",       user:{id:"4",name:"Phạm Thị Mai",role:"EMPLOYEE_FINANCE",pos:"Kế toán viên"}},
   "nv@hello5coffee.com":      {pw:"123456",       user:{id:"2",name:"Đặng Văn Hùng",role:"EMPLOYEE_HR",pos:"Chuyên viên Nhân sự"}}
 };
-let EMPLOYEES=[];
+let EMPLOYEES=[
+  {id:'EMP001',name:'Louis Nguyen',email:'admin@hello5coffee.com',phone:'0915255505',dept:'ban_lanh_dao',position:'CCO & Co-Founder',status:'active',startDate:'2022-01-01',salary:0,note:''},
+  {id:'EMP002',name:'Nguyễn Thị Lan',email:'manager@hello5coffee.com',phone:'0901234502',dept:'nhan_su',position:'Trưởng phòng HR',status:'active',startDate:'2022-03-01',salary:18000000,note:''},
+  {id:'EMP003',name:'Trần Minh Sales',email:'sales1@hello5coffee.com',phone:'0912345603',dept:'kinh_doanh',position:'Sales Executive',status:'active',startDate:'2023-06-01',salary:12000000,note:''},
+  {id:'EMP004',name:'Nguyễn Sales 2',email:'sales2@hello5coffee.com',phone:'0923456704',dept:'kinh_doanh',position:'Sales Executive',status:'active',startDate:'2023-09-01',salary:12000000,note:''},
+  {id:'EMP005',name:'Phạm Thị Mai',email:'finance@hello5coffee.com',phone:'0934567805',dept:'ke_toan',position:'Kế toán viên',status:'active',startDate:'2023-01-15',salary:14000000,note:''},
+  {id:'EMP006',name:'Lê Văn Kho',email:'warehouse@hello5coffee.com',phone:'0945678906',dept:'kho',position:'Thủ kho',status:'active',startDate:'2023-03-01',salary:11000000,note:''},
+  {id:'EMP007',name:'Nguyễn Thị Rang',email:'production@hello5coffee.com',phone:'0956789007',dept:'san_xuat',position:'Nhân viên rang xay',status:'active',startDate:'2024-01-10',salary:10000000,note:''},
+  {id:'EMP008',name:'Trần Văn Thử',email:'intern@hello5coffee.com',phone:'0967890108',dept:'kinh_doanh',position:'Sales Intern',status:'probation',startDate:'2026-02-01',salary:5000000,note:'Nhân viên thử việc'},
+];
 let ATTENDANCE=[];
 let KPI=[];
 // Load from shared store
