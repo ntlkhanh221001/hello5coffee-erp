@@ -625,7 +625,7 @@ function renderReport(){
   // Charts config — with chart type hints: 'bar', 'doughnut', 'pie', 'horizontalBar'
   let chartConfigs=[];
   if(metrics.includes('order_status'))chartConfigs.push({id:'chart_order_status',title:'Đơn hàng theo trạng thái',cur:vc('orders','byStatus'),prev:pvc('orders','byStatus'),chartType:'bar'});
-  if(metrics.includes('order_channel'))chartConfigs.push({id:'chart_order_channel',title:'Doanh thu theo kênh bán',cur:vc('orders','byChannel'),prev:pvc('orders','byChannel'),chartType:'doughnut'});
+  if(metrics.includes('order_channel'))chartConfigs.push({id:'chart_order_channel',title:'Doanh thu theo kênh bán (Facebook, Website, Shopee…)',cur:vc('orders','byChannel'),prev:pvc('orders','byChannel'),chartType:'doughnut'});
   if(metrics.includes('lead_source'))chartConfigs.push({id:'chart_lead_source',title:'Lead theo nguồn kênh',cur:vc('leads','bySource'),prev:pvc('leads','bySource'),chartType:'doughnut'});
   if(metrics.includes('lead_status'))chartConfigs.push({id:'chart_lead_status',title:'Lead theo giai đoạn pipeline',cur:vc('leads','byStatus'),prev:pvc('leads','byStatus'),chartType:'bar'});
   if(metrics.includes('lead_staff'))chartConfigs.push({id:'chart_lead_staff',title:'Lead theo NV phụ trách',cur:vc('leads','byStaff'),prev:pvc('leads','byStaff'),chartType:'bar'});

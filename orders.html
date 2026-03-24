@@ -359,10 +359,22 @@
         </div>
         <div class="source-ref-group" id="groupMaXuat">
           <label class="modal-label">Mã phiếu xuất kho <span style="font-size:10px;color:var(--h5c-text-secondary);font-weight:400">(bắt buộc để xác nhận)</span> <span style="color:#E53935">*</span></label>
+          <!-- Locked display (shown when code already assigned) -->
+          <div id="maXuatLocked" style="display:none;align-items:center;gap:8px">
+            <span id="maXuatLockedVal" style="flex:1;padding:8px 10px;background:var(--h5c-bg-subtle);border:1px solid var(--h5c-border-subtle);border-radius:6px;font-weight:700;color:var(--h5c-text);font-size:13px"></span>
+            <button type="button" onclick="unlockSourceCode('ton_kho')" style="padding:6px 12px;background:var(--h5c-amber);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">Đổi mã</button>
+          </div>
+          <!-- Dropdown (shown when no code yet, or after clicking Đổi mã) -->
           <select id="orderMaXuat" class="modal-input" onchange="onSourceLinked('ton_kho')"><option value="">-- Chọn phiếu xuất kho --</option></select>
         </div>
         <div class="source-ref-group" id="groupMaNhap">
           <label class="modal-label">Mã PO đặt hàng <span style="font-size:10px;color:var(--h5c-text-secondary);font-weight:400">(bắt buộc để xác nhận)</span> <span style="color:#E53935">*</span></label>
+          <!-- Locked display (shown when code already assigned) -->
+          <div id="maNhapLocked" style="display:none;align-items:center;gap:8px">
+            <span id="maNhapLockedVal" style="flex:1;padding:8px 10px;background:var(--h5c-bg-subtle);border:1px solid var(--h5c-border-subtle);border-radius:6px;font-weight:700;color:var(--h5c-text);font-size:13px"></span>
+            <button type="button" onclick="unlockSourceCode('dat_rieng')" style="padding:6px 12px;background:var(--h5c-amber);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">Đổi mã</button>
+          </div>
+          <!-- Dropdown (shown when no code yet, or after clicking Đổi mã) -->
           <select id="orderMaNhap" class="modal-input" onchange="onSourceLinked('dat_rieng')"><option value="">-- Chọn PO đặt hàng --</option></select>
         </div>
       </div>
@@ -1261,14 +1273,14 @@ function convertToOrder(reqId){
     address:r.address||'',
     sales:r.requestedBy||state.user.name,
     channel:r.channel||'truc_tiep',
-    status:'confirmed',
+    status:'new',
     payment:'unpaid',
     products,
     total,
     createdAt:today,
     fromYCId:reqId,
     note:'[Từ '+reqId+'] '+(r.note||''),
-    statusLog:[{status:'confirmed',at:today,by:state.user.name,note:'Duyệt từ YC '+reqId}]
+    statusLog:[{status:'new',at:today,by:state.user.name,note:'Tạo từ YC '+reqId}]
   };
   ORDERS.unshift(newOrder);
   H5C.set('orders',ORDERS);
@@ -1278,7 +1290,7 @@ function convertToOrder(reqId){
   H5C.set('order_requests',ORDER_REQUESTS);
 
   closeModal('reqDetailModal');
-  alert('✅ Đã duyệt và tạo đơn hàng '+newId+' (Đã xác nhận)!');
+  alert('✅ Đã duyệt và tạo đơn hàng '+newId+' (Mới)!');
   state.tab='orders';
   render();
 }
@@ -1566,13 +1578,39 @@ function openEditModal(id){
   document.getElementById('btnDatRieng').classList.toggle('active',state.stockSource==='dat_rieng');
   document.getElementById('groupMaXuat').classList.toggle('show',state.stockSource==='ton_kho');
   document.getElementById('groupMaNhap').classList.toggle('show',state.stockSource==='dat_rieng');
-  loadWarehouseXuat();
+
+  // If code already assigned → show locked display, hide dropdown
+  const maXuatLocked=document.getElementById('maXuatLocked');
+  const maXuatSel=document.getElementById('orderMaXuat');
+  if(o.maXuat){
+    document.getElementById('maXuatLockedVal').textContent=o.maXuat;
+    maXuatLocked.style.display='flex';
+    maXuatSel.style.display='none';
+    // Keep value in the select so saving still works
+    loadWarehouseXuat();
+    setTimeout(()=>{maXuatSel.value=o.maXuat;},50);
+  }else{
+    maXuatLocked.style.display='none';
+    maXuatSel.style.display='';
+    loadWarehouseXuat();
+  }
+
+  const maNhapLocked=document.getElementById('maNhapLocked');
+  const maNhapSel=document.getElementById('orderMaNhap');
   if(state.stockSource==='dat_rieng'){
     setStockSource('dat_rieng');
-    setTimeout(()=>{
-      const sel=document.getElementById('orderMaNhap');
-      if(sel&&o.maNhap)sel.value=o.maNhap;
-    },50);
+    if(o.maNhap){
+      document.getElementById('maNhapLockedVal').textContent=o.maNhap;
+      maNhapLocked.style.display='flex';
+      maNhapSel.style.display='none';
+      setTimeout(()=>{maNhapSel.value=o.maNhap;},50);
+    }else{
+      maNhapLocked.style.display='none';
+      maNhapSel.style.display='';
+    }
+  }else{
+    maNhapLocked.style.display='none';
+    maNhapSel.style.display='';
   }
 
   // Products
@@ -1618,6 +1656,8 @@ function resetOrderForm(){
   document.getElementById('wholesaleSection').classList.add('hidden');document.getElementById('channelGroup').classList.remove('hidden');
   document.getElementById('btnTonKho').classList.add('active');document.getElementById('btnDatRieng').classList.remove('active');
   document.getElementById('groupMaXuat').classList.remove('show');document.getElementById('groupMaNhap').classList.remove('show');
+  document.getElementById('maXuatLocked').style.display='none';document.getElementById('orderMaXuat').style.display='';
+  document.getElementById('maNhapLocked').style.display='none';document.getElementById('orderMaNhap').style.display='';
   unlockProductRows();
   populateSalesSelect('');
   updateGMSummary(0,0,'');
@@ -1671,6 +1711,18 @@ function setStockSource(src){
     }
   }
   if(src==='ton_kho')loadWarehouseXuat();
+}
+
+function unlockSourceCode(type){
+  if(type==='ton_kho'){
+    document.getElementById('maXuatLocked').style.display='none';
+    document.getElementById('orderMaXuat').style.display='';
+    loadWarehouseXuat();
+  }else{
+    document.getElementById('maNhapLocked').style.display='none';
+    document.getElementById('orderMaNhap').style.display='';
+    setStockSource('dat_rieng');
+  }
 }
 
 function loadWarehouseXuat(){
