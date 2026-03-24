@@ -848,6 +848,7 @@ function getWholesaleCandidates(){
     phone: l.phone||'',
     address: l.address||'',
     pipeline: l.pipeline,
+    channel: l.channel||'',
     _fromLead: true
   }));
   // Thêm wholesale_customers không trùng với leads
@@ -1551,7 +1552,20 @@ function openEditModal(id){
   document.getElementById('btnLe').classList.toggle('active',!isWholesale);
   document.getElementById('btnBuon').classList.toggle('active',isWholesale);
   document.getElementById('wholesaleSection').classList.toggle('hidden',!isWholesale);
-  document.getElementById('channelGroup').classList.toggle('hidden',isWholesale);
+  document.getElementById('channelGroup').classList.remove('hidden');
+  if(isWholesale){
+    // Populate wholesale dropdown
+    const candidates=getWholesaleCandidates();
+    const sel=document.getElementById('orderCustCode');
+    sel.innerHTML='<option value="">-- Chọn khách hàng --</option>'+candidates.map(c=>{
+      const tag=c._fromLead?' (Lead)':'';
+      return `<option value="${c.code}">${c.name}${tag}</option>`;
+    }).join('');
+    sel.value=o.custCode||'';
+    // Load channel from lead data; fallback to saved channel
+    const cust=candidates.find(c=>c.code===o.custCode);
+    if(cust&&cust.channel)document.getElementById('orderChannel').value=cust.channel;
+  }
   document.getElementById('orderCustomer').value=o.customer;
   document.getElementById('orderPhone').value=o.phone;
   document.getElementById('orderAddress').value=o.address;
@@ -1689,6 +1703,7 @@ function fillWholesaleInfo(){
   document.getElementById('orderCustomer').value=cust.name;
   document.getElementById('orderPhone').value=cust.phone;
   document.getElementById('orderAddress').value=cust.address||'';
+  if(cust.channel)document.getElementById('orderChannel').value=cust.channel;
 }
 
 function setStockSource(src){
