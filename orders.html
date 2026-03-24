@@ -658,7 +658,7 @@ const NAV_ITEMS=[
 const STATUS_STEPS=[{key:'confirmed',icon:'✅',label:'Mới XN'},{key:'producing',icon:'⚙️',label:'SX'},{key:'produced',icon:'📦',label:'SX Xong'},{key:'shipping',icon:'🚚',label:'Vận chuyển'},{key:'completed',icon:'🎉',label:'Xong'}];
 const STATUS_LABELS={confirmed:'Mới xác nhận',producing:'Đang sản xuất',produced:'SX Xong',shipping:'Đang vận chuyển',completed:'Hoàn thành',cancelled:'Đã hủy'};
 const STATUS_ICONS={confirmed:'✅',producing:'⚙️',produced:'📦',shipping:'🚚',completed:'🎉',cancelled:'❌'};
-const CHANNEL_LABELS={website:'🌐 Website',shopee:'🛍 Shopee',lazada:'🛒 Lazada',dai_ly:'🏪 Đại lý',truc_tiep:'🤝 Trực tiếp',zalo:'💬 Zalo',facebook:'📘 Facebook',tiktok:'🎵 TikTok',buon:'🏢 Buôn',buon_si:'🏢 Buôn',le:'🛒 Lẻ'};
+const CHANNEL_LABELS={website:'🌐 Website',shopee:'🛍 Shopee',lazada:'🛒 Lazada',dai_ly:'🏪 Đại lý',truc_tiep:'🤝 Trực tiếp',zalo:'💬 Zalo',facebook:'📘 Facebook',tiktok:'🎵 TikTok'};
 const PAY_LABELS={unpaid:'Chưa TT',partial:'Một phần',paid:'Đã TT'};
 
 let state={user:null,tab:'orders',filterStatus:'all',filterSales:'all',filterPayment:'all',filterCustType:'all',search:'',page:1,perPage:10,cancelId:null,detailId:null,progressId:null,approvalId:null,custType:'le',stockSource:'ton_kho',
@@ -999,7 +999,7 @@ function getFiltered(){
     if(state.filterPayment==='not_paid'){if(o.payment==='paid')return false;}
     else if(state.filterPayment!=='all'&&o.payment!==state.filterPayment)return false;
     if(state.filterCustType!=='all'){
-      const isBuon=o.custType==='buon'||o.channel==='buon'||o.channel==='buon_si';
+      const isBuon=o.custType==='buon';
       if(state.filterCustType==='buon'&&!isBuon)return false;
       if(state.filterCustType==='le'&&isBuon)return false;
     }
@@ -1563,7 +1563,7 @@ function openEditModal(id){
   document.getElementById('orderNote').value=o.note||'';
   document.getElementById('costShipping').value=o.costShipping||'';
   document.getElementById('revenueShipping').value=o.revenueShipping||'';
-  if(!isWholesale)document.getElementById('orderChannel').value=o.channel||'website';
+  document.getElementById('orderChannel').value=o.channel||'website';
 
   // Populate sales
   populateSalesSelect(o.sales);
@@ -1671,7 +1671,7 @@ function setCustType(type){
   document.getElementById('btnLe').classList.toggle('active',type==='le');
   document.getElementById('btnBuon').classList.toggle('active',type==='buon');
   document.getElementById('wholesaleSection').classList.toggle('hidden',type==='le');
-  document.getElementById('channelGroup').classList.toggle('hidden',type==='buon');
+  document.getElementById('channelGroup').classList.remove('hidden');
   if(type==='buon'){
     const sel=document.getElementById('orderCustCode');
     const candidates=getWholesaleCandidates();
@@ -2019,7 +2019,7 @@ function saveOrder(e){
     phone:document.getElementById('orderPhone').value.trim(),
     address:document.getElementById('orderAddress').value.trim(),
     sales:document.getElementById('orderSales').value,
-    channel:isWholesale?'buon_si':document.getElementById('orderChannel').value,
+    channel:document.getElementById('orderChannel').value,
     status:document.getElementById('orderStatus').value,
     payment:payMethod,
     paidAmount:payMethod==='partial'?(parseInt(document.getElementById('orderPaidAmount').value)||0):0,
