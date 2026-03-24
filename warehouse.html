@@ -2267,7 +2267,7 @@ function doExport(e){
     lot.qtyRemain-=item.qty;
     HISTORY.push({
       id:'H'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(),
-      date, type:'xuat', lotNo, fromLotNo:item.fromLotNo,
+      date, type:'xuat', lotNo, fromLotNo:item.fromLotNo, fromLotId:item.fromLotId,
       skuId:item.skuId, warehouseId:whId,
       qty:item.qty, price:item.price,
       user:state.user.name, note
@@ -2571,17 +2571,25 @@ function confirmDelete(){
   else if(state.deleteType==='history_lot'){
     const lotNo=state.deleteId, type=state.deleteLotType;
     if(type==='xuat'){
-      // Thu thập các import lot bị ảnh hưởng trước khi xóa
-      const affectedFromLotNos=new Set(
-        HISTORY.filter(h=>h.lotNo===lotNo&&h.type==='xuat').map(h=>h.fromLotNo)
-      );
+      // Thu thập các import lot bị ảnh hưởng trước khi xóa (dùng ID để tránh nhầm lô DU_DAU_KY)
+      const affectedLotIds=new Set();
+      HISTORY.filter(h=>h.lotNo===lotNo&&h.type==='xuat').forEach(h=>{
+        if(h.fromLotId){
+          affectedLotIds.add(h.fromLotId);
+        } else {
+          // Fallback cho history cũ chưa có fromLotId: tìm theo fromLotNo + skuId + warehouseId
+          const found=LOTS.find(l=>l.lotNo===h.fromLotNo&&l.skuId===h.skuId&&l.warehouseId===h.warehouseId);
+          if(found)affectedLotIds.add(found.id);
+        }
+      });
       // Xóa các history entries của phiếu xuất này
       HISTORY=HISTORY.filter(h=>h.lotNo!==lotNo);
       // Tính lại qtyRemain từ đầu cho mỗi import lot bị ảnh hưởng
-      affectedFromLotNos.forEach(fromLotNo=>{
-        const lot=LOTS.find(l=>l.lotNo===fromLotNo);
+      affectedLotIds.forEach(lotId=>{
+        const lot=LOTS.find(l=>l.id===lotId);
         if(!lot)return;
-        const totalExported=HISTORY.filter(h=>h.fromLotNo===fromLotNo&&h.type==='xuat')
+        const totalExported=HISTORY.filter(h=>h.type==='xuat'&&
+          (h.fromLotId===lotId||(!h.fromLotId&&h.fromLotNo===lot.lotNo&&h.skuId===lot.skuId&&h.warehouseId===lot.warehouseId)))
           .reduce((s,h)=>s+(h.qty||0),0);
         lot.qtyRemain=(lot.qty||0)-totalExported;
       });
