@@ -476,7 +476,16 @@ c.innerHTML=h;
 if(state.reportGenerated&&state.selectedMetrics.length>0) renderReport();
 }
 
-function toggleModule(key){state.activeModule=state.activeModule===key?null:key;render();}
+function toggleModule(key){
+  const prev=state.activeModule;
+  state.activeModule=state.activeModule===key?null:key;
+  // Switching to a different module → clear old report
+  if(state.activeModule&&state.activeModule!==prev){
+    state.selectedMetrics=[];
+    state.reportGenerated=false;
+  }
+  render();
+}
 function toggleMetric(id){if(state.selectedMetrics.includes(id)){state.selectedMetrics=state.selectedMetrics.filter(m=>m!==id);}else{state.selectedMetrics.push(id);}}
 // ── Date helpers ──
 function _rptD(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
