@@ -2357,11 +2357,76 @@ function renderHistory(){
   list.forEach(l=>{
     const sku=SKUS.find(s=>s.id===l.skuId),wh=WAREHOUSES.find(w=>w.id===l.warehouseId);
     const isFirst=!seenLotNos.has(l.lotNo);seenLotNos.add(l.lotNo);
-    const actionBtns=isFirst?`<div class="action-btns"><button class="action-btn" title="Xuất phiếu Excel" style="background:#E3F2FD;color:#1565C0" onclick="${l.type==='nhap'?`exportPhieuNhap('${l.lotNo}')`:`exportPhieuXuat('${l.lotNo}')`}">📄</button><button class="action-btn" title="Xóa phiếu" onclick="deleteLotHistory('${l.lotNo}','${l.type}')">🗑️</button></div>`:'';
+    const actionBtns=isFirst?`<div class="action-btns"><button class="action-btn" title="Xuất phiếu Excel" style="background:#E3F2FD;color:#1565C0" onclick="${l.type==='nhap'?`exportPhieuNhap('${l.lotNo}')`:`exportPhieuXuat('${l.lotNo}')`}">📄</button><button class="action-btn" title="Sửa phiếu" onclick="editLotHistory('${l.lotNo}')">✏️</button><button class="action-btn" title="Xóa phiếu" onclick="deleteLotHistory('${l.lotNo}','${l.type}')">🗑️</button></div>`:'';
     h+=`<tr><td>${formatDate(l.date)}</td><td><span class="action-badge ${l.type}">${l.type==='nhap'?'Nhập':'Xuất'}</span></td><td><strong>${l.lotNo}</strong></td><td>${sku?sku.name:'—'}</td><td><span class="wh-badge">${wh?wh.code:'—'}</span></td><td>${l.type==='nhap'?'+':'-'}${l.qty}</td><td>${fmt(l.price)}đ</td><td>${fmt((l.qty||0)*(l.price||0))}đ</td><td>${l.user||'—'}</td><td>${l.note||'—'}</td><td>${actionBtns}</td></tr>`;
   });
   h+='</tbody></table></div>';
   return h;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SỬA PHIẾU LỊCH SỬ
+// ══════════════════════════════════════════════════════════════
+function editLotHistory(lotNo){
+  const entries=HISTORY.filter(h=>h.lotNo===lotNo);
+  if(!entries.length)return;
+  const first=entries[0];
+  const type=first.type;
+
+  const rowsHtml=entries.map((h,i)=>{
+    const sku=SKUS.find(s=>s.id===h.skuId);
+    return `<div style="display:grid;grid-template-columns:2fr 80px 110px;gap:8px;margin-bottom:8px;background:var(--cream);border-radius:7px;padding:8px;align-items:center">
+      <div style="font-size:12px;font-weight:600">${sku?sku.name:h.skuId} <span style="color:var(--brown-m);font-weight:400">×${h.qty}</span></div>
+      <div style="font-size:9px;font-weight:700;color:var(--brown-m);text-transform:uppercase">Đơn giá (đ)</div>
+      <input type="number" class="modal-input edit-h-price" data-hist-id="${h.id}" value="${h.price||0}" style="font-size:12px">
+    </div>`;
+  }).join('');
+
+  const modal=document.createElement('div');
+  modal.className='modal-overlay';
+  modal.id='editHistModal';
+  modal.innerHTML=`<div class="modal-box" style="max-width:480px">
+    <div class="modal-title">Sửa phiếu ${type==='nhap'?'nhập':'xuất'}: ${lotNo}</div>
+    <div style="margin-bottom:12px">
+      <label class="modal-label">Ngày</label>
+      <input type="date" id="editHistDate" class="modal-input" value="${first.date}">
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="modal-label">Ghi chú</label>
+      <input type="text" id="editHistNote" class="modal-input" value="${first.note||''}">
+    </div>
+    <div style="margin-bottom:4px"><label class="modal-label">Đơn giá theo SKU</label></div>
+    ${rowsHtml}
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="document.getElementById('editHistModal').remove()">Hủy</button>
+      <button class="modal-btn primary" onclick="saveLotHistoryEdit('${lotNo}')">Lưu</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function saveLotHistoryEdit(lotNo){
+  const date=document.getElementById('editHistDate').value;
+  const note=document.getElementById('editHistNote').value;
+  const priceInputs=document.querySelectorAll('.edit-h-price');
+  const priceMap={};
+  priceInputs.forEach(inp=>{priceMap[inp.dataset.histId]=parseInt(inp.value)||0;});
+
+  HISTORY.forEach(h=>{
+    if(h.lotNo!==lotNo)return;
+    h.date=date;
+    h.note=note;
+    if(priceMap[h.id]!==undefined)h.price=priceMap[h.id];
+  });
+  // Sync date to the import lot record too
+  if(HISTORY.find(h=>h.lotNo===lotNo&&h.type==='nhap')){
+    const lot=LOTS.find(l=>l.lotNo===lotNo);
+    if(lot)lot.date=date;
+    H5C.set('lots',LOTS);
+  }
+  H5C.set('wh_history',HISTORY);
+  document.getElementById('editHistModal').remove();
+  render();
 }
 
 // ══════════════════════════════════════════════════════════════

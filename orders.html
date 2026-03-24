@@ -296,7 +296,7 @@
           <span style="font-size:9px;font-weight:700;color:var(--h5c-text-secondary)">SKU / SẢN PHẨM</span>
           <span style="font-size:9px;font-weight:700;color:var(--h5c-text-secondary);text-align:center">ĐVT</span>
           <span style="font-size:9px;font-weight:700;color:var(--h5c-text-secondary);text-align:center">SỐ LƯỢNG</span>
-          <span style="font-size:9px;font-weight:700;color:var(--h5c-amber)">COST/ĐV</span>
+          <span style="font-size:9px;font-weight:700;color:var(--h5c-text-secondary)" title="Tự động cập nhật từ phiếu xuất kho">COST/ĐV 🔒</span>
           <span style="font-size:9px;font-weight:700;color:var(--h5c-steel)">GIÁ BÁN/ĐV</span>
           <span style="font-size:9px;font-weight:700;color:var(--h5c-sage)">GP ĐV</span>
           <span></span>
@@ -1713,7 +1713,7 @@ function addProductRow(existing){
     </select>
     <input type="text" class="unit-input" readonly value="${existUnit}" placeholder="ĐVT" style="text-align:center;background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary);font-weight:700">
     <input type="number" class="qty-input" min="1" value="${existQty}" oninput="onQtyChange(this);recalcTotal()">
-    <input type="number" class="cost-input" value="${existCost||''}" placeholder="0" oninput="recalcTotal()" style="border-color:var(--h5c-amber);color:var(--h5c-text)">
+    <input type="number" class="cost-input" value="${existCost||''}" placeholder="—" readonly tabindex="-1" title="Cost tự động cập nhật từ phiếu xuất kho" style="border-color:var(--h5c-border-subtle);background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary);cursor:not-allowed">
     <input type="number" class="price-input" value="${existPrice||''}" placeholder="0" oninput="recalcTotal()" style="border-color:var(--h5c-steel);color:var(--h5c-text)">
     <input type="text" class="gp-input" readonly value="${gp?fmt(gp)+'đ':''}" style="background:var(--h5c-bg-subtle);color:${gp>=0?'var(--h5c-sage)':'var(--h5c-terracotta)'};font-weight:800;text-align:right">
     <button type="button" class="remove-btn" onclick="this.closest('.product-row').remove();recalcTotal()">✕</button>`;
