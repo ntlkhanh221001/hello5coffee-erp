@@ -359,22 +359,22 @@
         </div>
         <div class="source-ref-group" id="groupMaXuat">
           <label class="modal-label">Mã phiếu xuất kho <span style="font-size:10px;color:var(--h5c-text-secondary);font-weight:400">(bắt buộc để xác nhận)</span> <span style="color:#E53935">*</span></label>
-          <!-- Locked display (shown when code already assigned) -->
-          <div id="maXuatLocked" style="display:none;align-items:center;gap:8px">
-            <span id="maXuatLockedVal" style="flex:1;padding:8px 10px;background:var(--h5c-bg-subtle);border:1px solid var(--h5c-border-subtle);border-radius:6px;font-weight:700;color:var(--h5c-text);font-size:13px"></span>
-            <button type="button" onclick="unlockSourceCode('ton_kho')" style="padding:6px 12px;background:var(--h5c-amber);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">Đổi mã</button>
+          <!-- Fixed display (default in edit mode) -->
+          <div id="maXuatLocked" style="display:none;align-items:center;gap:6px">
+            <span id="maXuatLockedVal" style="flex:1;padding:8px 10px;background:var(--h5c-bg-subtle);border:1px solid var(--h5c-border-subtle);border-radius:6px;font-size:13px"></span>
+            <button type="button" title="Đổi mã phiếu xuất kho" onclick="unlockSourceCode('ton_kho')" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--h5c-border-subtle);border-radius:6px;cursor:pointer;font-size:14px;color:var(--h5c-text-secondary);flex-shrink:0" onmouseover="this.style.background='var(--h5c-bg-hover)'" onmouseout="this.style.background='transparent'">✏️</button>
           </div>
-          <!-- Dropdown (shown when no code yet, or after clicking Đổi mã) -->
+          <!-- Dropdown (revealed after clicking pencil icon) -->
           <select id="orderMaXuat" class="modal-input" onchange="onSourceLinked('ton_kho')"><option value="">-- Chọn phiếu xuất kho --</option></select>
         </div>
         <div class="source-ref-group" id="groupMaNhap">
           <label class="modal-label">Mã PO đặt hàng <span style="font-size:10px;color:var(--h5c-text-secondary);font-weight:400">(bắt buộc để xác nhận)</span> <span style="color:#E53935">*</span></label>
-          <!-- Locked display (shown when code already assigned) -->
-          <div id="maNhapLocked" style="display:none;align-items:center;gap:8px">
-            <span id="maNhapLockedVal" style="flex:1;padding:8px 10px;background:var(--h5c-bg-subtle);border:1px solid var(--h5c-border-subtle);border-radius:6px;font-weight:700;color:var(--h5c-text);font-size:13px"></span>
-            <button type="button" onclick="unlockSourceCode('dat_rieng')" style="padding:6px 12px;background:var(--h5c-amber);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">Đổi mã</button>
+          <!-- Fixed display (default in edit mode) -->
+          <div id="maNhapLocked" style="display:none;align-items:center;gap:6px">
+            <span id="maNhapLockedVal" style="flex:1;padding:8px 10px;background:var(--h5c-bg-subtle);border:1px solid var(--h5c-border-subtle);border-radius:6px;font-size:13px"></span>
+            <button type="button" title="Đổi mã PO đặt hàng" onclick="unlockSourceCode('dat_rieng')" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--h5c-border-subtle);border-radius:6px;cursor:pointer;font-size:14px;color:var(--h5c-text-secondary);flex-shrink:0" onmouseover="this.style.background='var(--h5c-bg-hover)'" onmouseout="this.style.background='transparent'">✏️</button>
           </div>
-          <!-- Dropdown (shown when no code yet, or after clicking Đổi mã) -->
+          <!-- Dropdown (revealed after clicking pencil icon) -->
           <select id="orderMaNhap" class="modal-input" onchange="onSourceLinked('dat_rieng')"><option value="">-- Chọn PO đặt hàng --</option></select>
         </div>
       </div>
@@ -1579,35 +1579,41 @@ function openEditModal(id){
   document.getElementById('groupMaXuat').classList.toggle('show',state.stockSource==='ton_kho');
   document.getElementById('groupMaNhap').classList.toggle('show',state.stockSource==='dat_rieng');
 
-  // If code already assigned → show locked display, hide dropdown
+  // In edit mode: always show locked display (never show dropdown by default)
   const maXuatLocked=document.getElementById('maXuatLocked');
+  const maXuatLockedVal=document.getElementById('maXuatLockedVal');
   const maXuatSel=document.getElementById('orderMaXuat');
   if(o.maXuat){
-    document.getElementById('maXuatLockedVal').textContent=o.maXuat;
-    maXuatLocked.style.display='flex';
-    maXuatSel.style.display='none';
-    // Keep value in the select so saving still works
-    loadWarehouseXuat();
-    setTimeout(()=>{maXuatSel.value=o.maXuat;},50);
+    maXuatLockedVal.textContent=o.maXuat;
+    maXuatLockedVal.style.fontWeight='700';
+    maXuatLockedVal.style.color='var(--h5c-text)';
   }else{
-    maXuatLocked.style.display='none';
-    maXuatSel.style.display='';
-    loadWarehouseXuat();
+    maXuatLockedVal.textContent='Chưa gán — bấm ✏️ để chọn';
+    maXuatLockedVal.style.fontWeight='400';
+    maXuatLockedVal.style.color='var(--h5c-text-secondary)';
   }
+  maXuatLocked.style.display='flex';
+  maXuatSel.style.display='none';
+  loadWarehouseXuat();
+  if(o.maXuat)setTimeout(()=>{maXuatSel.value=o.maXuat;},50);
 
   const maNhapLocked=document.getElementById('maNhapLocked');
+  const maNhapLockedVal=document.getElementById('maNhapLockedVal');
   const maNhapSel=document.getElementById('orderMaNhap');
   if(state.stockSource==='dat_rieng'){
     setStockSource('dat_rieng');
     if(o.maNhap){
-      document.getElementById('maNhapLockedVal').textContent=o.maNhap;
-      maNhapLocked.style.display='flex';
-      maNhapSel.style.display='none';
-      setTimeout(()=>{maNhapSel.value=o.maNhap;},50);
+      maNhapLockedVal.textContent=o.maNhap;
+      maNhapLockedVal.style.fontWeight='700';
+      maNhapLockedVal.style.color='var(--h5c-text)';
     }else{
-      maNhapLocked.style.display='none';
-      maNhapSel.style.display='';
+      maNhapLockedVal.textContent='Chưa gán — bấm ✏️ để chọn';
+      maNhapLockedVal.style.fontWeight='400';
+      maNhapLockedVal.style.color='var(--h5c-text-secondary)';
     }
+    maNhapLocked.style.display='flex';
+    maNhapSel.style.display='none';
+    if(o.maNhap)setTimeout(()=>{maNhapSel.value=o.maNhap;},50);
   }else{
     maNhapLocked.style.display='none';
     maNhapSel.style.display='';
@@ -1802,6 +1808,23 @@ function onSourceLinked(type){
     recalcTotal();
   }
   lockProductRows();
+
+  // Re-lock the source display with the selected option text
+  if(type==='ton_kho'){
+    const sel=document.getElementById('orderMaXuat');
+    const label=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:selId;
+    const val=document.getElementById('maXuatLockedVal');
+    if(val){val.textContent=label;val.style.fontWeight='700';val.style.color='var(--h5c-text)';}
+    document.getElementById('maXuatLocked').style.display='flex';
+    sel.style.display='none';
+  }else{
+    const sel=document.getElementById('orderMaNhap');
+    const label=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:selId;
+    const val=document.getElementById('maNhapLockedVal');
+    if(val){val.textContent=label;val.style.fontWeight='700';val.style.color='var(--h5c-text)';}
+    document.getElementById('maNhapLocked').style.display='flex';
+    sel.style.display='none';
+  }
 }
 
 function lockProductRows(){
