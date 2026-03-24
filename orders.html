@@ -19,7 +19,6 @@
 .orders-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .filter-input{padding:9px 12px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-sm);font-size:12px;background:var(--h5c-surface);color:var(--h5c-text);min-width:200px}
 .status-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
-.status-badge.new{background:var(--h5c-steel-light);color:var(--h5c-steel)}
 .status-badge.confirmed{background:var(--h5c-amber-light);color:var(--h5c-amber)}
 .status-badge.producing{background:var(--h5c-plum-light);color:var(--h5c-plum)}
 .status-badge.produced{background:#E0F7FA;color:#00838F}
@@ -270,8 +269,7 @@
         </div>
         <div class="modal-group"><label class="modal-label">Trạng thái</label>
           <select id="orderStatus" class="modal-input">
-            <option value="new">Mới</option>
-            <option value="confirmed">Đã xác nhận</option>
+            <option value="confirmed">Mới xác nhận</option>
             <option value="producing">Đang sản xuất</option>
             <option value="produced">Sản xuất xong</option>
             <option value="shipping">Đang vận chuyển</option>
@@ -512,8 +510,7 @@
     <div class="modal-group"><label class="modal-label">Lý do khôi phục *</label><textarea id="restoreReason" class="modal-input" rows="2" placeholder="Nhập lý do khôi phục..." required></textarea></div>
     <div class="modal-group"><label class="modal-label">Khôi phục về trạng thái</label>
       <select id="restoreStatus" class="modal-input">
-        <option value="new">Mới</option>
-        <option value="confirmed">Đã xác nhận</option>
+        <option value="confirmed">Mới xác nhận</option>
       </select>
     </div>
     <div style="background:var(--h5c-steel-light);border-radius:8px;padding:10px;font-size:11px;color:var(--h5c-steel);margin-bottom:10px">
@@ -658,9 +655,9 @@ const NAV_ITEMS=[
   {id:'reports',icon:'📈',label:'Báo cáo'},
   {id:'announcements',icon:'📢',label:'Thông báo'},
 ];
-const STATUS_STEPS=[{key:'new',icon:'🆕',label:'Mới'},{key:'confirmed',icon:'✅',label:'Xác nhận'},{key:'producing',icon:'⚙️',label:'SX'},{key:'produced',icon:'📦',label:'SX Xong'},{key:'shipping',icon:'🚚',label:'Vận chuyển'},{key:'completed',icon:'🎉',label:'Xong'}];
-const STATUS_LABELS={new:'Mới',confirmed:'Đã xác nhận',producing:'Đang sản xuất',produced:'SX Xong',shipping:'Đang vận chuyển',completed:'Hoàn thành',cancelled:'Đã hủy'};
-const STATUS_ICONS={new:'🆕',confirmed:'✅',producing:'⚙️',produced:'📦',shipping:'🚚',completed:'🎉',cancelled:'❌'};
+const STATUS_STEPS=[{key:'confirmed',icon:'✅',label:'Mới XN'},{key:'producing',icon:'⚙️',label:'SX'},{key:'produced',icon:'📦',label:'SX Xong'},{key:'shipping',icon:'🚚',label:'Vận chuyển'},{key:'completed',icon:'🎉',label:'Xong'}];
+const STATUS_LABELS={confirmed:'Mới xác nhận',producing:'Đang sản xuất',produced:'SX Xong',shipping:'Đang vận chuyển',completed:'Hoàn thành',cancelled:'Đã hủy'};
+const STATUS_ICONS={confirmed:'✅',producing:'⚙️',produced:'📦',shipping:'🚚',completed:'🎉',cancelled:'❌'};
 const CHANNEL_LABELS={website:'🌐 Website',shopee:'🛍 Shopee',lazada:'🛒 Lazada',dai_ly:'🏪 Đại lý',truc_tiep:'🤝 Trực tiếp',zalo:'💬 Zalo',facebook:'📘 Facebook',tiktok:'🎵 TikTok',buon:'🏢 Buôn',buon_si:'🏢 Buôn',le:'🛒 Lẻ'};
 const PAY_LABELS={unpaid:'Chưa TT',partial:'Một phần',paid:'Đã TT'};
 
@@ -880,7 +877,7 @@ function buildPage(){
   const all=ORDERS.filter(o=>o.status!=='cancelled');
   const totalRev=all.reduce((s,o)=>{const f=calcOrderFinancials(o);return s+f.totalRevenue;},0);
   const completed=ORDERS.filter(o=>o.status==='completed').length;
-  const pending=ORDERS.filter(o=>['new','confirmed','producing','produced','shipping'].includes(o.status)).length;
+  const pending=ORDERS.filter(o=>['confirmed','producing','produced','shipping'].includes(o.status)).length;
   const pendingApproval=pendingEditCount();
   const pendingCancels=ORDERS.filter(o=>o.pendingCancel).length;
   const pendingRestores=ORDERS.filter(o=>o.pendingRestore).length;
@@ -996,7 +993,7 @@ function getFiltered(){
     // Cancelled orders go to separate tab — exclude from main list
     if(o.status==='cancelled'&&!o.pendingCancel)return false;
     // Orders pending cancel still show in main list with badge
-    if(state.filterStatus==='pending'){if(!['new','confirmed','producing','produced','shipping'].includes(o.status))return false;}
+    if(state.filterStatus==='pending'){if(!['confirmed','producing','produced','shipping'].includes(o.status))return false;}
     else if(state.filterStatus!=='all'&&o.status!==state.filterStatus)return false;
     if(state.filterSales!=='all'&&o.sales!==state.filterSales)return false;
     if(state.filterPayment==='not_paid'){if(o.payment==='paid')return false;}
@@ -1273,14 +1270,14 @@ function convertToOrder(reqId){
     address:r.address||'',
     sales:r.requestedBy||state.user.name,
     channel:r.channel||'truc_tiep',
-    status:'new',
+    status:'confirmed',
     payment:'unpaid',
     products,
     total,
     createdAt:today,
     fromYCId:reqId,
     note:'[Từ '+reqId+'] '+(r.note||''),
-    statusLog:[{status:'new',at:today,by:state.user.name,note:'Tạo từ YC '+reqId}]
+    statusLog:[{status:'confirmed',at:today,by:state.user.name,note:'Tạo từ YC '+reqId}]
   };
   ORDERS.unshift(newOrder);
   H5C.set('orders',ORDERS);
@@ -1649,7 +1646,7 @@ function openEditModal(id){
 function resetOrderForm(){
   ['orderCustomer','orderPhone','orderAddress','orderNote','orderTotal','costShipping','revenueShipping'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['orderProductionDate','orderShipDate','orderDeliveryDate'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('orderStatus').value='new';
+  document.getElementById('orderStatus').value='confirmed';
   document.getElementById('orderPayment').value='unpaid';
   document.getElementById('orderChannel').value='website';
   document.getElementById('productRows').innerHTML='';
@@ -2361,7 +2358,7 @@ function rejectCancelRequest(id){
 function approveRestoreRequest(id){
   const idx=ORDERS.findIndex(o=>o.id===id);
   if(idx>-1&&ORDERS[idx].pendingRestore){
-    ORDERS[idx].status=ORDERS[idx].pendingRestore.restoreStatus||'new';
+    ORDERS[idx].status=ORDERS[idx].pendingRestore.restoreStatus||'confirmed';
     ORDERS[idx].restoredAt=new Date().toISOString().split('T')[0];
     ORDERS[idx].restoredBy=state.user.name;
     ORDERS[idx].restoreReason=ORDERS[idx].pendingRestore.reason;

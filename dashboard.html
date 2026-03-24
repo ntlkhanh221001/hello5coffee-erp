@@ -444,7 +444,7 @@ function computeRealKPIs(dateFrom, dateTo) {
   const grossProfit   = revenue - totalCOGS;
   const approvedExp   = expenses.reduce((s,e) => s + (e.amount||0), 0);
   const netProfit     = grossProfit - approvedExp;
-  const pendingOrders = orders.filter(o => ['new','confirmed','producing','produced','shipping'].includes(o.status));
+  const pendingOrders = orders.filter(o => ['confirmed','producing','produced','shipping'].includes(o.status));
   const pendingValue  = pendingOrders.reduce((s,o) => s + (o.total||0), 0);
   const headcount     = employees.filter(e => e.status !== 'inactive').length;
   const ar = allOrders.filter(o => o.status==='completed' && o.payment!=='paid')
