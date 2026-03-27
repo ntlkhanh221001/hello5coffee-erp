@@ -1500,6 +1500,64 @@ function selectProgressStatus(key){
   `<button type="button" class="progress-status-btn${'cancelled'===key?' active':''}" onclick="selectProgressStatus('cancelled')">❌<br>Hủy</button>`;
 }
 
+function _autoCreateExpenseFromPO(order){
+  if(order.status!=='completed')return;
+  const poId=order.maNhap||'';
+  const lotNo=order.maXuat||'';
+  if(!poId&&!lotNo)return;
+
+  const expenses=H5C.get('expenses')||[];
+  const refTag=poId?'PO:'+poId:'EX:'+lotNo;
+  if(expenses.find(e=>e._orderRef===order.id&&e._poRef===refTag))return;
+
+  let unpaidAmount=0;
+  let supplierName='';
+  let poCode='';
+
+  if(poId){
+    const poList=H5C.get('pos')||[];
+    const po=poList.find(p=>p.id===poId);
+    if(!po||po.payStatus==='paid')return;
+    unpaidAmount=po.products?po.products.reduce((a,p)=>a+(p.qty*p.unitPrice),0):0;
+    poCode=po.code||poId;
+    const suppliers=H5C.get('suppliers')||[];
+    const sup=suppliers.find(s=>s.id===po.supplierId);
+    supplierName=sup?sup.name:'NCC';
+  }else if(lotNo){
+    const lots=H5C.get('lots')||[];
+    const history=H5C.get('wh_history')||[];
+    const records=history.filter(h=>h.lotNo===lotNo&&h.type==='xuat');
+    if(!records.length)return;
+    unpaidAmount=records.reduce((a,r)=>a+(r.qty*(r.price||0)),0);
+    poCode=lotNo;
+  }
+
+  if(unpaidAmount<=0)return;
+
+  const today=new Date().toISOString().split('T')[0];
+  let n=expenses.length+1;
+  while(expenses.find(e=>e.id==='CP'+String(n).padStart(3,'0')))n++;
+  const newId='CP'+String(n).padStart(3,'0');
+
+  expenses.push({
+    id:newId,
+    date:today,
+    amount:unpaidAmount,
+    desc:'Công nợ NCC — '+poCode+' (Đơn '+order.id+' — '+order.customer+')',
+    category:'nguyen_lieu',
+    dept:'Sản xuất',
+    expenseType:'bien_phi',
+    status:'da_duyet',
+    payment:'chua_thanh_toan',
+    note:'Tự động tạo khi đơn hàng '+order.id+' hoàn thành. '+supplierName,
+    file:null,
+    creator:'Hệ thống',
+    _orderRef:order.id,
+    _poRef:refTag
+  });
+  H5C.set('expenses',expenses);
+}
+
 function saveProgress(){
   const o=ORDERS.find(x=>x.id===state.progressId);
   if(!o||!state.selectedProgressStatus)return;
@@ -1511,6 +1569,7 @@ function saveProgress(){
   o.deliveryDate=document.getElementById('prgDeliveryDate').value||o.deliveryDate;
   if(note){o.statusLog=o.statusLog||[];o.statusLog.push({status:newStatus,note,by:state.user.name,at:new Date().toISOString().split('T')[0]});}
   H5C.set('orders',ORDERS);
+  if(newStatus==='completed')_autoCreateExpenseFromPO(o);
   closeModal('progressModal');render();
 }
 
@@ -2110,6 +2169,10 @@ function saveOrder(e){
   }
 
   H5C.set('orders',ORDERS);
+  if(orderData.status==='completed'){
+    const saved=ORDERS.find(o=>o.id===editId)||ORDERS[0];
+    if(saved)_autoCreateExpenseFromPO(saved);
+  }
   closeModal('orderModal');render();
 }
 
