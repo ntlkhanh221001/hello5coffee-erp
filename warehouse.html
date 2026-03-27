@@ -1959,8 +1959,9 @@ function renderInOut(){
 // ═══ Helper: build <option> list từ đơn hàng đã xác nhận ═══
 function _buildOrderOptions(selectedId){
   const orders=H5C.get('orders')||[];
+  const linkableStatuses=['confirmed','producing','produced','shipping'];
   let html='<option value="">-- Không liên kết --</option>';
-  orders.filter(o=>o.status==='confirmed').forEach(o=>{
+  orders.filter(o=>linkableStatuses.includes(o.status)||(selectedId&&o.id===selectedId)).forEach(o=>{
     const prods=(o.products||[]).map(function(p){return p.name+'×'+p.qty;}).join(', ');
     const sel=(selectedId&&selectedId===o.id)?' selected':'';
     html+='<option value="'+o.id+'"'+sel+'>'+o.id+' — '+o.customer+' ('+prods+')</option>';

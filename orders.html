@@ -1595,7 +1595,9 @@ function openEditModal(id){
   const maXuatLockedVal=document.getElementById('maXuatLockedVal');
   const maXuatSel=document.getElementById('orderMaXuat');
   if(o.maXuat){
-    maXuatLockedVal.textContent=o.maXuat;
+    const _lots=H5C.get('lots')||[];
+    const _matchedLot=_lots.find(l=>l.id===o.maXuat||l.lotNo===o.maXuat);
+    maXuatLockedVal.textContent=_matchedLot?(_matchedLot.lotNo||_matchedLot.id)+' ('+(_matchedLot.date||'')+')':o.maXuat;
     maXuatLockedVal.style.fontWeight='700';
     maXuatLockedVal.style.color='var(--h5c-text)';
   }else{
@@ -1604,6 +1606,7 @@ function openEditModal(id){
     maXuatLockedVal.style.color='var(--h5c-text-secondary)';
   }
   maXuatLocked.style.display='flex';
+  maXuatLocked.dataset.value=o.maXuat||'';
   maXuatSel.style.display='none';
   loadWarehouseXuat();
   if(o.maXuat)setTimeout(()=>{maXuatSel.value=o.maXuat;},50);
@@ -1614,7 +1617,9 @@ function openEditModal(id){
   if(state.stockSource==='dat_rieng'){
     setStockSource('dat_rieng');
     if(o.maNhap){
-      maNhapLockedVal.textContent=o.maNhap;
+      const _poList=H5C.get('pos')||[];
+      const _matchedPO=_poList.find(p=>p.id===o.maNhap);
+      maNhapLockedVal.textContent=_matchedPO?_matchedPO.code+' ('+(_matchedPO.orderDate||'')+')':o.maNhap;
       maNhapLockedVal.style.fontWeight='700';
       maNhapLockedVal.style.color='var(--h5c-text)';
     }else{
@@ -1623,6 +1628,7 @@ function openEditModal(id){
       maNhapLockedVal.style.color='var(--h5c-text-secondary)';
     }
     maNhapLocked.style.display='flex';
+    maNhapLocked.dataset.value=o.maNhap||'';
     maNhapSel.style.display='none';
     if(o.maNhap)setTimeout(()=>{maNhapSel.value=o.maNhap;},50);
   }else{
@@ -1828,6 +1834,7 @@ function onSourceLinked(type){
     const val=document.getElementById('maXuatLockedVal');
     if(val){val.textContent=label;val.style.fontWeight='700';val.style.color='var(--h5c-text)';}
     document.getElementById('maXuatLocked').style.display='flex';
+    document.getElementById('maXuatLocked').dataset.value=selId;
     sel.style.display='none';
   }else{
     const sel=document.getElementById('orderMaNhap');
@@ -1835,6 +1842,7 @@ function onSourceLinked(type){
     const val=document.getElementById('maNhapLockedVal');
     if(val){val.textContent=label;val.style.fontWeight='700';val.style.color='var(--h5c-text)';}
     document.getElementById('maNhapLocked').style.display='flex';
+    document.getElementById('maNhapLocked').dataset.value=selId;
     sel.style.display='none';
   }
 }
@@ -2050,8 +2058,16 @@ function saveOrder(e){
     revenueOther:getRevenueOther(),
     total:totalRevenue,
     stockSource:state.stockSource,
-    maXuat:state.stockSource==='ton_kho'?document.getElementById('orderMaXuat').value:'',
-    maNhap:state.stockSource==='dat_rieng'?document.getElementById('orderMaNhap').value:'',
+    maXuat:state.stockSource==='ton_kho'
+      ?(document.getElementById('maXuatLocked').style.display!=='none'
+        ?(document.getElementById('maXuatLocked').dataset.value||document.getElementById('orderMaXuat').value)
+        :document.getElementById('orderMaXuat').value)
+      :'',
+    maNhap:state.stockSource==='dat_rieng'
+      ?(document.getElementById('maNhapLocked').style.display!=='none'
+        ?(document.getElementById('maNhapLocked').dataset.value||document.getElementById('orderMaNhap').value)
+        :document.getElementById('orderMaNhap').value)
+      :'',
   };
 
   // Block "confirmed" if no PO linked
