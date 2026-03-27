@@ -1722,12 +1722,11 @@ function setStockSource(src){
     const poList=H5C.get('pos')||[];
     const sel=document.getElementById('orderMaNhap');
     if(sel){
-      const activePOs=poList.filter(p=>p.status!=='paid');
-      if(!activePOs.length){
+      if(!poList.length){
         sel.innerHTML='<option value="">Chưa có PO nào — Tạo PO trước trong Kho hàng</option>';
       }else{
         sel.innerHTML='<option value="">-- Chọn PO đặt hàng --</option>'+
-          activePOs.map(p=>{
+          poList.map(p=>{
             const totalVal=p.products?p.products.reduce((a,pr)=>a+(pr.qty*pr.unitPrice),0):0;
             return `<option value="${p.id}">${p.code}${p.orderDate?' ('+p.orderDate+')':''} — ${new Intl.NumberFormat('vi-VN').format(totalVal)}đ</option>`;
           }).join('');
