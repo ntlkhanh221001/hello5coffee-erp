@@ -2023,7 +2023,7 @@ function _convertYCToOrder(ycId,sourceType,sourceCode){
     fromYCId:ycId,
     stockSource:sourceType==='xuat'?'ton_kho':'dat_rieng',
     maXuat:sourceType==='xuat'?sourceCode:'',
-    maPO:sourceType==='po'?sourceCode:'',
+    maNhap:sourceType==='po'?sourceCode:'',
     note:'[Từ '+ycId+'] '+(req.note||''),
   };
   orders.unshift(newOrder);
@@ -2284,6 +2284,8 @@ function doExport(e){
     const _ord=_orders.find(o=>o.id===_linkedOrderId);
     if(_ord){
       _ord.status='produced';
+      _ord.stockSource='ton_kho';
+      _ord.maXuat=lotNo;
       items.forEach(function(item){
         const prod=_ord.products.find(function(p){return (p.productId||p.skuId)===item.skuId;});
         if(prod)prod.costPerUnit=item.price;
@@ -2824,6 +2826,8 @@ function savePO(){
     const _ord=_orders.find(o=>o.id===linkedOrderId);
     if(_ord){
       _ord.status='producing';
+      _ord.stockSource='dat_rieng';
+      _ord.maNhap=d.id;
       d.products.forEach(function(poP){
         const prod=_ord.products.find(function(p){return (p.productId||p.skuId)===poP.skuId;});
         if(prod)prod.costPerUnit=poP.unitPrice;
