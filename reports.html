@@ -208,7 +208,7 @@ function _can(permId){
   try{
     const session=state.user; if(!session)return false;
     const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>a.email===(session.email||''));
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
     if(!acc) return session.role==='C_LEVEL';
     if(acc.permissions){
       const val=acc.permissions[permId];
@@ -220,9 +220,9 @@ function _can(permId){
 }
 function _canScope(permId){
   try{
-    const session=state.user; if(!session)return 'all';
+    const session=state.user; if(!session)return 'none';
     const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>a.email===(session.email||''));
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
     if(!acc) return session.role==='C_LEVEL'?'all':'own';
     if(!acc.permissions){
       if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
@@ -232,7 +232,7 @@ function _canScope(permId){
     if(val==='own') return 'own';
     if(val===true||val==='all') return 'all';
     return 'none';
-  }catch(e){return 'all';}
+  }catch(e){return 'none';}
 }
 function _roleDefault(role,pid){
   const S=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
@@ -268,7 +268,7 @@ function fmtSmart(n,format){
 
 // Login dùng H5C accounts
 const SESSION_KEY = 'h5c_erp_user';
-function saveSession(user) { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }
+function saveSession(user) { localStorage.setItem(SESSION_KEY, JSON.stringify({...user, loginAt:Date.now()})); }
 function loadSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) { return null; } }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
@@ -322,12 +322,13 @@ function getReportData(module, dateFrom, dateTo) {
   const skus      = H5C.get('skus')      ||[];
 
   if (module === 'orders') {
-    const rev = orders.reduce((s,o)=>s+(o.total||0),0);
+    const _calcTotal=o=>(o.total||(o.products||[]).reduce((s,p)=>s+(p.qty||0)*(p.unitPrice||0),0));
+    const rev = orders.reduce((s,o)=>s+_calcTotal(o),0);
     const byStatus = {};
     orders.forEach(o => { const lbl=ORDER_STATUS_LABELS[o.status]||o.status||'Khác'; byStatus[lbl]=(byStatus[lbl]||0)+1; });
     const byChannel = {};
     const _LEGACY_CH={buon_si:'Chưa rõ',buon:'Chưa rõ',le:'Chưa rõ'};
-    orders.forEach(o => { const ch=CHANNEL_LABELS[o.channel]||_LEGACY_CH[o.channel]||'Chưa rõ'; byChannel[ch]=(byChannel[ch]||0)+(o.total||0); });
+    orders.forEach(o => { const ch=CHANNEL_LABELS[o.channel]||_LEGACY_CH[o.channel]||'Chưa rõ'; byChannel[ch]=(byChannel[ch]||0)+_calcTotal(o); });
     const prodMap = {};
     orders.forEach(o => (o.products||[]).forEach(p => {
       if(!prodMap[p.name]) prodMap[p.name]={name:p.name,qty:0,revenue:0};
@@ -338,7 +339,7 @@ function getReportData(module, dateFrom, dateTo) {
     const custMap = {};
     orders.forEach(o => {
       if(!custMap[o.customer]) custMap[o.customer]={name:o.customer,value:0};
-      custMap[o.customer].value += o.total||0;
+      custMap[o.customer].value += _calcTotal(o);
     });
     const topCustomers = Object.values(custMap).sort((a,b)=>b.value-a.value).slice(0,5);
     return { total:orders.length, revenue:rev, avg:orders.length?Math.round(rev/orders.length):0,
@@ -375,17 +376,17 @@ function getReportData(module, dateFrom, dateTo) {
       byType:{labels:Object.keys(byType),data:Object.values(byType)} };
   }
   if (module === 'warehouse') {
-    const stockQty   = lots.reduce((s,l)=>s+(l.qty||0),0);
-    const stockValue = lots.reduce((s,l)=>{const sk=skus.find(x=>x.id===l.skuId);return s+(l.qty||0)*(sk?sk.suggestedPrice||0:0);},0);
+    const stockQty   = lots.reduce((s,l)=>s+(l.qtyRemain!=null?l.qtyRemain:l.qty||0),0);
+    const stockValue = lots.reduce((s,l)=>{const sk=skus.find(x=>x.id===l.skuId);const q=l.qtyRemain!=null?l.qtyRemain:l.qty||0;return s+q*(sk?sk.suggestedPrice||0:0);},0);
     const byType={}; skus.forEach(sk=>{
-      const totalQty=lots.filter(l=>l.skuId===sk.id).reduce((s,l)=>s+(l.qty||0),0);
+      const totalQty=lots.filter(l=>l.skuId===sk.id).reduce((s,l)=>s+(l.qtyRemain!=null?l.qtyRemain:l.qty||0),0);
       if(totalQty>0) byType[sk.type||sk.category||'Khác']=(byType[sk.type||sk.category||'Khác']||0)+totalQty;
     });
     const _warehouses=H5C.get('warehouses')||[];
     const byWarehouse={}; lots.forEach(l=>{
       const wRec=_warehouses.find(w=>w.id===l.warehouseId);
       const wh=wRec?wRec.name:(l.warehouseId||l.warehouse||l.location||'Kho chính');
-      byWarehouse[wh]=(byWarehouse[wh]||0)+(l.qty||0);
+      byWarehouse[wh]=(byWarehouse[wh]||0)+(l.qtyRemain!=null?l.qtyRemain:l.qty||0);
     });
     const imported = lots.filter(l=>l.type==='nhap'&&inRange(l.date||l.createdAt)).reduce((s,l)=>s+(l.qty||0),0);
     const exported = lots.filter(l=>l.type==='xuat'&&inRange(l.date||l.createdAt)).reduce((s,l)=>s+Math.abs(l.qty||0),0);
@@ -853,7 +854,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.getElementById('login
 //       orders | leads | expenses | announcements
 //       pending_order  (leads → orders handoff)
 // ═══════════════════════════════════════════════════════════
-const H5C = {
+const H5C = window.H5C || {
   _k: k => 'h5c_v1_' + k,
   get(k)        { try { const v = localStorage.getItem(this._k(k)); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
   set(k, v)     { try { localStorage.setItem(this._k(k), JSON.stringify(v)); } catch(e) {} },

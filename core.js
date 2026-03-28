@@ -152,11 +152,20 @@
     const container = _ensureToastContainer();
     const toast = document.createElement('div');
     toast.className = 'h5c-toast ' + type;
-    toast.innerHTML = `
-      <span class="h5c-toast-icon">${TOAST_ICONS[type] || 'ℹ️'}</span>
-      <span class="h5c-toast-msg">${message}</span>
-      <button class="h5c-toast-close" onclick="this.parentElement.remove()" title="Đóng">×</button>
-    `;
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'h5c-toast-icon';
+    iconSpan.textContent = TOAST_ICONS[type] || 'ℹ️';
+    const msgSpan = document.createElement('span');
+    msgSpan.className = 'h5c-toast-msg';
+    msgSpan.textContent = message;
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'h5c-toast-close';
+    closeBtn.title = 'Đóng';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = function(){ toast.remove(); };
+    toast.appendChild(iconSpan);
+    toast.appendChild(msgSpan);
+    toast.appendChild(closeBtn);
     container.appendChild(toast);
     setTimeout(() => {
       toast.style.animation = 'h5c-toast-out .3s ease forwards';

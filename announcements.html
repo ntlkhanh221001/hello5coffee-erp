@@ -248,7 +248,7 @@ let state={user:null,tab:'all',deleteId:null,filterType:'all',filterStatus:'all'
 
 const getInitials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
 const getEmpName=id=>{if(id==='SYSTEM')return'🤖 Hệ thống';const emps=H5C.get('employees')||EMPLOYEES;const e=emps.find(x=>x.id===id);return e?e.name:'Ẩn danh';};
-const formatDateTime=d=>{const dt=new Date(d.replace(' ','T'));return dt.getDate()+'/'+(dt.getMonth()+1)+'/'+dt.getFullYear()+' '+dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0');};
+const formatDateTime=d=>{if(!d)return'—';const dt=new Date(d.replace(' ','T'));return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear()+' '+dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0');};
 
 // ═══ BIRTHDAY HELPERS ═══
 function _getActiveEmployees(){
@@ -952,7 +952,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.getElementById('login
 //       orders | leads | expenses | announcements
 //       pending_order  (leads → orders handoff)
 // ═══════════════════════════════════════════════════════════
-const H5C = {
+const H5C = window.H5C || {
   _k: k => 'h5c_v1_' + k,
   get(k)        { try { const v = localStorage.getItem(this._k(k)); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
   set(k, v)     { try { localStorage.setItem(this._k(k), JSON.stringify(v)); } catch(e) {} },
@@ -983,7 +983,7 @@ const H5C = {
 const SESSION_KEY = 'h5c_erp_user';
 
 function saveSession(user) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+  localStorage.setItem(SESSION_KEY, JSON.stringify({...user, loginAt:Date.now()}));
 }
 
 function loadSession() {

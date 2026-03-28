@@ -124,8 +124,12 @@
   // ──────────────────────────────────────────────
   // STEP 3: Push / Delete
   // ──────────────────────────────────────────────
-  function _pushToFirestore(key, value) {
+  const _retryQueue = [];
+  const MAX_RETRIES = 3;
+
+  function _pushToFirestore(key, value, attempt) {
     if (!_db) return;
+    attempt = attempt || 1;
     _db.collection(FIRESTORE_COLLECTION).doc(key).set({
       value: value,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -133,7 +137,15 @@
     }).then(() => {
       console.log('H5C Sync: Pushed', key, '✅');
     }).catch(e => {
-      console.warn('H5C Sync: Push FAILED for', key, '-', e.code || e.message);
+      console.warn('H5C Sync: Push FAILED for', key, '(attempt '+attempt+')', '-', e.code || e.message);
+      if (attempt < MAX_RETRIES) {
+        setTimeout(() => _pushToFirestore(key, value, attempt + 1), 2000 * attempt);
+      } else {
+        console.error('H5C Sync: Gave up pushing', key, 'after', MAX_RETRIES, 'attempts');
+        if (typeof window.showToast === 'function') {
+          window.showToast('Lỗi đồng bộ dữ liệu "' + key + '". Vui lòng kiểm tra kết nối!', 'error', 5000);
+        }
+      }
     });
   }
 

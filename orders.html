@@ -600,14 +600,15 @@
 // ════════════════════════════════════════════════════════════════
 // H5C SHARED STORE
 // ════════════════════════════════════════════════════════════════
-const H5C={
+const H5C=window.H5C||{
   _k:k=>'h5c_v1_'+k,
   get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
   set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
   init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
   clear(k){localStorage.removeItem(this._k(k));},
-  salesList(){const e=this.get('employees')||[];const a=e.filter(x=>x.status!=='inactive');return a.map(x=>x.name);},
-  productsList(){
+  salesList(){const e=this.get('employees')||[];const a=e.filter(x=>x.status!=='inactive');return a.map(x=>x.name);}
+};
+H5C.productsList=function(){
     const DEFAULT=[
       {id:'SKU001',code:'H5C-SO-01',name:'Cà phê Đắk Lắk SO 250g',unit:'tui',suggestedPrice:195000,retailImportPrice:165000,wholesaleTiers:[{minQty:1,maxQty:49,costReal:155000,costEmployee:168000,sellPrice:195000},{minQty:50,maxQty:199,costReal:148000,costEmployee:162000,sellPrice:185000},{minQty:200,maxQty:null,costReal:140000,costEmployee:155000,sellPrice:175000}]},
       {id:'SKU002',code:'H5C-BL-01',name:'Cà phê Blend House 500g',unit:'tui',suggestedPrice:230000,retailImportPrice:195000,wholesaleTiers:[{minQty:1,maxQty:49,costReal:185000,costEmployee:200000,sellPrice:230000},{minQty:50,maxQty:199,costReal:175000,costEmployee:190000,sellPrice:218000},{minQty:200,maxQty:null,costReal:165000,costEmployee:180000,sellPrice:205000}]},
@@ -673,8 +674,8 @@ let ORDER_REQUESTS = [];
 // UTILITIES
 // ════════════════════════════════════════════════════════════════
 const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+'tỷ';if(n>=1e6)return Math.round(n/1e6)+'tr';return fmt(n);};
-const fmtDate=d=>{if(!d)return'—';const dt=new Date(d);return dt.getDate()+'/'+(dt.getMonth()+1)+'/'+dt.getFullYear();};
+const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
+const fmtDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
 const genId=()=>{let n=ORDERS.length+1;while(ORDERS.find(o=>o.id==='DH'+String(n).padStart(3,'0')))n++;return'DH'+String(n).padStart(3,'0');};
 const isCLevel=()=>state.user&&(state.user.role==='C_LEVEL');
@@ -687,7 +688,7 @@ function _can(permId){
   try{
     const session=state.user; if(!session)return false;
     const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>a.email===(session.email||''));
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
     if(!acc) return session.role==='C_LEVEL';
     let perms;
     if(acc.permissions){ perms=acc.permissions; }
@@ -703,9 +704,9 @@ function _can(permId){
 }
 function _canScope(permId){
   try{
-    const session=state.user; if(!session)return 'all';
+    const session=state.user; if(!session)return 'none';
     const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>a.email===(session.email||''));
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
     if(!acc) return session.role==='C_LEVEL'?'all':'own';
     if(!acc.permissions){
       if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
@@ -715,7 +716,7 @@ function _canScope(permId){
     if(val==='own') return 'own';
     if(val===true||val==='all') return 'all';
     return 'none';
-  }catch(e){return 'all';}
+  }catch(e){return 'none';}
 }
 function _roleDefault(role,permId){
   const SALES_PERMS=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
@@ -776,7 +777,7 @@ function calcOrderFinancials(order){
 // AUTH
 // ════════════════════════════════════════════════════════════════
 const SESSION_KEY='h5c_erp_user';
-const saveSession=u=>localStorage.setItem(SESSION_KEY,JSON.stringify(u));
+const saveSession=u=>localStorage.setItem(SESSION_KEY,JSON.stringify({...u,loginAt:Date.now()}));
 const loadSession=()=>{try{return JSON.parse(localStorage.getItem(SESSION_KEY));}catch(e){return null;}};
 const clearSession=()=>localStorage.removeItem(SESSION_KEY);
 
@@ -956,7 +957,7 @@ function buildPage(){
       const fin=calcOrderFinancials(o);
       const {comm,scheme}=calcCommission(fin.totalRevenue,fin.totalCogs,o.sales);
       const gmClass=fin.gmPct>=0.20?'good':fin.gmPct>=0.10?'mid':'low';
-      const prodSummary=o.products.length===1?o.products[0].name.substring(0,26)+(o.products[0].name.length>26?'…':''):`${o.products[0].name.substring(0,18)}… (+${o.products.length-1})`;
+      const prodSummary=!o.products||!o.products.length?'(Chưa có SP)':o.products.length===1?o.products[0].name.substring(0,26)+(o.products[0].name.length>26?'…':''):`${o.products[0].name.substring(0,18)}… (+${o.products.length-1})`;
       h+=`<tr class="${o.status==='cancelled'?'cancelled':''}${o.pendingEdit?' pending-edit':''}${o.pendingCancel?' pending-edit':''}" onclick="openDetail('${o.id}')">
         <td><strong style="font-size:12px">${o.id}</strong>${o.pendingEdit?'<span class="pending-edit-badge">Chờ duyệt sửa</span>':''}${o.pendingCancel?'<span class="pending-edit-badge" style="background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)">Chờ duyệt hủy</span>':''}<div style="font-size:10px;color:var(--h5c-text-secondary)">${fmtDate(o.createdAt)}</div></td>
         <td><strong style="font-size:12px">${o.customer}</strong><div style="font-size:10px;color:var(--h5c-text-secondary)">${o.phone}</div></td>
@@ -1398,7 +1399,7 @@ function saveOrderRequest(e){
   const today=new Date();
   const createdAt=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   const newReq={
-    id:'YC'+String(ORDER_REQUESTS.length+1).padStart(3,'0'),
+    id:(function(){let n=ORDER_REQUESTS.length+1;while(ORDER_REQUESTS.find(r=>r.id==='YC'+String(n).padStart(3,'0')))n++;return'YC'+String(n).padStart(3,'0');})(),
     custType:state.reqCustType,
     customer:document.getElementById('reqCustomer').value.trim(),
     phone:document.getElementById('reqPhone').value.trim(),
@@ -1535,9 +1536,7 @@ function _autoCreateExpenseFromPO(order){
   if(unpaidAmount<=0)return;
 
   const today=new Date().toISOString().split('T')[0];
-  let n=expenses.length+1;
-  while(expenses.find(e=>e.id==='CP'+String(n).padStart(3,'0')))n++;
-  const newId='CP'+String(n).padStart(3,'0');
+  let newId;do{newId='CP'+Date.now().toString(36).toUpperCase();}while(expenses.find(e=>e.id===newId));
 
   expenses.push({
     id:newId,
@@ -2136,6 +2135,11 @@ function saveOrder(e){
       return;
     }
   }
+
+  // Snapshot commission at save time
+  const _fin=calcOrderFinancials(orderData);
+  const _comm=calcCommission(_fin.totalRevenue,_fin.totalCogs,orderData.sales);
+  orderData._commSnapshot={amount:_comm.comm,schemeName:_comm.scheme.name,schemeId:_comm.scheme.id,gmPct:_fin.gmPct,calcAt:new Date().toISOString()};
 
   if(editMode==='new'){
     const today=new Date();

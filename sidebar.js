@@ -128,7 +128,14 @@
   //    Chạy SAU DOMContentLoaded để override được hàm của từng file
   window.navigateTo = function(page) {
     if (page === currentPage) return;
-    if (PAGE_MAP[page]) window.location.href = PAGE_MAP[page];
+    if (PAGE_MAP[page]) {
+      if (!_canViewModule(page)) {
+        if (typeof showToast === 'function') showToast('Bạn không có quyền truy cập module này!', 'error');
+        else alert('Bạn không có quyền truy cập module này!');
+        return;
+      }
+      window.location.href = PAGE_MAP[page];
+    }
     else alert('Module "' + page + '" đang được phát triển!');
   };
 
