@@ -415,6 +415,8 @@
     dashboard:'dashboard.html', orders:'orders.html', leads:'leads.html',
     expenses:'expenses.html', warehouse:'warehouse.html', users:'users.html',
     reports:'reports.html', announcements:'announcements.html',
+    accounting:'accounting.html', shipping:'shipping.html', payroll:'payroll.html',
+    qc:'qc.html', contracts:'contracts.html',
   };
 
   window.navigateTo = function(page) {
@@ -425,7 +427,9 @@
       const PERM_MAP = {
         orders:'orders.view', leads:'leads.view', expenses:'expenses.view',
         warehouse:'wh.view_stock', users:'users.view', reports:'reports.view',
-        announcements:'ann.view'
+        announcements:'ann.view',
+        accounting:'accounting.view', shipping:'shipping.view', payroll:'payroll.view',
+        qc:'qc.view', contracts:'contracts.view'
       };
       const permId = PERM_MAP[page];
       if (permId && typeof window._can === 'function' && !window._can(permId)) {

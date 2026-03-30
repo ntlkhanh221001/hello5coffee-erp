@@ -25,7 +25,12 @@
     'holidays', 'birthday_template',
     'wholesale_customers', 'dash_config',
     'customers', 'payments', 'production_orders', 'boms',
-    'cash_receipts', 'cash_payments', 'bank_accounts'
+    'cash_receipts', 'cash_payments', 'bank_accounts',
+    'chart_of_accounts', 'journal_entries',
+    'shipments', 'shipping_partners',
+    'attendance_records', 'payroll_records', 'payroll_config',
+    'qc_standards', 'qc_inspections',
+    'contracts'
   ];
 
   const LS_PREFIX = 'h5c_v1_';
