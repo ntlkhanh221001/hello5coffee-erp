@@ -621,7 +621,6 @@ H5C.productsList=function(){
     const skus=this.get('skus')||DEFAULT;
     const UM={kg:'Kg',hop:'Hộp',chiec:'Chiếc',tui:'Túi',stick:'Stick',cont:'Cont'};
     return skus.map(s=>({...s,displayUnit:UM[s.unit]||s.unit||'Cái'}));
-  }
 };
 
 // ════════════════════════════════════════════════════════════════
