@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Chấm công & Tính lương</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>
+.pr-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.pr-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);font-size:13px;background:var(--h5c-surface);color:var(--h5c-text);min-width:120px}
+.filter-input:focus{outline:none;border-color:var(--h5c-copper)}
+.tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{padding:10px 22px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.kpi-card.highlight{background:linear-gradient(135deg,var(--h5c-espresso) 0%,#2A1C14 100%);border:none}
+.kpi-card.highlight .kpi-label{color:rgba(255,255,255,.7)}
+.kpi-card.highlight .kpi-value{color:var(--h5c-copper)}
+.kpi-card.highlight .stat-sub{color:rgba(255,255,255,.5)}
+.status-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
+.status-badge.present{background:#E8F0E8;color:#4A7A4D}
+.status-badge.absent{background:#FBE8E6;color:#C44536}
+.status-badge.late{background:#FFF4E6;color:#D4851A}
+.status-badge.leave{background:#E6EFF8;color:#4A7FB5}
+.status-badge.holiday{background:#F0EBF5;color:#7B5EA7}
+.status-badge.draft{background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+.status-badge.confirmed{background:#E8F0E8;color:#4A7A4D}
+.status-badge.paid{background:#EBF5D0;color:#6E9B32}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--h5c-bg-subtle);color:var(--h5c-text);transition:all .2s}
+.action-btn.edit:hover{background:var(--h5c-amber);color:#fff}
+.action-btn.delete:hover{background:var(--h5c-terracotta);color:#fff}
+.action-btn.confirm:hover{background:var(--h5c-sage);color:#fff}
+.action-btn.pay:hover{background:var(--h5c-steel);color:#fff}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-bottom:6px;display:block}
+/* Payslip */
+.payslip{background:var(--h5c-surface);border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-lg);max-width:620px;margin:0 auto;padding:32px}
+.payslip-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:2px solid var(--h5c-copper);margin-bottom:24px}
+.payslip-logo{font-size:28px}
+.payslip-company{font-size:16px;font-weight:800;color:var(--h5c-text)}
+.payslip-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.payslip-title{text-align:right}
+.payslip-title h2{font-size:20px;font-weight:800;color:var(--h5c-copper);margin:0}
+.payslip-title p{font-size:12px;color:var(--h5c-text-secondary);margin-top:4px}
+.payslip-emp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;padding:16px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md)}
+.payslip-emp-item{display:flex;flex-direction:column;gap:2px}
+.payslip-emp-item label{font-size:10px;color:var(--h5c-text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.payslip-emp-item span{font-size:13px;font-weight:700;color:var(--h5c-text)}
+.payslip-section{margin-bottom:20px}
+.payslip-section h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--h5c-text-secondary);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--h5c-border-subtle)}
+.payslip-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:13px;border-bottom:1px solid var(--h5c-border-subtle)}
+.payslip-row:last-child{border-bottom:none}
+.payslip-row .label{color:var(--h5c-text-secondary)}
+.payslip-row .value{font-weight:700;color:var(--h5c-text)}
+.payslip-row .value.plus{color:var(--h5c-sage)}
+.payslip-row .value.minus{color:var(--h5c-terracotta)}
+.payslip-net{display:flex;justify-content:space-between;align-items:center;padding:16px;background:linear-gradient(135deg,var(--h5c-espresso),#2A1C14);border-radius:var(--h5c-radius-md);margin-top:20px}
+.payslip-net .label{font-size:14px;font-weight:700;color:rgba(255,255,255,.8)}
+.payslip-net .value{font-size:22px;font-weight:900;color:var(--h5c-copper)}
+/* Config section */
+.config-section{margin-bottom:28px}
+.config-section h4{font-size:13px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--h5c-border)}
+.config-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.config-item{display:flex;flex-direction:column;gap:6px}
+.config-item label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary)}
+.allowance-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-sm);margin-bottom:8px}
+.allowance-row .name{font-size:13px;font-weight:600}
+.allowance-row .amount{font-size:13px;color:var(--h5c-sage);font-weight:700}
+@media print{.no-print{display:none!important}.payslip{border:none;padding:0;max-width:100%}}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.pr-filters{flex-direction:column}.config-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div><div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title">Chấm công &amp; Tính lương</div></div>
+      <div class="topbar-right">
+        <div class="user-info"><div class="user-avatar" id="userAvatar">TT</div><div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div></div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Attendance Modal -->
+<div id="attendModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:540px">
+  <div class="modal-title" id="attendModalTitle">Chấm công</div>
+  <form id="attendForm" onsubmit="saveAttend(event)">
+    <input type="hidden" id="attendId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Nhân viên *</label>
+        <select id="attendEmpId" class="modal-input" required onchange="fillEmpName()"></select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Ngày *</label>
+        <input type="date" id="attendDate" class="modal-input" required>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Giờ vào</label><input type="time" id="attendIn" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Giờ ra</label><input type="time" id="attendOut" class="modal-input"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Trạng thái *</label>
+        <select id="attendStatus" class="modal-input" required onchange="toggleLeaveType()">
+          <option value="present">Có mặt</option>
+          <option value="late">Đi trễ</option>
+          <option value="absent">Vắng mặt</option>
+          <option value="leave">Nghỉ phép</option>
+          <option value="holiday">Ngày lễ</option>
+        </select>
+      </div>
+      <div class="modal-group" id="leaveTypeGroup" style="display:none"><label class="modal-label">Loại nghỉ</label>
+        <select id="attendLeaveType" class="modal-input">
+          <option value="phep">Nghỉ phép năm</option>
+          <option value="om">Nghỉ ốm</option>
+          <option value="khong_luong">Nghỉ không lương</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="attendNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('attendModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Payslip Detail Modal -->
+<div id="slipModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:660px">
+  <div id="slipContent"></div>
+  <div class="modal-btns no-print">
+    <button type="button" class="modal-btn cancel" onclick="closeModal('slipModal')">Đóng</button>
+    <button type="button" class="modal-btn primary" onclick="window.print()">In phiếu lương</button>
+  </div>
+</div>
+</div>
+
+<script>
+const H5C=window.H5C||{
+  _k:k=>'h5c_v1_'+k,
+  get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
+  init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
+  clear(k){localStorage.removeItem(this._k(k));}
+};
+
+const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const fmtVND=n=>fmt(n)+'đ';
+const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
+const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
+const pad2=n=>String(n).padStart(2,'0');
+
+const STATUS_LABELS={present:'Có mặt',absent:'Vắng',late:'Đi trễ',leave:'Nghỉ phép',holiday:'Ngày lễ'};
+const PAYROLL_STATUS={draft:'Nháp',confirmed:'Đã duyệt',paid:'Đã trả'};
+
+const DEFAULT_CONFIG={
+  workDaysPerMonth:26,workHoursPerDay:8,otRate:1.5,otWeekendRate:2.0,
+  socialInsurance:0.08,healthInsurance:0.015,unemployment:0.01,
+  defaultAllowances:[
+    {name:'Phụ cấp ăn trưa',amount:500000},
+    {name:'Phụ cấp xăng xe',amount:300000},
+    {name:'Phụ cấp điện thoại',amount:200000}
+  ]
+};
+
+let TIMESHEETS=[],PAYROLL=[],PAY_CONFIG={};
+let state={user:null,tab:'attendance',selectedMonth:new Date().getMonth()+1,selectedYear:new Date().getFullYear(),filterEmp:'all',search:'',charts:{}};
+
+const SESSION_KEY='h5c_erp_user';
+function saveSession(u){localStorage.setItem(SESSION_KEY,JSON.stringify({...u,loginAt:Date.now()}));}
+function loadSession(){try{const r=localStorage.getItem(SESSION_KEY);if(!r)return null;const s=JSON.parse(r);if(s.loginAt&&Date.now()-s.loginAt>8*3600000){localStorage.removeItem(SESSION_KEY);return null;}return s;}catch(e){return null;}}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+
+function _getAccountsForLogin(){
+  const stored=H5C.get('accounts');if(stored&&stored.length)return stored;
+  return[
+    {email:'admin@hello5coffee.com',pw:'Admin@123456',name:'Louis Nguyen',role:'C_LEVEL',pos:'CCO & Co-Founder',empId:'EMP001'},
+    {email:'manager@hello5coffee.com',pw:'123456',name:'Nguyễn Thị Lan',role:'MANAGER',pos:'Trưởng phòng',empId:'EMP002'},
+    {email:'hr@hello5coffee.com',pw:'123456',name:'Trần Thị Hoa',role:'EMPLOYEE_HR',pos:'Nhân sự',empId:'EMP003'},
+    {email:'finance@hello5coffee.com',pw:'123456',name:'Phạm Thị Mai',role:'EMPLOYEE_FINANCE',pos:'Kế toán viên',empId:'EMP004'}
+  ];
+}
+
+function _can(permId){
+  try{
+    const session=state.user;if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    const role=acc?acc.role:session.role;
+    if(acc&&acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
+    const rolePerms={
+      C_LEVEL:['payroll.view','payroll.attendance','payroll.calculate','payroll.confirm','payroll.config'],
+      MANAGER:['payroll.view','payroll.attendance','payroll.calculate'],
+      EMPLOYEE_HR:['payroll.view','payroll.attendance','payroll.calculate','payroll.confirm','payroll.config'],
+      EMPLOYEE_FINANCE:['payroll.view']
+    };
+    return (rolePerms[role]||[]).includes(permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const acc=_getAccountsForLogin().find(a=>(a.email||'').toLowerCase()===email&&a.pw===pw);
+  if(!acc){document.getElementById('loginError').style.display='block';return;}
+  document.getElementById('loginError').style.display='none';
+  state.user={name:acc.name,email:acc.email,role:acc.role,pos:acc.pos,empId:acc.empId};
+  saveSession(state.user);showMain();
+}
+function handleLogout(){state.user=null;clearSession();document.getElementById('loginPage').style.display='';document.getElementById('mainLayout').classList.add('hidden');}
+function showMain(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=state.user.name;
+  document.getElementById('userRole').textContent=state.user.pos||'';
+  document.getElementById('userAvatar').textContent=getInitials(state.user.name);
+  render();
+}
+
+function loadData(){
+  TIMESHEETS=H5C.get('timesheets')||[];
+  PAYROLL=H5C.get('payroll_records')||[];
+  PAY_CONFIG={...DEFAULT_CONFIG,...(H5C.get('payroll_config')||{})};
+  if(!PAY_CONFIG.defaultAllowances)PAY_CONFIG.defaultAllowances=DEFAULT_CONFIG.defaultAllowances;
+}
+
+function getEmployees(){return H5C.get('employees')||[];}
+function getActiveEmployees(){return getEmployees().filter(e=>e.status!=='inactive');}
+
+function monthKey(m,y){return y+'-'+pad2(m);}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════
+function render(){
+  loadData();
+  const emps=getActiveEmployees();
+  const mk=monthKey(state.selectedMonth,state.selectedYear);
+  const monthTS=TIMESHEETS.filter(t=>(t.date||'').startsWith(mk));
+  const monthPR=PAYROLL.filter(p=>p.month===state.selectedMonth&&p.year===state.selectedYear);
+
+  const avgDays=emps.length?monthPR.reduce((s,p)=>s+(p.actualDays||0),0)/emps.length:0;
+  const totalNetPay=monthPR.reduce((s,p)=>s+(p.netPay||0),0);
+  const totalOT=monthTS.reduce((s,t)=>s+(t.otHours||0),0);
+
+  let html=`
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card"><div class="kpi-label">Nhân viên</div><div class="kpi-value">${emps.length}</div><div class="stat-sub">đang hoạt động</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ngày công TB</div><div class="kpi-value">${avgDays.toFixed(1)}</div><div class="stat-sub">tháng ${pad2(state.selectedMonth)}/${state.selectedYear}</div></div>
+      <div class="kpi-card highlight"><div class="kpi-label">Tổng quỹ lương</div><div class="kpi-value">${fmtB(totalNetPay)}đ</div><div class="stat-sub">${monthPR.length} nhân viên</div></div>
+      <div class="kpi-card highlight"><div class="kpi-label">Giờ tăng ca</div><div class="kpi-value">${totalOT.toFixed(1)}h</div><div class="stat-sub">tháng này</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn${state.tab==='attendance'?' active':''}" onclick="state.tab='attendance';render()">Chấm công</button>
+      <button class="tab-btn${state.tab==='payroll'?' active':''}" onclick="state.tab='payroll';render()">Bảng lương</button>
+      <button class="tab-btn${state.tab==='payslip'?' active':''}" onclick="state.tab='payslip';render()">Phiếu lương</button>
+      <button class="tab-btn${state.tab==='config'?' active':''}" onclick="state.tab='config';render()">Cấu hình</button>
+    </div>`;
+
+  if(state.tab==='attendance')html+=renderAttendance();
+  else if(state.tab==='payroll')html+=renderPayrollTab();
+  else if(state.tab==='payslip')html+=renderPayslipTab();
+  else html+=renderConfig();
+
+  document.getElementById('pageContent').innerHTML=html;
+}
+
+// ────────────────────────────────────────────────
+// TAB 1: Chấm công
+// ────────────────────────────────────────────────
+function renderAttendance(){
+  const emps=getActiveEmployees();
+  const mk=monthKey(state.selectedMonth,state.selectedYear);
+  let filtered=TIMESHEETS.filter(t=>(t.date||'').startsWith(mk));
+  if(state.filterEmp!=='all')filtered=filtered.filter(t=>t.empId===state.filterEmp);
+
+  const empOpts=emps.map(e=>`<option value="${e.empId||e.id}"${state.filterEmp===(e.empId||e.id)?' selected':''}>${e.name}</option>`).join('');
+
+  let h=`<div class="card">
+    <div class="pr-header">
+      <div class="pr-filters">
+        <select class="filter-input" onchange="state.selectedMonth=+this.value;render()">
+          ${Array.from({length:12},(_,i)=>`<option value="${i+1}"${state.selectedMonth===i+1?' selected':''}>Tháng ${pad2(i+1)}</option>`).join('')}
+        </select>
+        <select class="filter-input" onchange="state.selectedYear=+this.value;render()">
+          ${[2024,2025,2026].map(y=>`<option value="${y}"${state.selectedYear===y?' selected':''}>${y}</option>`).join('')}
+        </select>
+        <select class="filter-input" onchange="state.filterEmp=this.value;render()">
+          <option value="all">Tất cả NV</option>${empOpts}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px">
+        ${_can('payroll.attendance')?`<button class="btn secondary" onclick="markHoliday()">Đánh dấu lễ</button><button class="btn primary" onclick="openAttendModal()">+ Chấm công</button>`:''}
+      </div>
+    </div>`;
+
+  if(!filtered.length){
+    h+=`<div style="text-align:center;padding:50px;color:var(--h5c-text-secondary)"><div style="font-size:48px;margin-bottom:12px">📅</div><p>Chưa có dữ liệu chấm công tháng này</p></div>`;
+  }else{
+    h+=`<div class="table-container"><table class="data-table"><thead><tr>
+      <th>Ngày</th><th>Nhân viên</th><th>Giờ vào</th><th>Giờ ra</th><th>Giờ công</th><th>Tăng ca</th><th>Trạng thái</th><th>Ghi chú</th>
+      ${_can('payroll.attendance')?'<th>Thao tác</th>':''}
+    </tr></thead><tbody>`;
+    const sorted=[...filtered].sort((a,b)=>b.date>a.date?1:-1);
+    sorted.forEach(t=>{
+      h+=`<tr>
+        <td style="font-size:12px;font-weight:600">${formatDate(t.date)}</td>
+        <td style="font-size:13px;font-weight:700">${t.empName||'—'}</td>
+        <td style="font-size:12px">${t.checkIn||'—'}</td>
+        <td style="font-size:12px">${t.checkOut||'—'}</td>
+        <td style="font-weight:700">${(t.workHours||0).toFixed(1)}h</td>
+        <td style="color:var(--h5c-amber);font-weight:700">${t.otHours?('+'+t.otHours.toFixed(1)+'h'):'—'}</td>
+        <td><span class="status-badge ${t.status||'present'}">${STATUS_LABELS[t.status]||t.status}</span></td>
+        <td style="font-size:11px;color:var(--h5c-text-secondary)">${t.notes||'—'}</td>
+        ${_can('payroll.attendance')?`<td><div class="action-btns">
+          <button class="action-btn edit" title="Sửa" onclick="editAttend('${t.id}')">✏️</button>
+          <button class="action-btn delete" title="Xóa" onclick="deleteAttend('${t.id}')">🗑️</button>
+        </div></td>`:''}
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ────────────────────────────────────────────────
+// TAB 2: Bảng lương
+// ────────────────────────────────────────────────
+function renderPayrollTab(){
+  const mk=monthKey(state.selectedMonth,state.selectedYear);
+  const monthPR=PAYROLL.filter(p=>p.month===state.selectedMonth&&p.year===state.selectedYear);
+
+  let h=`<div class="card">
+    <div class="pr-header">
+      <div class="pr-filters">
+        <select class="filter-input" onchange="state.selectedMonth=+this.value;render()">
+          ${Array.from({length:12},(_,i)=>`<option value="${i+1}"${state.selectedMonth===i+1?' selected':''}>Tháng ${pad2(i+1)}</option>`).join('')}
+        </select>
+        <select class="filter-input" onchange="state.selectedYear=+this.value;render()">
+          ${[2024,2025,2026].map(y=>`<option value="${y}"${state.selectedYear===y?' selected':''}>${y}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px">
+        ${_can('payroll.calculate')?`<button class="btn secondary" onclick="calculatePayroll()">⚙️ Tính lương</button>`:''}
+      </div>
+    </div>`;
+
+  if(!monthPR.length){
+    h+=`<div style="text-align:center;padding:50px;color:var(--h5c-text-secondary)"><div style="font-size:48px;margin-bottom:12px">💰</div><p>Chưa có bảng lương tháng ${pad2(state.selectedMonth)}/${state.selectedYear}. ${_can('payroll.calculate')?'Nhấn "Tính lương" để tạo.':''}</p></div>`;
+  }else{
+    h+=`<div class="table-container"><table class="data-table"><thead><tr>
+      <th>STT</th><th>Nhân viên</th><th>Phòng ban</th><th>Lương CB</th><th>Ngày công</th><th>Tăng ca</th><th>Phụ cấp</th><th>Khấu trừ</th><th>Thực lãnh</th><th>Trạng thái</th>
+      ${_can('payroll.confirm')?'<th>Thao tác</th>':''}
+    </tr></thead><tbody>`;
+    monthPR.forEach((p,i)=>{
+      const totalAllow=(p.allowances||[]).reduce((s,a)=>s+(a.amount||0),0);
+      const totalDeduct=(p.deductions||[]).reduce((s,a)=>s+(a.amount||0),0);
+      h+=`<tr>
+        <td style="font-size:12px;color:var(--h5c-text-secondary)">${i+1}</td>
+        <td style="font-weight:700;font-size:13px">${p.empName||'—'}</td>
+        <td style="font-size:12px">${p.dept||'—'}</td>
+        <td style="font-size:12px">${fmtVND(p.baseSalary)}</td>
+        <td style="font-weight:700">${p.actualDays||0}/${p.workDays||PAY_CONFIG.workDaysPerMonth}</td>
+        <td style="color:var(--h5c-amber)">${p.otHours?p.otHours.toFixed(1)+'h':'—'}</td>
+        <td style="color:var(--h5c-sage);font-size:12px">${fmtVND(totalAllow)}</td>
+        <td style="color:var(--h5c-terracotta);font-size:12px">${fmtVND(totalDeduct)}</td>
+        <td style="font-weight:900;color:var(--h5c-copper)">${fmtVND(p.netPay)}</td>
+        <td><span class="status-badge ${p.status||'draft'}">${PAYROLL_STATUS[p.status||'draft']}</span></td>
+        ${_can('payroll.confirm')?`<td><div class="action-btns">
+          <button class="action-btn" title="Xem phiếu lương" onclick="showSlip('${p.id}')">👁️</button>
+          ${p.status==='draft'?`<button class="action-btn confirm" title="Duyệt" onclick="confirmPayroll('${p.id}')">✅</button>`:''}
+          ${p.status==='confirmed'?`<button class="action-btn pay" title="Đánh dấu đã trả" onclick="markPaid('${p.id}')">💳</button>`:''}
+          ${p.status==='draft'?`<button class="action-btn delete" title="Xóa" onclick="deletePayroll('${p.id}')">🗑️</button>`:''}
+        </div></td>`:''}
+      </tr>`;
+    });
+
+    const totalNet=monthPR.reduce((s,p)=>s+(p.netPay||0),0);
+    h+=`</tbody><tfoot><tr style="background:var(--h5c-bg-subtle);font-weight:700">
+      <td colspan="8" style="text-align:right;padding:12px 16px;font-size:13px">Tổng thực lãnh:</td>
+      <td style="padding:12px 16px;font-size:14px;color:var(--h5c-copper);font-weight:900">${fmtVND(totalNet)}</td>
+      <td colspan="${_can('payroll.confirm')?2:1}"></td>
+    </tr></tfoot></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ────────────────────────────────────────────────
+// TAB 3: Phiếu lương selector
+// ────────────────────────────────────────────────
+function renderPayslipTab(){
+  const emps=getActiveEmployees();
+  const monthPR=PAYROLL.filter(p=>p.month===state.selectedMonth&&p.year===state.selectedYear);
+
+  let h=`<div class="card">
+    <div class="pr-header" style="margin-bottom:24px">
+      <div class="pr-filters">
+        <select class="filter-input" onchange="state.selectedMonth=+this.value;render()">
+          ${Array.from({length:12},(_,i)=>`<option value="${i+1}"${state.selectedMonth===i+1?' selected':''}>Tháng ${pad2(i+1)}</option>`).join('')}
+        </select>
+        <select class="filter-input" onchange="state.selectedYear=+this.value;render()">
+          ${[2024,2025,2026].map(y=>`<option value="${y}"${state.selectedYear===y?' selected':''}>${y}</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+
+  if(!monthPR.length){
+    h+=`<div style="text-align:center;padding:50px;color:var(--h5c-text-secondary)"><div style="font-size:48px;margin-bottom:12px">📄</div><p>Chưa có bảng lương tháng này</p></div>`;
+  }else{
+    h+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">`;
+    monthPR.forEach(p=>{
+      h+=`<div class="card" style="cursor:pointer;transition:all .2s;border:1px solid var(--h5c-border)" onclick="showSlip('${p.id}')" onmouseenter="this.style.borderColor='var(--h5c-copper)'" onmouseleave="this.style.borderColor='var(--h5c-border)'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:15px;font-weight:800;margin-bottom:4px">${p.empName}</div>
+            <div style="font-size:12px;color:var(--h5c-text-secondary)">${p.dept||'—'} · ${p.code||''}</div>
+          </div>
+          <span class="status-badge ${p.status||'draft'}">${PAYROLL_STATUS[p.status||'draft']}</span>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--h5c-border-subtle);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:11px;color:var(--h5c-text-secondary)">Thực lãnh</div>
+          <div style="font-size:17px;font-weight:900;color:var(--h5c-copper)">${fmtVND(p.netPay)}</div>
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ────────────────────────────────────────────────
+// TAB 4: Cấu hình
+// ────────────────────────────────────────────────
+function renderConfig(){
+  if(!_can('payroll.config'))return`<div class="card" style="text-align:center;padding:50px;color:var(--h5c-text-secondary)"><p>Bạn không có quyền truy cập cấu hình.</p></div>`;
+  const c=PAY_CONFIG;
+  const allowRows=(c.defaultAllowances||[]).map((a,i)=>
+    `<div class="allowance-row"><div><div class="name">${a.name}</div></div><div style="display:flex;align-items:center;gap:10px"><span class="amount">${fmtVND(a.amount)}</span><button type="button" class="action-btn delete" onclick="removeAllowance(${i})" title="Xóa">🗑️</button></div></div>`
+  ).join('');
+
+  return`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+      <h3 style="margin:0;font-size:16px">Cấu hình tính lương</h3>
+      <button class="btn primary" onclick="saveConfig()">Lưu cấu hình</button>
+    </div>
+
+    <div class="config-section">
+      <h4>Thời gian làm việc</h4>
+      <div class="config-grid">
+        <div class="config-item"><label>Số ngày công/tháng</label><input type="number" id="cfgWorkDays" class="modal-input" value="${c.workDaysPerMonth}" min="1" max="31"></div>
+        <div class="config-item"><label>Giờ làm/ngày</label><input type="number" id="cfgHoursDay" class="modal-input" value="${c.workHoursPerDay}" min="1" max="24" step="0.5"></div>
+        <div class="config-item"><label>Hệ số tăng ca (ngày thường)</label><input type="number" id="cfgOtRate" class="modal-input" value="${c.otRate}" min="1" step="0.1"></div>
+        <div class="config-item"><label>Hệ số tăng ca (cuối tuần)</label><input type="number" id="cfgOtWeekend" class="modal-input" value="${c.otWeekendRate}" min="1" step="0.1"></div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h4>Bảo hiểm (phần người lao động)</h4>
+      <div class="config-grid">
+        <div class="config-item"><label>BHXH (%)</label><input type="number" id="cfgBHXH" class="modal-input" value="${(c.socialInsurance*100).toFixed(1)}" min="0" max="100" step="0.1"></div>
+        <div class="config-item"><label>BHYT (%)</label><input type="number" id="cfgBHYT" class="modal-input" value="${(c.healthInsurance*100).toFixed(1)}" min="0" max="100" step="0.1"></div>
+        <div class="config-item"><label>BHTN (%)</label><input type="number" id="cfgBHTN" class="modal-input" value="${(c.unemployment*100).toFixed(1)}" min="0" max="100" step="0.1"></div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h4>Phụ cấp mặc định</h4>
+      ${allowRows}
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <input type="text" id="newAllowName" class="modal-input" placeholder="Tên phụ cấp" style="flex:1;min-width:160px">
+        <input type="number" id="newAllowAmt" class="modal-input" placeholder="Số tiền" style="width:160px">
+        <button type="button" class="btn secondary" onclick="addAllowance()">+ Thêm</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// ATTENDANCE CRUD
+// ════════════════════════════════════════════════════════════════
+function openAttendModal(id){
+  const emps=getActiveEmployees();
+  const empSel=document.getElementById('attendEmpId');
+  empSel.innerHTML=emps.map(e=>`<option value="${e.empId||e.id}">${e.name}</option>`).join('');
+  document.getElementById('attendForm').reset();
+  document.getElementById('attendId').value='';
+  document.getElementById('attendModalTitle').textContent='Chấm công';
+  document.getElementById('attendDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('leaveTypeGroup').style.display='none';
+  if(id){
+    const t=TIMESHEETS.find(x=>x.id===id);if(!t)return;
+    document.getElementById('attendId').value=t.id;
+    document.getElementById('attendModalTitle').textContent='Sửa chấm công';
+    empSel.value=t.empId||'';
+    document.getElementById('attendDate').value=t.date||'';
+    document.getElementById('attendIn').value=t.checkIn||'';
+    document.getElementById('attendOut').value=t.checkOut||'';
+    document.getElementById('attendStatus').value=t.status||'present';
+    document.getElementById('attendNotes').value=t.notes||'';
+    toggleLeaveType();
+    if(t.leaveType)document.getElementById('attendLeaveType').value=t.leaveType;
+  }
+  document.getElementById('attendModal').classList.remove('hidden');
+}
+function editAttend(id){openAttendModal(id);}
+
+function toggleLeaveType(){
+  const s=document.getElementById('attendStatus').value;
+  document.getElementById('leaveTypeGroup').style.display=s==='leave'?'':'none';
+}
+
+function fillEmpName(){/* name is resolved on save */}
+
+function calcWorkHours(checkIn,checkOut){
+  if(!checkIn||!checkOut)return 0;
+  const [ih,im]=checkIn.split(':').map(Number);
+  const [oh,om]=checkOut.split(':').map(Number);
+  const total=(oh*60+om-ih*60-im)/60;
+  return Math.max(0,total);
+}
+
+function saveAttend(ev){
+  ev.preventDefault();
+  const id=document.getElementById('attendId').value;
+  const empId=document.getElementById('attendEmpId').value;
+  const emps=getActiveEmployees();
+  const emp=emps.find(e=>(e.empId||e.id)===empId);
+  const checkIn=document.getElementById('attendIn').value;
+  const checkOut=document.getElementById('attendOut').value;
+  const totalH=calcWorkHours(checkIn,checkOut);
+  const wHPD=PAY_CONFIG.workHoursPerDay||8;
+  const workHours=Math.min(totalH,wHPD);
+  const otHours=Math.max(0,totalH-wHPD);
+  const status=document.getElementById('attendStatus').value;
+
+  const data={
+    empId,empName:emp?emp.name:'',
+    date:document.getElementById('attendDate').value,
+    checkIn,checkOut,
+    workHours:parseFloat(workHours.toFixed(2)),
+    otHours:parseFloat(otHours.toFixed(2)),
+    status,
+    leaveType:status==='leave'?document.getElementById('attendLeaveType').value:null,
+    notes:document.getElementById('attendNotes').value.trim()
+  };
+
+  if(id){
+    const idx=TIMESHEETS.findIndex(t=>t.id===id);
+    if(idx!==-1)TIMESHEETS[idx]={...TIMESHEETS[idx],...data};
+  }else{
+    const newId='CC'+Date.now().toString(36).toUpperCase();
+    TIMESHEETS.push({id:newId,...data,createdBy:state.user.name,createdAt:new Date().toISOString()});
+  }
+  H5C.set('timesheets',TIMESHEETS);
+  closeModal('attendModal');
+  if(typeof showToast==='function')showToast('Đã lưu chấm công','success');
+  render();
+}
+
+function deleteAttend(id){
+  if(!confirm('Xóa bản ghi chấm công này?'))return;
+  TIMESHEETS=TIMESHEETS.filter(t=>t.id!==id);
+  H5C.set('timesheets',TIMESHEETS);render();
+}
+
+function markHoliday(){
+  const dateStr=prompt('Nhập ngày lễ (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
+  if(!dateStr)return;
+  const emps=getActiveEmployees();
+  let added=0;
+  emps.forEach(emp=>{
+    const empId=emp.empId||emp.id;
+    const exists=TIMESHEETS.find(t=>t.empId===empId&&t.date===dateStr);
+    if(!exists){
+      TIMESHEETS.push({id:'CC'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase(),empId,empName:emp.name,date:dateStr,checkIn:'',checkOut:'',workHours:0,otHours:0,status:'holiday',leaveType:null,notes:'Ngày lễ',createdBy:state.user.name,createdAt:new Date().toISOString()});
+      added++;
+    }
+  });
+  H5C.set('timesheets',TIMESHEETS);
+  if(typeof showToast==='function')showToast(`Đã đánh dấu lễ cho ${added} nhân viên`,'success');
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// PAYROLL CALCULATE
+// ════════════════════════════════════════════════════════════════
+function calculatePayroll(){
+  const emps=getActiveEmployees();
+  if(!emps.length){alert('Chưa có nhân viên nào.');return;}
+  const mk=monthKey(state.selectedMonth,state.selectedYear);
+  const monthTS=TIMESHEETS.filter(t=>(t.date||'').startsWith(mk));
+  const c=PAY_CONFIG;
+  let added=0,updated=0;
+
+  emps.forEach(emp=>{
+    const empId=emp.empId||emp.id;
+    const empTS=monthTS.filter(t=>t.empId===empId);
+    const actualDays=empTS.filter(t=>t.status==='present'||t.status==='late').reduce((s,t)=>{
+      return s+(t.workHours||0)/(c.workHoursPerDay||8);
+    },0);
+    const otHours=empTS.reduce((s,t)=>s+(t.otHours||0),0);
+    const baseSalary=emp.baseSalary||emp.salary||0;
+    const dayRate=baseSalary/(c.workDaysPerMonth||26);
+    const otRate=(baseSalary/(c.workDaysPerMonth||26)/(c.workHoursPerDay||8))*(c.otRate||1.5);
+    const otAmount=otHours*otRate;
+    const allowances=(c.defaultAllowances||[]).map(a=>({name:a.name,amount:a.amount||0}));
+    const totalAllow=allowances.reduce((s,a)=>s+(a.amount||0),0);
+    const baseForIns=baseSalary;
+    const bhxh=baseForIns*(c.socialInsurance||0.08);
+    const bhyt=baseForIns*(c.healthInsurance||0.015);
+    const bhtn=baseForIns*(c.unemployment||0.01);
+    const deductions=[
+      {name:'BHXH (8%)',amount:Math.round(bhxh)},
+      {name:'BHYT (1.5%)',amount:Math.round(bhyt)},
+      {name:'BHTN (1%)',amount:Math.round(bhtn)}
+    ];
+    const totalDeduct=deductions.reduce((s,d)=>s+(d.amount||0),0);
+    const grossPay=Math.round(dayRate*actualDays)+Math.round(otAmount)+totalAllow;
+    const netPay=Math.max(0,grossPay-totalDeduct);
+
+    const existing=PAYROLL.find(p=>p.empId===empId&&p.month===state.selectedMonth&&p.year===state.selectedYear);
+    const code='BL'+state.selectedYear+pad2(state.selectedMonth)+empId.slice(-4);
+    const record={
+      empId,empName:emp.name,dept:emp.department||emp.dept||'—',
+      code,month:state.selectedMonth,year:state.selectedYear,
+      baseSalary,workDays:c.workDaysPerMonth||26,
+      actualDays:parseFloat(actualDays.toFixed(2)),otHours:parseFloat(otHours.toFixed(2)),otAmount:Math.round(otAmount),
+      allowances,deductions,grossPay,netPay,
+      status:'draft',createdBy:state.user.name,createdAt:new Date().toISOString()
+    };
+    if(existing){
+      if(existing.status==='draft'){Object.assign(existing,record,{id:existing.id});updated++;}
+    }else{
+      record.id='PR'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();
+      PAYROLL.push(record);added++;
+    }
+  });
+  H5C.set('payroll_records',PAYROLL);
+  if(typeof showToast==='function')showToast(`Tính lương xong: ${added} mới, ${updated} cập nhật`,'success');
+  render();
+}
+
+function confirmPayroll(id){
+  const p=PAYROLL.find(x=>x.id===id);if(!p)return;
+  p.status='confirmed';p.confirmedBy=state.user.name;p.confirmedAt=new Date().toISOString();
+  H5C.set('payroll_records',PAYROLL);
+  if(typeof showToast==='function')showToast('Đã duyệt phiếu lương','success');
+  render();
+}
+
+function markPaid(id){
+  const p=PAYROLL.find(x=>x.id===id);if(!p)return;
+  if(!confirm(`Xác nhận đã trả lương cho ${p.empName}?`))return;
+  p.status='paid';p.paidAt=new Date().toISOString();p.paidBy=state.user.name;
+  H5C.set('payroll_records',PAYROLL);
+  if(typeof showToast==='function')showToast('Đã đánh dấu trả lương','success');
+  render();
+}
+
+function deletePayroll(id){
+  if(!confirm('Xóa bản lương này?'))return;
+  PAYROLL=PAYROLL.filter(p=>p.id!==id);
+  H5C.set('payroll_records',PAYROLL);render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// PAYSLIP
+// ════════════════════════════════════════════════════════════════
+function showSlip(id){
+  const p=PAYROLL.find(x=>x.id===id);if(!p)return;
+  const totalAllow=(p.allowances||[]).reduce((s,a)=>s+(a.amount||0),0);
+  const totalDeduct=(p.deductions||[]).reduce((s,a)=>s+(a.amount||0),0);
+  const allowRows=(p.allowances||[]).map(a=>`<div class="payslip-row"><span class="label">${a.name}</span><span class="value plus">+${fmtVND(a.amount)}</span></div>`).join('');
+  const deductRows=(p.deductions||[]).map(d=>`<div class="payslip-row"><span class="label">${d.name}</span><span class="value minus">−${fmtVND(d.amount)}</span></div>`).join('');
+
+  document.getElementById('slipContent').innerHTML=`
+    <div class="payslip">
+      <div class="payslip-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="payslip-logo">☕</div>
+            <div><div class="payslip-company">Hello 5 Coffee</div><div class="payslip-sub">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div></div>
+          </div>
+        </div>
+        <div class="payslip-title"><h2>PHIẾU LƯƠNG</h2><p>Tháng ${pad2(p.month)}/${p.year}</p><p style="font-size:11px;margin-top:2px;color:var(--h5c-text-secondary)">${p.code||''}</p></div>
+      </div>
+
+      <div class="payslip-emp">
+        <div class="payslip-emp-item"><label>Họ và tên</label><span>${p.empName}</span></div>
+        <div class="payslip-emp-item"><label>Phòng ban</label><span>${p.dept||'—'}</span></div>
+        <div class="payslip-emp-item"><label>Ngày công thực tế</label><span>${p.actualDays}/${p.workDays} ngày</span></div>
+        <div class="payslip-emp-item"><label>Giờ tăng ca</label><span>${p.otHours||0}h</span></div>
+      </div>
+
+      <div class="payslip-section">
+        <h4>Thu nhập</h4>
+        <div class="payslip-row"><span class="label">Lương cơ bản (theo ngày công)</span><span class="value plus">+${fmtVND(Math.round((p.baseSalary/(p.workDays||26))*p.actualDays))}</span></div>
+        <div class="payslip-row"><span class="label">Tiền tăng ca (${p.otHours||0}h)</span><span class="value plus">+${fmtVND(p.otAmount||0)}</span></div>
+        ${allowRows}
+        <div class="payslip-row" style="font-weight:800;border-top:1px solid var(--h5c-border)"><span class="label" style="color:var(--h5c-text)">Tổng thu nhập gộp</span><span class="value" style="color:var(--h5c-text)">${fmtVND(p.grossPay)}</span></div>
+      </div>
+
+      <div class="payslip-section">
+        <h4>Khấu trừ</h4>
+        ${deductRows}
+        <div class="payslip-row" style="font-weight:800;border-top:1px solid var(--h5c-border)"><span class="label" style="color:var(--h5c-text)">Tổng khấu trừ</span><span class="value minus">−${fmtVND(totalDeduct)}</span></div>
+      </div>
+
+      <div class="payslip-net">
+        <span class="label">THỰC LÃNH</span>
+        <span class="value">${fmtVND(p.netPay)}</span>
+      </div>
+
+      <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:center">
+        <div><div style="font-size:11px;color:var(--h5c-text-secondary);margin-bottom:40px">Người lập bảng lương</div><div style="border-top:1px dashed var(--h5c-border);padding-top:8px;font-size:12px">${p.createdBy||'—'}</div></div>
+        <div><div style="font-size:11px;color:var(--h5c-text-secondary);margin-bottom:40px">Người nhận lương</div><div style="border-top:1px dashed var(--h5c-border);padding-top:8px;font-size:12px">${p.empName}</div></div>
+      </div>
+    </div>`;
+  document.getElementById('slipModal').classList.remove('hidden');
+}
+
+// ════════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════════
+function saveConfig(){
+  PAY_CONFIG.workDaysPerMonth=parseInt(document.getElementById('cfgWorkDays').value)||26;
+  PAY_CONFIG.workHoursPerDay=parseFloat(document.getElementById('cfgHoursDay').value)||8;
+  PAY_CONFIG.otRate=parseFloat(document.getElementById('cfgOtRate').value)||1.5;
+  PAY_CONFIG.otWeekendRate=parseFloat(document.getElementById('cfgOtWeekend').value)||2.0;
+  PAY_CONFIG.socialInsurance=parseFloat(document.getElementById('cfgBHXH').value)/100||0.08;
+  PAY_CONFIG.healthInsurance=parseFloat(document.getElementById('cfgBHYT').value)/100||0.015;
+  PAY_CONFIG.unemployment=parseFloat(document.getElementById('cfgBHTN').value)/100||0.01;
+  H5C.set('payroll_config',PAY_CONFIG);
+  if(typeof showToast==='function')showToast('Đã lưu cấu hình','success');
+  render();
+}
+
+function addAllowance(){
+  const name=document.getElementById('newAllowName').value.trim();
+  const amount=parseInt(document.getElementById('newAllowAmt').value)||0;
+  if(!name){alert('Nhập tên phụ cấp');return;}
+  PAY_CONFIG.defaultAllowances=PAY_CONFIG.defaultAllowances||[];
+  PAY_CONFIG.defaultAllowances.push({name,amount});
+  H5C.set('payroll_config',PAY_CONFIG);
+  render();
+}
+
+function removeAllowance(idx){
+  if(!confirm('Xóa phụ cấp này?'))return;
+  PAY_CONFIG.defaultAllowances.splice(idx,1);
+  H5C.set('payroll_config',PAY_CONFIG);render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ════════════════════════════════════════════════════════════════
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+document.addEventListener('click',function(e){
+  ['attendModal','slipModal'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el.classList.contains('hidden')&&e.target===el)closeModal(id);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+(function init(){
+  const session=loadSession();
+  if(session){state.user=session;showMain();}
+  else{document.getElementById('loginPage').style.display='';document.getElementById('mainLayout').classList.add('hidden');}
+  document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPassword').focus();});
+  document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')handleLogin();});
+})();
+</script>
+</body>
+</html>

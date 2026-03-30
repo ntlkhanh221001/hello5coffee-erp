@@ -33,8 +33,12 @@
     {id:'dashboard',     icon:'📊', label:'Tổng quan'},
     {id:'orders',        icon:'📦', label:'Đơn Hàng Bán'},
     {id:'leads',         icon:'🎯', label:'Lead / CRM'},
+    {id:'customers',     icon:'👤', label:'Khách hàng'},
     {id:'expenses',      icon:'💰', label:'Chi phí'},
+    {id:'debts',         icon:'💳', label:'Công nợ'},
+    {id:'cashbook',      icon:'📒', label:'Sổ quỹ'},
     {id:'warehouse',     icon:'🏭', label:'Kho hàng'},
+    {id:'production',    icon:'⚙️', label:'Sản xuất'},
     {id:'users',         icon:'👥', label:'Nhân viên'},
 
     {id:'reports',       icon:'📈', label:'Báo cáo'},
@@ -43,8 +47,9 @@
 
   const PAGE_MAP = {
     dashboard:'dashboard.html', orders:'orders.html', leads:'leads.html',
-    expenses:'expenses.html',   warehouse:'warehouse.html', users:'users.html',
-    reports:'reports.html',     announcements:'announcements.html',
+    customers:'customers.html', expenses:'expenses.html', debts:'debts.html',
+    cashbook:'cashbook.html',   warehouse:'warehouse.html', production:'production.html',
+    users:'users.html',         reports:'reports.html', announcements:'announcements.html',
   };
 
   // 3. Detect current page
@@ -62,8 +67,9 @@
         // New granular format: flat keys like 'dash.view', 'orders.view'
         const viewMap = {
           dashboard:'dash.view', orders:'orders.view', leads:'leads.view',
-          expenses:'expenses.view', warehouse:'wh.view_stock', users:'users.view',
-          reports:'reports.view', announcements:'ann.view'
+          customers:'customers.view', expenses:'expenses.view', debts:'debts.view',
+          cashbook:'cashbook.view', warehouse:'wh.view_stock', production:'production.view',
+          users:'users.view', reports:'reports.view', announcements:'ann.view'
         };
         const permId = viewMap[moduleId];
         if (permId) {
@@ -77,9 +83,9 @@
       // Role template defaults
       const roleDefs = {
         C_LEVEL:          null, // sees all
-        MANAGER:          ['dashboard','orders','leads','expenses','warehouse','users','reports','announcements'],
-        EMPLOYEE_SALES:   ['dashboard','orders','leads','announcements'],
-        EMPLOYEE_FINANCE: ['dashboard','expenses','reports','announcements'],
+        MANAGER:          ['dashboard','orders','leads','customers','expenses','debts','cashbook','warehouse','production','users','reports','announcements'],
+        EMPLOYEE_SALES:   ['dashboard','orders','leads','customers','announcements'],
+        EMPLOYEE_FINANCE: ['dashboard','expenses','debts','cashbook','reports','announcements'],
         EMPLOYEE_HR:      ['dashboard','users','announcements'],
       };
       const allowed = roleDefs[acc.role];

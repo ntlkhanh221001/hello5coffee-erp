@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Công nợ</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>
+.debt-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.debt-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);font-size:13px;background:var(--h5c-surface);color:var(--h5c-text);min-width:140px}
+.filter-input:focus{outline:none;border-color:var(--h5c-copper)}
+.tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{padding:10px 24px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+.tab-btn .count{display:inline-block;background:var(--h5c-bg-subtle);padding:2px 8px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:6px}
+.tab-btn.active .count{background:var(--h5c-copper-light);color:var(--h5c-copper-dark)}
+.aging-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700}
+.aging-badge.current{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.aging-badge.d30{background:#FFF9E6;color:#B8860B}
+.aging-badge.d60{background:var(--h5c-amber-light);color:var(--h5c-amber)}
+.aging-badge.d90{background:#FDE8E4;color:#D4551A}
+.aging-badge.d90p{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.status-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
+.status-badge.open{background:var(--h5c-amber-light);color:var(--h5c-amber)}
+.status-badge.partial{background:var(--h5c-steel-light);color:var(--h5c-steel)}
+.status-badge.paid{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.status-badge.overdue{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.kpi-card.highlight{background:linear-gradient(135deg,var(--h5c-espresso) 0%,#2A1C14 100%);border:none}
+.kpi-card.highlight .kpi-label{color:rgba(255,255,255,.7)}
+.kpi-card.highlight .kpi-value{color:var(--h5c-copper)}
+.kpi-card.highlight .stat-sub{color:rgba(255,255,255,.5)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--h5c-bg-subtle);color:var(--h5c-text);transition:all .2s}
+.action-btn:hover{background:var(--h5c-copper);color:#fff}
+.progress-bar{height:6px;background:var(--h5c-bg-subtle);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-group{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-bottom:6px;display:block}
+.payment-history{max-height:200px;overflow-y:auto}
+.payment-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--h5c-border-subtle);font-size:12px}
+.payment-item:last-child{border-bottom:none}
+.chart-container{position:relative;height:280px;margin-bottom:20px}
+.aging-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.aging-card{padding:12px;border-radius:var(--h5c-radius-md);text-align:center;border:1px solid var(--h5c-border-subtle)}
+.aging-card .label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.aging-card .value{font-size:16px;font-weight:800}
+.aging-card .count{font-size:10px;color:var(--h5c-text-secondary);margin-top:2px}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}.aging-summary{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.modal-row{grid-template-columns:1fr}.aging-summary{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button id="loginBtn" class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title" id="pageTitle">Công nợ</div></div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">TT</div>
+          <div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:520px">
+  <div class="modal-title" id="paymentModalTitle">Ghi nhận thanh toán</div>
+  <form id="paymentForm" onsubmit="savePayment(event)">
+    <input type="hidden" id="payRefType"><input type="hidden" id="payRefId">
+    <div id="paymentInfo" style="background:var(--h5c-bg);padding:12px;border-radius:var(--h5c-radius-sm);margin-bottom:16px;font-size:13px"></div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Ngày thanh toán *</label><input type="date" id="payDate" class="modal-input" required></div>
+      <div class="modal-group"><label class="modal-label">Số tiền (VNĐ) *</label><input type="number" id="payAmount" class="modal-input" required min="1"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Phương thức *</label>
+        <select id="payMethod" class="modal-input" required>
+          <option value="tien_mat">Tiền mặt</option><option value="ngan_hang">Chuyển khoản</option><option value="the">Thẻ</option>
+        </select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Loại</label>
+        <select id="payType" class="modal-input">
+          <option value="thu">Phiếu thu (AR)</option><option value="chi">Phiếu chi (AP)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="payNote" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('paymentModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Detail Modal -->
+<div id="debtDetailModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:600px;max-height:80vh;overflow-y:auto">
+  <div class="modal-title" id="debtDetailTitle">Chi tiết công nợ</div>
+  <div id="debtDetailContent"></div>
+  <div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('debtDetailModal')">Đóng</button></div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+const H5C=window.H5C||{
+  _k:k=>'h5c_v1_'+k,
+  get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
+  init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
+  clear(k){localStorage.removeItem(this._k(k));},
+  salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
+};
+
+const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
+const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
+const METHOD_LABELS={tien_mat:'Tiền mặt',ngan_hang:'Chuyển khoản',the:'Thẻ'};
+
+Chart.defaults.font.family='Be Vietnam Pro';
+Chart.defaults.color='#6B5B4E';
+
+// Permission
+function _can(permId){
+  try{
+    const session=state.user;if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL';
+    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
+    if(acc.role==='C_LEVEL'||acc.role==='MANAGER'||acc.role==='EMPLOYEE_FINANCE')return true;
+    return false;
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+
+let PAYMENTS=[];
+let state={user:null,tab:'ar',search:'',filterAging:'all',charts:{}};
+
+const SESSION_KEY='h5c_erp_user';
+function saveSession(user){localStorage.setItem(SESSION_KEY,JSON.stringify({...user,loginAt:Date.now()}));}
+function loadSession(){try{const raw=localStorage.getItem(SESSION_KEY);if(!raw)return null;const s=JSON.parse(raw);if(s.loginAt&&Date.now()-s.loginAt>8*3600000){localStorage.removeItem(SESSION_KEY);return null;}return s;}catch(e){return null;}}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+
+function _getAccountsForLogin(){
+  const stored=H5C.get('accounts');
+  if(stored&&stored.length)return stored;
+  return[
+    {email:'admin@hello5coffee.com',pw:'Admin@123456',name:'Louis Nguyen',role:'C_LEVEL',pos:'CCO & Co-Founder',empId:'EMP001'},
+    {email:'manager@hello5coffee.com',pw:'123456',name:'Nguyễn Thị Lan',role:'MANAGER',pos:'Trưởng phòng',empId:'EMP002'},
+    {email:'sales@hello5coffee.com',pw:'123456',name:'Trần Minh Sales',role:'EMPLOYEE_SALES',pos:'NV Kinh doanh',empId:'EMP003'},
+    {email:'finance@hello5coffee.com',pw:'123456',name:'Phạm Thị Mai',role:'EMPLOYEE_FINANCE',pos:'Kế toán viên',empId:'EMP004'},
+    {email:'nv@hello5coffee.com',pw:'123456',name:'Đặng Văn Hùng',role:'EMPLOYEE_HR',pos:'NV Nhân sự',empId:'EMP005'}
+  ];
+}
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const accounts=_getAccountsForLogin();
+  const acc=accounts.find(a=>(a.email||'').toLowerCase()===email&&a.pw===pw);
+  if(!acc){document.getElementById('loginError').style.display='block';return;}
+  document.getElementById('loginError').style.display='none';
+  state.user={name:acc.name,email:acc.email,role:acc.role,pos:acc.pos,empId:acc.empId};
+  saveSession(state.user);showMain();
+}
+function handleLogout(){state.user=null;clearSession();document.getElementById('loginPage').style.display='';document.getElementById('mainLayout').classList.add('hidden');}
+function showMain(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=state.user.name;
+  document.getElementById('userRole').textContent=state.user.pos||state.user.role;
+  document.getElementById('userAvatar').textContent=getInitials(state.user.name);
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATA HELPERS
+// ════════════════════════════════════════════════════════════════
+function getARItems(){
+  const orders=H5C.get('orders')||[];
+  const payments=H5C.get('payments')||[];
+  return orders.filter(o=>o.status!=='cancelled').map(o=>{
+    const total=o.total||(o.products||[]).reduce((s,p)=>s+(p.qty||0)*(p.unitPrice||0),0);
+    const paidFromOrder=o.payment==='full_paid'?total:(o.paidAmount||0);
+    const extraPaid=payments.filter(p=>p.type==='thu'&&p.refId===o.id).reduce((s,p)=>s+(p.amount||0),0);
+    const totalPaid=paidFromOrder+extraPaid;
+    const remaining=Math.max(0,total-totalPaid);
+    if(remaining<=0)return null;
+    const dueDate=o.deliveryDate||o.shipDate||o.createdAt;
+    const agingDays=dueDate?Math.max(0,Math.floor((Date.now()-new Date(dueDate))/(1000*86400))):0;
+    return{id:o.id,name:o.customer,phone:o.phone||'',date:o.createdAt,dueDate,total,paid:totalPaid,remaining,agingDays,sales:o.sales,type:'ar'};
+  }).filter(Boolean);
+}
+
+function getAPItems(){
+  const expenses=H5C.get('expenses')||[];
+  const pos=H5C.get('pos')||[];
+  const payments=H5C.get('payments')||[];
+  const items=[];
+
+  // From expenses
+  expenses.filter(e=>e.payment!=='da_thanh_toan'&&e.status!=='tu_choi').forEach(e=>{
+    const extraPaid=payments.filter(p=>p.type==='chi'&&p.refId===e.id).reduce((s,p)=>s+(p.amount||0),0);
+    const paid=(e.payment==='mot_phan'?(e.paidAmount||0):0)+extraPaid;
+    const remaining=Math.max(0,(e.amount||0)-paid);
+    if(remaining<=0)return;
+    const agingDays=e.date?Math.max(0,Math.floor((Date.now()-new Date(e.date))/(1000*86400))):0;
+    items.push({id:e.id,name:e.desc,phone:'',date:e.date,dueDate:e.date,total:e.amount||0,paid,remaining,agingDays,sales:e.creator||'',type:'ap',subType:'expense'});
+  });
+
+  // From POs
+  pos.filter(p=>p.status!=='paid').forEach(po=>{
+    const extraPaid=payments.filter(p=>p.type==='chi'&&p.refId===po.id).reduce((s,p)=>s+(p.amount||0),0);
+    const total=(po.products||[]).reduce((s,p)=>s+(p.qty||0)*(p.unitCost||p.price||0),0);
+    const paid=(po.paidAmount||0)+extraPaid;
+    const remaining=Math.max(0,total-paid);
+    if(remaining<=0)return;
+    const agingDays=po.orderDate?Math.max(0,Math.floor((Date.now()-new Date(po.orderDate))/(1000*86400))):0;
+    items.push({id:po.id||po.code,name:'PO: '+(po.supplier||po.code||'NCC'),phone:'',date:po.orderDate,dueDate:po.orderDate,total,paid,remaining,agingDays,sales:'',type:'ap',subType:'po'});
+  });
+  return items;
+}
+
+function getAgingBucket(days){
+  if(days<=0)return{key:'current',label:'Hiện tại',cls:'current'};
+  if(days<=30)return{key:'d30',label:'1-30 ngày',cls:'d30'};
+  if(days<=60)return{key:'d60',label:'31-60 ngày',cls:'d60'};
+  if(days<=90)return{key:'d90',label:'61-90 ngày',cls:'d90'};
+  return{key:'d90p',label:'>90 ngày',cls:'d90p'};
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════
+function render(){
+  PAYMENTS=H5C.get('payments')||[];
+  const arItems=getARItems();
+  const apItems=getAPItems();
+  const totalAR=arItems.reduce((s,i)=>s+i.remaining,0);
+  const totalAP=apItems.reduce((s,i)=>s+i.remaining,0);
+  const netPos=totalAR-totalAP;
+  const overdueAR=arItems.filter(i=>i.agingDays>0).reduce((s,i)=>s+i.remaining,0);
+  const overdueAP=apItems.filter(i=>i.agingDays>30).reduce((s,i)=>s+i.remaining,0);
+
+  const items=state.tab==='ar'?arItems:apItems;
+  const totalDebt=state.tab==='ar'?totalAR:totalAP;
+
+  let html=`
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card highlight"><div class="kpi-label">Phải thu (AR)</div><div class="kpi-value">${fmtB(totalAR)}đ</div><div class="stat-sub">${arItems.length} khoản</div></div>
+      <div class="kpi-card highlight"><div class="kpi-label">Phải trả (AP)</div><div class="kpi-value">${fmtB(totalAP)}đ</div><div class="stat-sub">${apItems.length} khoản</div></div>
+      <div class="kpi-card"><div class="kpi-label">Net Position</div><div class="kpi-value" style="color:${netPos>=0?'var(--h5c-sage)':'var(--h5c-terracotta)'}">${netPos>=0?'+':''}${fmtB(netPos)}đ</div><div class="stat-sub">${netPos>=0?'AR > AP':'AP > AR'}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Quá hạn</div><div class="kpi-value" style="color:var(--h5c-terracotta)">${fmtB(overdueAR+overdueAP)}đ</div><div class="stat-sub">Thu: ${fmtB(overdueAR)} · Trả: ${fmtB(overdueAP)}</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn${state.tab==='ar'?' active':''}" onclick="state.tab='ar';render()">Phải thu <span class="count">${arItems.length}</span></button>
+      <button class="tab-btn${state.tab==='ap'?' active':''}" onclick="state.tab='ap';render()">Phải trả <span class="count">${apItems.length}</span></button>
+      <button class="tab-btn${state.tab==='history'?' active':''}" onclick="state.tab='history';render()">Lịch sử TT <span class="count">${PAYMENTS.length}</span></button>
+      <button class="tab-btn${state.tab==='charts'?' active':''}" onclick="state.tab='charts';setTimeout(renderCharts,100)">Phân tích</button>
+    </div>`;
+
+  if(state.tab==='ar'||state.tab==='ap'){
+    html+=renderDebtTab(items,state.tab);
+  }else if(state.tab==='history'){
+    html+=renderHistory();
+  }else{
+    html+=renderChartsHTML(arItems,apItems);
+  }
+
+  document.getElementById('pageContent').innerHTML=html;
+  if(state.tab==='charts')setTimeout(()=>renderCharts(),50);
+}
+
+function renderDebtTab(items,tab){
+  // Aging summary
+  const buckets={current:{total:0,count:0},d30:{total:0,count:0},d60:{total:0,count:0},d90:{total:0,count:0},d90p:{total:0,count:0}};
+  items.forEach(i=>{const b=getAgingBucket(i.agingDays);buckets[b.key].total+=i.remaining;buckets[b.key].count++;});
+  const bucketColors={current:'var(--h5c-sage)',d30:'#B8860B',d60:'var(--h5c-amber)',d90:'#D4551A',d90p:'var(--h5c-terracotta)'};
+  const bucketLabels={current:'Hiện tại',d30:'1-30 ngày',d60:'31-60 ngày',d90:'61-90 ngày',d90p:'>90 ngày'};
+
+  let h=`<div class="aging-summary">${Object.entries(buckets).map(([k,v])=>`
+    <div class="aging-card" style="border-color:${bucketColors[k]}20;cursor:pointer;${state.filterAging===k?'background:'+bucketColors[k]+'10;border-color:'+bucketColors[k]:''}" onclick="state.filterAging=state.filterAging==='${k}'?'all':'${k}';render()">
+      <div class="label" style="color:${bucketColors[k]}">${bucketLabels[k]}</div>
+      <div class="value" style="color:${bucketColors[k]}">${fmtB(v.total)}đ</div>
+      <div class="count">${v.count} khoản</div>
+    </div>`).join('')}</div>`;
+
+  // Filter
+  let filtered=[...items];
+  if(state.search){
+    const q=state.search.toLowerCase();
+    filtered=filtered.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.id||'').toLowerCase().includes(q));
+  }
+  if(state.filterAging!=='all'){
+    filtered=filtered.filter(i=>getAgingBucket(i.agingDays).key===state.filterAging);
+  }
+  filtered.sort((a,b)=>b.remaining-a.remaining);
+
+  h+=`<div class="card">
+    <div class="debt-header">
+      <div class="debt-filters">
+        <input type="text" class="filter-input" placeholder="🔍 Tìm tên, mã..." value="${state.search}" oninput="state.search=this.value;render()">
+      </div>
+      <span style="font-size:13px;font-weight:700;color:var(--h5c-text-secondary)">Tổng: <span style="color:var(--h5c-terracotta)">${fmt(filtered.reduce((s,i)=>s+i.remaining,0))}đ</span></span>
+    </div>`;
+
+  if(!filtered.length){
+    h+=`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)"><div style="font-size:40px;margin-bottom:12px">${tab==='ar'?'🎉':'✅'}</div><p>Không có công nợ ${tab==='ar'?'phải thu':'phải trả'}</p></div>`;
+  }else{
+    h+=`<div class="table-container"><table class="data-table"><thead><tr>
+      <th>Mã</th><th>${tab==='ar'?'Khách hàng':'NCC / Mô tả'}</th><th>Ngày</th><th>Tổng tiền</th><th>Đã TT</th><th>Còn lại</th><th>Tuổi nợ</th><th>Tiến độ</th>
+      ${_can('debts.create_payment')?'<th>Thao tác</th>':''}
+    </tr></thead><tbody>`;
+    filtered.forEach(i=>{
+      const pct=i.total>0?Math.round(i.paid/i.total*100):0;
+      const bucket=getAgingBucket(i.agingDays);
+      const barColor=bucket.key==='current'?'var(--h5c-sage)':bucket.key==='d30'?'#B8860B':bucket.key==='d60'?'var(--h5c-amber)':'var(--h5c-terracotta)';
+      h+=`<tr onclick="viewDebtDetail('${i.id}','${i.type}')" style="cursor:pointer">
+        <td><strong style="font-size:11px">${i.id}</strong></td>
+        <td><strong style="font-size:12px">${i.name}</strong></td>
+        <td style="font-size:12px">${formatDate(i.date)}</td>
+        <td style="font-size:12px;font-weight:600">${fmt(i.total)}đ</td>
+        <td style="font-size:12px;color:var(--h5c-sage)">${fmt(i.paid)}đ</td>
+        <td style="font-weight:800;color:var(--h5c-terracotta)">${fmt(i.remaining)}đ</td>
+        <td><span class="aging-badge ${bucket.cls}">${i.agingDays>0?i.agingDays+' ngày':'Chưa đến hạn'}</span></td>
+        <td style="min-width:100px">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+          <span style="font-size:10px;color:var(--h5c-text-secondary)">${pct}%</span>
+        </td>
+        ${_can('debts.create_payment')?`<td onclick="event.stopPropagation()"><div class="action-btns"><button class="action-btn" title="Ghi nhận TT" onclick="openPaymentModal('${i.id}','${i.type}','${i.name}',${i.remaining})">💳</button></div></td>`:''}
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function renderHistory(){
+  const payments=[...(H5C.get('payments')||[])].sort((a,b)=>b.date>a.date?1:-1);
+  let h=`<div class="card">
+    <div class="debt-header"><h3 style="margin:0;font-size:16px">Lịch sử thanh toán</h3></div>`;
+  if(!payments.length){
+    h+=`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)"><div style="font-size:40px;margin-bottom:12px">📋</div><p>Chưa có lịch sử thanh toán</p></div>`;
+  }else{
+    h+=`<div class="table-container"><table class="data-table"><thead><tr>
+      <th>Ngày</th><th>Loại</th><th>Mã tham chiếu</th><th>Số tiền</th><th>Phương thức</th><th>Ghi chú</th><th>Người tạo</th>
+    </tr></thead><tbody>`;
+    payments.forEach(p=>{
+      h+=`<tr>
+        <td>${formatDate(p.date)}</td>
+        <td><span class="status-badge ${p.type==='thu'?'paid':'open'}">${p.type==='thu'?'Phiếu thu':'Phiếu chi'}</span></td>
+        <td style="font-weight:700;font-size:12px">${p.refId||'—'}</td>
+        <td style="font-weight:800;color:${p.type==='thu'?'var(--h5c-sage)':'var(--h5c-terracotta)'}">${p.type==='thu'?'+':'−'}${fmt(p.amount)}đ</td>
+        <td style="font-size:12px">${METHOD_LABELS[p.method]||p.method||'—'}</td>
+        <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.note||'—'}</td>
+        <td style="font-size:12px">${p.createdBy||'—'}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function renderChartsHTML(arItems,apItems){
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="card"><h3 style="font-size:14px;margin-bottom:16px">Phân tích tuổi nợ (AR)</h3><div class="chart-container"><canvas id="agingChart"></canvas></div></div>
+    <div class="card"><h3 style="font-size:14px;margin-bottom:16px">Top khách nợ nhiều nhất</h3><div class="chart-container"><canvas id="topDebtorsChart"></canvas></div></div>
+    <div class="card" style="grid-column:1/-1"><h3 style="font-size:14px;margin-bottom:16px">AR vs AP theo tháng</h3><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
+  </div>`;
+}
+
+function renderCharts(){
+  state.tab='charts';render();
+  const arItems=getARItems();
+  const apItems=getAPItems();
+
+  // Destroy old charts
+  Object.values(state.charts).forEach(c=>{if(c&&c.destroy)c.destroy();});
+  state.charts={};
+
+  // Aging chart
+  const agingEl=document.getElementById('agingChart');
+  if(agingEl){
+    const buckets={current:0,d30:0,d60:0,d90:0,d90p:0};
+    arItems.forEach(i=>{const b=getAgingBucket(i.agingDays);buckets[b.key]+=i.remaining;});
+    state.charts.aging=new Chart(agingEl,{type:'bar',data:{
+      labels:['Hiện tại','1-30 ngày','31-60 ngày','61-90 ngày','>90 ngày'],
+      datasets:[{data:Object.values(buckets),backgroundColor:['#4A7A4D','#B8860B','#D4851A','#D4551A','#C44536'],borderRadius:6,barThickness:40}]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtB(v)}}}}});
+  }
+
+  // Top debtors
+  const topEl=document.getElementById('topDebtorsChart');
+  if(topEl){
+    const map={};arItems.forEach(i=>{map[i.name]=(map[i.name]||0)+i.remaining;});
+    const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    state.charts.top=new Chart(topEl,{type:'doughnut',data:{
+      labels:sorted.map(s=>s[0]),
+      datasets:[{data:sorted.map(s=>s[1]),backgroundColor:['#8FC643','#38261C','#4A7A4D','#C44536','#4A7FB5','#7B5EA7','#D4851A','#2A8A7A']}]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}});
+  }
+
+  // Trend chart
+  const trendEl=document.getElementById('trendChart');
+  if(trendEl){
+    const months=[];const now=new Date();
+    for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
+    const orders=H5C.get('orders')||[];
+    const expenses=H5C.get('expenses')||[];
+    const arByMonth=months.map(m=>orders.filter(o=>(o.createdAt||'').startsWith(m)&&o.payment!=='full_paid').reduce((s,o)=>s+(o.total||(o.products||[]).reduce((ss,p)=>ss+(p.qty||0)*(p.unitPrice||0),0))-(o.paidAmount||0),0));
+    const apByMonth=months.map(m=>expenses.filter(e=>(e.date||'').startsWith(m)&&e.payment!=='da_thanh_toan').reduce((s,e)=>s+(e.amount||0),0));
+    state.charts.trend=new Chart(trendEl,{type:'line',data:{
+      labels:months.map(m=>{const[y,mm]=m.split('-');return mm+'/'+y;}),
+      datasets:[
+        {label:'Phải thu (AR)',data:arByMonth,borderColor:'#4A7FB5',backgroundColor:'#4A7FB520',fill:true,tension:.3},
+        {label:'Phải trả (AP)',data:apByMonth,borderColor:'#C44536',backgroundColor:'#C4453620',fill:true,tension:.3}
+      ]
+    },options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{callback:v=>fmtB(v)}}},plugins:{legend:{labels:{font:{size:12}}}}}});
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// PAYMENT MODAL
+// ════════════════════════════════════════════════════════════════
+function openPaymentModal(refId,type,name,remaining){
+  document.getElementById('paymentForm').reset();
+  document.getElementById('payRefType').value=type;
+  document.getElementById('payRefId').value=refId;
+  document.getElementById('payType').value=type==='ar'?'thu':'chi';
+  document.getElementById('payDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('payAmount').max=remaining;
+  document.getElementById('payAmount').value=remaining;
+  document.getElementById('paymentModalTitle').textContent=type==='ar'?'Ghi nhận thu tiền':'Ghi nhận thanh toán NCC';
+  document.getElementById('paymentInfo').innerHTML=`
+    <div style="display:flex;justify-content:space-between"><span>Đối tượng:</span><strong>${name}</strong></div>
+    <div style="display:flex;justify-content:space-between"><span>Mã:</span><strong>${refId}</strong></div>
+    <div style="display:flex;justify-content:space-between"><span>Còn nợ:</span><strong style="color:var(--h5c-terracotta)">${fmt(remaining)}đ</strong></div>`;
+  document.getElementById('paymentModal').classList.remove('hidden');
+}
+
+function savePayment(e){
+  e.preventDefault();
+  const payments=H5C.get('payments')||[];
+  let id;do{id='TT'+Date.now().toString(36).toUpperCase();}while(payments.find(p=>p.id===id));
+  payments.push({
+    id,
+    type:document.getElementById('payType').value,
+    refType:document.getElementById('payRefType').value,
+    refId:document.getElementById('payRefId').value,
+    amount:parseInt(document.getElementById('payAmount').value)||0,
+    date:document.getElementById('payDate').value,
+    method:document.getElementById('payMethod').value,
+    note:document.getElementById('payNote').value.trim(),
+    createdBy:state.user.name,
+    createdAt:new Date().toISOString()
+  });
+  H5C.set('payments',payments);
+  closeModal('paymentModal');
+  if(typeof showToast==='function')showToast('Đã ghi nhận thanh toán','success');
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DEBT DETAIL
+// ════════════════════════════════════════════════════════════════
+function viewDebtDetail(id,type){
+  const payments=(H5C.get('payments')||[]).filter(p=>p.refId===id);
+  let item;
+  if(type==='ar'){
+    const orders=H5C.get('orders')||[];
+    const o=orders.find(x=>x.id===id);if(!o)return;
+    const total=o.total||(o.products||[]).reduce((s,p)=>s+(p.qty||0)*(p.unitPrice||0),0);
+    const paid=(o.payment==='full_paid'?total:(o.paidAmount||0))+payments.filter(p=>p.type==='thu').reduce((s,p)=>s+(p.amount||0),0);
+    item={id:o.id,name:o.customer,date:o.createdAt,total,paid,remaining:Math.max(0,total-paid),products:o.products};
+  }else{
+    const arItems=getAPItems();
+    item=arItems.find(i=>i.id===id);
+  }
+  if(!item)return;
+
+  let html=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div><span style="font-size:11px;color:var(--h5c-text-secondary)">Đối tượng</span><div style="font-weight:700">${item.name}</div></div>
+      <div><span style="font-size:11px;color:var(--h5c-text-secondary)">Ngày</span><div style="font-weight:700">${formatDate(item.date)}</div></div>
+      <div><span style="font-size:11px;color:var(--h5c-text-secondary)">Tổng tiền</span><div style="font-weight:800">${fmt(item.total)}đ</div></div>
+      <div><span style="font-size:11px;color:var(--h5c-text-secondary)">Đã thanh toán</span><div style="font-weight:800;color:var(--h5c-sage)">${fmt(item.paid)}đ</div></div>
+    </div>
+    <div style="background:var(--h5c-terracotta-light);padding:16px;border-radius:var(--h5c-radius-md);text-align:center;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:var(--h5c-terracotta)">CÒN NỢ</div>
+      <div style="font-size:24px;font-weight:800;color:var(--h5c-terracotta)">${fmt(item.remaining)}đ</div>
+    </div>`;
+
+  if(payments.length){
+    html+=`<h4 style="font-size:13px;margin-bottom:12px">Lịch sử thanh toán</h4><div class="payment-history">`;
+    payments.forEach(p=>{
+      html+=`<div class="payment-item">
+        <div><strong>${formatDate(p.date)}</strong><br><span style="font-size:11px;color:var(--h5c-text-secondary)">${METHOD_LABELS[p.method]||''} · ${p.createdBy||''}</span></div>
+        <div style="font-weight:800;color:var(--h5c-sage)">+${fmt(p.amount)}đ</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  document.getElementById('debtDetailContent').innerHTML=html;
+  document.getElementById('debtDetailModal').classList.remove('hidden');
+}
+
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('loginPassword').addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
+  const session=loadSession();
+  if(session){state.user=session;showMain();}
+});
+</script>
+</body>
+</html>

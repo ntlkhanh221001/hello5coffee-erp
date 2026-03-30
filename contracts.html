@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Hợp đồng</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>
+.ct-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.ct-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);font-size:13px;background:var(--h5c-surface);color:var(--h5c-text);min-width:140px}
+.filter-input:focus{outline:none;border-color:var(--h5c-copper)}
+.tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{padding:8px 20px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--h5c-bg-subtle);color:var(--h5c-text);transition:all .2s}
+.action-btn.edit:hover{background:var(--h5c-amber);color:#fff}
+.action-btn.delete:hover{background:var(--h5c-terracotta);color:#fff}
+.action-btn.renew:hover{background:var(--h5c-steel);color:#fff}
+.action-btn.view:hover{background:var(--h5c-sage);color:#fff}
+.status-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
+.status-badge.nhap{background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+.status-badge.hieu_luc{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.status-badge.het_han{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.status-badge.da_huy{background:#EBEBEB;color:#888}
+.status-badge.gia_han{background:#E6EFF8;color:var(--h5c-steel)}
+.type-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.type-badge.dai_ly{background:#E8F0E8;color:#4A7A4D}
+.type-badge.phan_phoi{background:#EBF5D0;color:#6E9B32}
+.type-badge.ban_buon{background:#E6EFF8;color:#4A7FB5}
+.type-badge.xuat_khau{background:#FBE8E6;color:#C44536}
+.type-badge.dich_vu{background:#F0EBF5;color:#7B5EA7}
+.type-badge.nguyen_lieu{background:#FFF4E6;color:#D4851A}
+.type-badge.thiet_bi{background:#E6EFF8;color:#4A7FB5}
+.type-badge.van_chuyen{background:#F5F0EB;color:#8A6B2A}
+.expiring-row{background:rgba(236,197,75,.08)!important}
+.expiring-row:hover{background:rgba(236,197,75,.15)!important}
+.expiring-badge{display:inline-block;padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;background:rgba(236,197,75,.2);color:#9A7D00;margin-left:6px}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-bottom:6px;display:block}
+.timeline-container{display:flex;flex-direction:column;gap:12px}
+.timeline-item{display:flex;align-items:center;gap:16px;padding:14px 18px;border-radius:var(--h5c-radius-md);border:1px solid var(--h5c-border);background:var(--h5c-surface);position:relative;overflow:hidden}
+.timeline-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
+.timeline-item.urgent::before{background:var(--h5c-terracotta)}
+.timeline-item.warning::before{background:var(--h5c-amber)}
+.timeline-item.ok::before{background:var(--h5c-sage)}
+.timeline-item.expired::before{background:#ccc}
+.timeline-meta{flex:1}
+.timeline-meta .name{font-size:13px;font-weight:700;color:var(--h5c-text)}
+.timeline-meta .detail{font-size:11px;color:var(--h5c-text-secondary);margin-top:3px}
+.timeline-days{text-align:right;min-width:90px}
+.timeline-days .num{font-size:20px;font-weight:800}
+.timeline-days .num.urgent{color:var(--h5c-terracotta)}
+.timeline-days .num.warning{color:var(--h5c-amber)}
+.timeline-days .num.ok{color:var(--h5c-sage)}
+.timeline-days .num.expired{color:#aaa}
+.timeline-days .lbl{font-size:10px;color:var(--h5c-text-secondary)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--h5c-text-secondary)}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state p{font-size:14px}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.ct-filters{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title">Hợp đồng</div></div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">TT</div>
+          <div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Contract Modal -->
+<div id="ctModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:700px">
+  <div class="modal-title" id="ctModalTitle">Thêm hợp đồng</div>
+  <form id="ctForm" onsubmit="saveContract(event)">
+    <input type="hidden" id="ctId">
+    <input type="hidden" id="ctKind">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Số hợp đồng</label><input type="text" id="ctNumber" class="modal-input" placeholder="Tự động" readonly></div>
+      <div class="modal-group"><label class="modal-label">Loại hợp đồng *</label>
+        <select id="ctType" class="modal-input" required></select>
+      </div>
+    </div>
+    <div class="modal-group"><label class="modal-label" id="ctPartyLabel">Khách hàng *</label>
+      <select id="ctParty" class="modal-input" required></select>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Giá trị hợp đồng (VNĐ) *</label><input type="number" id="ctValue" class="modal-input" required min="0"></div>
+      <div class="modal-group"><label class="modal-label">Trạng thái *</label>
+        <select id="ctStatus" class="modal-input" required>
+          <option value="nhap">Nháp</option>
+          <option value="hieu_luc">Hiệu lực</option>
+          <option value="het_han">Hết hạn</option>
+          <option value="da_huy">Đã hủy</option>
+          <option value="gia_han">Gia hạn</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Ngày bắt đầu *</label><input type="date" id="ctStartDate" class="modal-input" required></div>
+      <div class="modal-group"><label class="modal-label">Ngày kết thúc *</label><input type="date" id="ctEndDate" class="modal-input" required></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Điều khoản thanh toán</label><input type="text" id="ctPayTerms" class="modal-input" placeholder="VD: Thanh toán 30 ngày sau khi giao hàng"></div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="ctNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('ctModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Renew Modal -->
+<div id="renewModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:600px">
+  <div class="modal-title">Gia hạn hợp đồng</div>
+  <form id="renewForm" onsubmit="saveRenewal(event)">
+    <input type="hidden" id="renewSourceId">
+    <div class="modal-group">
+      <label class="modal-label">Hợp đồng gốc</label>
+      <input type="text" id="renewSourceNum" class="modal-input" readonly>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Ngày bắt đầu mới *</label><input type="date" id="renewStartDate" class="modal-input" required></div>
+      <div class="modal-group"><label class="modal-label">Ngày kết thúc mới *</label><input type="date" id="renewEndDate" class="modal-input" required></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Giá trị hợp đồng (VNĐ) *</label><input type="number" id="renewValue" class="modal-input" required min="0"></div>
+      <div class="modal-group"><label class="modal-label">Điều khoản thanh toán</label><input type="text" id="renewPayTerms" class="modal-input"></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú gia hạn</label><textarea id="renewNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('renewModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Tạo hợp đồng gia hạn</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Delete Confirm -->
+<div id="deleteModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:400px">
+  <div class="modal-title">Xác nhận xóa</div>
+  <p style="margin-bottom:20px">Bạn có chắc muốn xóa hợp đồng này?</p>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('deleteModal')">Không</button>
+    <button class="modal-btn danger" onclick="confirmDelete()">Xóa</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// H5C SHARED STORE
+// ════════════════════════════════════════════════════════════════
+const H5C=window.H5C||{
+  _k:k=>'h5c_v1_'+k,
+  get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
+  init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
+  clear(k){localStorage.removeItem(this._k(k));},
+  salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
+};
+
+// ════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════════
+const SALE_TYPES={dai_ly:'Đại lý',phan_phoi:'Phân phối',ban_buon:'Bán buôn',xuat_khau:'Xuất khẩu',dich_vu:'Dịch vụ'};
+const PURCHASE_TYPES={nguyen_lieu:'Nguyên liệu',thiet_bi:'Thiết bị',dich_vu:'Dịch vụ',van_chuyen:'Vận chuyển'};
+const STATUS_LABELS={nhap:'Nháp',hieu_luc:'Hiệu lực',het_han:'Hết hạn',da_huy:'Đã hủy',gia_han:'Gia hạn'};
+
+const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
+const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
+const today=()=>{const d=new Date();return d.toISOString().split('T')[0];};
+const daysUntil=endDate=>{if(!endDate)return null;const ms=new Date(endDate)-new Date(today());return Math.ceil(ms/86400000);};
+
+// ════════════════════════════════════════════════════════════════
+// PERMISSION ENGINE
+// ════════════════════════════════════════════════════════════════
+const _ROLE_PERMS={
+  C_LEVEL:null,
+  MANAGER:{
+    'contracts.view':true,'contracts.create':true,'contracts.edit':true,'contracts.delete':true,'contracts.renew':true
+  },
+  EMPLOYEE_SALES:{
+    'contracts.view':'own','contracts.create':true,'contracts.edit':'own','contracts.renew':'own'
+  },
+  EMPLOYEE_FINANCE:{
+    'contracts.view':true
+  },
+  EMPLOYEE_HR:{}
+};
+function _roleDefault(role,permId){const p=_ROLE_PERMS[role];if(p===null)return true;if(!p)return false;const v=p[permId];return v===true||v==='all'||v==='own';}
+function _can(permId){
+  try{
+    const session=state.user;if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL';
+    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
+    if(acc.role==='C_LEVEL')return true;
+    return _roleDefault(acc.role,permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+function _canScope(permId){
+  try{
+    const session=state.user;if(!session)return 'none';
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL'?'all':'own';
+    if(!acc.permissions){if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return 'all';return 'own';}
+    const val=acc.permissions[permId];
+    if(val==='own')return 'own';if(val===true||val==='all')return 'all';return 'none';
+  }catch(e){return 'none';}
+}
+
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let CONTRACTS=[];
+let state={
+  user:null, tab:'sales',
+  search:'', filterType:'all', filterStatus:'all',
+  deleteId:null
+};
+
+// ════════════════════════════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════════════════════════════
+const SESSION_KEY='h5c_erp_user';
+function saveSession(user){localStorage.setItem(SESSION_KEY,JSON.stringify({...user,loginAt:Date.now()}));}
+function loadSession(){try{const raw=localStorage.getItem(SESSION_KEY);if(!raw)return null;const s=JSON.parse(raw);if(s.loginAt&&Date.now()-s.loginAt>8*3600000){localStorage.removeItem(SESSION_KEY);return null;}return s;}catch(e){return null;}}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+
+// ════════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════════
+function _getAccountsForLogin(){
+  const stored=H5C.get('accounts');if(stored&&stored.length)return stored;
+  return[
+    {email:'admin@hello5coffee.com',pw:'Admin@123456',name:'Louis Nguyen',role:'C_LEVEL',pos:'CCO & Co-Founder',empId:'EMP001'},
+    {email:'manager@hello5coffee.com',pw:'123456',name:'Nguyễn Thị Lan',role:'MANAGER',pos:'Trưởng phòng',empId:'EMP002'},
+    {email:'sales@hello5coffee.com',pw:'123456',name:'Trần Minh Sales',role:'EMPLOYEE_SALES',pos:'NV Kinh doanh',empId:'EMP003'},
+    {email:'finance@hello5coffee.com',pw:'123456',name:'Phạm Thị Mai',role:'EMPLOYEE_FINANCE',pos:'Kế toán viên',empId:'EMP004'},
+    {email:'nv@hello5coffee.com',pw:'123456',name:'Đặng Văn Hùng',role:'EMPLOYEE_HR',pos:'NV Nhân sự',empId:'EMP005'}
+  ];
+}
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const acc=_getAccountsForLogin().find(a=>(a.email||'').toLowerCase()===email&&a.pw===pw);
+  if(!acc){document.getElementById('loginError').style.display='block';return;}
+  document.getElementById('loginError').style.display='none';
+  state.user={name:acc.name,email:acc.email,role:acc.role,pos:acc.pos,empId:acc.empId};
+  saveSession(state.user);showMain();
+}
+function handleLogout(){state.user=null;clearSession();document.getElementById('loginPage').style.display='';document.getElementById('mainLayout').classList.add('hidden');}
+function showMain(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=state.user.name;
+  document.getElementById('userRole').textContent=state.user.pos||state.user.role;
+  document.getElementById('userAvatar').textContent=getInitials(state.user.name);
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════════
+function loadData(){CONTRACTS=H5C.get('contracts')||[];}
+function saveData(){H5C.set('contracts',CONTRACTS);}
+
+function genId(){let id;do{id='HD'+Date.now().toString(36).toUpperCase();}while(CONTRACTS.find(c=>c.id===id));return id;}
+function genContractNumber(kind){
+  const yr=new Date().getFullYear();
+  const prefix=kind==='sales'?'HDB':'HDM';
+  const sameYear=CONTRACTS.filter(c=>c.kind===kind&&(c.contractNumber||'').includes('-'+yr+'-'));
+  const n=sameYear.length+1;
+  return prefix+'-'+yr+'-'+String(n).padStart(3,'0');
+}
+
+function getCustomers(){return H5C.get('customers')||[];}
+function getSuppliers(){
+  const products=H5C.get('products')||[];
+  const suppliers=H5C.get('suppliers')||[];
+  if(suppliers.length)return suppliers;
+  const names=new Set();
+  products.forEach(p=>{if(p.supplier)names.add(p.supplier);});
+  return Array.from(names).map(n=>({id:n,name:n}));
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER MAIN
+// ════════════════════════════════════════════════════════════════
+function render(){
+  loadData();
+  const now=new Date();
+  const todayStr=today();
+
+  const allActive=CONTRACTS.filter(c=>c.status==='hieu_luc'||c.status==='gia_han');
+  const expiring=allActive.filter(c=>c.endDate&&daysUntil(c.endDate)<=30&&daysUntil(c.endDate)>=0);
+  const totalValue=allActive.reduce((s,c)=>s+(c.value||0),0);
+  const salesContracts=CONTRACTS.filter(c=>c.kind==='sales');
+  const purchaseContracts=CONTRACTS.filter(c=>c.kind==='purchase');
+
+  let html=`
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card"><div class="kpi-label">Tổng hợp đồng</div><div class="kpi-value">${CONTRACTS.length}</div><div class="stat-sub">${salesContracts.length} bán · ${purchaseContracts.length} mua</div></div>
+      <div class="kpi-card"><div class="kpi-label">Đang hiệu lực</div><div class="kpi-value" style="color:var(--h5c-sage)">${allActive.length}</div><div class="stat-sub">${allActive.filter(c=>c.kind==='sales').length} bán · ${allActive.filter(c=>c.kind==='purchase').length} mua</div></div>
+      <div class="kpi-card"><div class="kpi-label">Sắp hết hạn</div><div class="kpi-value" style="color:var(--h5c-amber)">${expiring.length}</div><div class="stat-sub">Trong 30 ngày tới</div></div>
+      <div class="kpi-card"><div class="kpi-label">Giá trị HĐ hiệu lực</div><div class="kpi-value" style="color:var(--h5c-steel)">${fmtB(totalValue)}đ</div><div class="stat-sub">Tổng giá trị đang chạy</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn${state.tab==='sales'?' active':''}" onclick="state.tab='sales';state.search='';state.filterType='all';state.filterStatus='all';render()">HĐ Bán <span style="display:inline-block;background:var(--h5c-bg-subtle);padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:4px">${salesContracts.length}</span></button>
+      <button class="tab-btn${state.tab==='purchase'?' active':''}" onclick="state.tab='purchase';state.search='';state.filterType='all';state.filterStatus='all';render()">HĐ Mua <span style="display:inline-block;background:var(--h5c-bg-subtle);padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:4px">${purchaseContracts.length}</span></button>
+      <button class="tab-btn${state.tab==='deadline'?' active':''}" onclick="state.tab='deadline';render()">Theo dõi hạn</button>
+    </div>`;
+
+  if(state.tab==='sales')html+=renderContractTab('sales');
+  else if(state.tab==='purchase')html+=renderContractTab('purchase');
+  else html+=renderDeadlineTab();
+
+  document.getElementById('pageContent').innerHTML=html;
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER CONTRACT TAB
+// ════════════════════════════════════════════════════════════════
+function renderContractTab(kind){
+  const isSales=kind==='sales';
+  const typeMap=isSales?SALE_TYPES:PURCHASE_TYPES;
+  const canCreate=_can('contracts.create');
+
+  let filtered=CONTRACTS.filter(c=>c.kind===kind);
+  if(state.search){
+    const q=state.search.toLowerCase();
+    filtered=filtered.filter(c=>(c.contractNumber||'').toLowerCase().includes(q)||(c.partyName||'').toLowerCase().includes(q)||(c.notes||'').toLowerCase().includes(q));
+  }
+  if(state.filterType!=='all')filtered=filtered.filter(c=>c.type===state.filterType);
+  if(state.filterStatus!=='all')filtered=filtered.filter(c=>c.status===state.filterStatus);
+  filtered.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+
+  let h=`<div class="card">
+    <div class="ct-header">
+      <div class="ct-filters">
+        <input type="text" class="filter-input" placeholder="Tìm số HĐ, đối tác..." value="${state.search}" oninput="state.search=this.value;render()" style="min-width:200px">
+        <select class="filter-input" onchange="state.filterType=this.value;render()">
+          <option value="all">Tất cả loại</option>
+          ${Object.entries(typeMap).map(([k,v])=>`<option value="${k}"${state.filterType===k?' selected':''}>${v}</option>`).join('')}
+        </select>
+        <select class="filter-input" onchange="state.filterStatus=this.value;render()">
+          <option value="all">Tất cả TT</option>
+          ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}"${state.filterStatus===k?' selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      ${canCreate?`<button class="btn primary" onclick="openCreateModal('${kind}')">+ Thêm HĐ ${isSales?'Bán':'Mua'}</button>`:''}
+    </div>`;
+
+  if(!filtered.length){
+    h+=`<div class="empty-state"><div class="icon">📄</div><p>Chưa có hợp đồng ${isSales?'bán':'mua'} nào</p></div>`;
+  } else {
+    h+=`<div class="table-container"><table class="data-table"><thead><tr>
+      <th>Số HĐ</th>
+      <th>${isSales?'Khách hàng':'Nhà cung cấp'}</th>
+      <th>Loại</th>
+      <th>Giá trị</th>
+      <th>Ngày bắt đầu</th>
+      <th>Ngày kết thúc</th>
+      <th>Trạng thái</th>
+      <th>Điều khoản TT</th>
+      <th>Thao tác</th>
+    </tr></thead><tbody>`;
+
+    filtered.forEach(c=>{
+      const days=daysUntil(c.endDate);
+      const isExpiring=c.status==='hieu_luc'&&days!==null&&days>=0&&days<=30;
+      const rowClass=isExpiring?' class="expiring-row"':'';
+      h+=`<tr${rowClass}>
+        <td><span style="font-size:12px;font-weight:700;color:var(--h5c-copper)">${c.contractNumber||'—'}</span>${c.renewedFrom?`<span title="Gia hạn từ ${c.renewedFrom}" style="font-size:10px;color:var(--h5c-steel);margin-left:4px">↻</span>`:''}</td>
+        <td style="font-weight:600;font-size:13px">${c.partyName||'—'}</td>
+        <td><span class="type-badge ${c.type}">${(isSales?SALE_TYPES:PURCHASE_TYPES)[c.type]||c.type||'—'}</span></td>
+        <td style="font-weight:700;color:var(--h5c-text)">${fmtB(c.value||0)}đ</td>
+        <td>${formatDate(c.startDate)}</td>
+        <td>${formatDate(c.endDate)}${isExpiring?`<span class="expiring-badge">${days}d</span>`:''}</td>
+        <td><span class="status-badge ${c.status}">${STATUS_LABELS[c.status]||c.status}</span></td>
+        <td style="font-size:11px;color:var(--h5c-text-secondary);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.payTerms||''}">${c.payTerms||'—'}</td>
+        <td><div class="action-btns">
+          ${_can('contracts.edit')?`<button class="action-btn edit" onclick="openEditModal('${c.id}')" title="Sửa">✏️</button>`:''}
+          ${_can('contracts.renew')&&(c.status==='hieu_luc'||c.status==='het_han')?`<button class="action-btn renew" onclick="openRenewModal('${c.id}')" title="Gia hạn">🔄</button>`:''}
+          ${_can('contracts.delete')?`<button class="action-btn delete" onclick="askDelete('${c.id}')" title="Xóa">🗑️</button>`:''}
+        </div></td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER DEADLINE TAB
+// ════════════════════════════════════════════════════════════════
+function renderDeadlineTab(){
+  const active=CONTRACTS.filter(c=>c.status==='hieu_luc'||c.status==='gia_han');
+  const expired=CONTRACTS.filter(c=>c.status==='het_han');
+  const combined=[...active,...expired].filter(c=>c.endDate);
+  combined.sort((a,b)=>a.endDate.localeCompare(b.endDate));
+
+  if(!combined.length){
+    return `<div class="card"><div class="empty-state"><div class="icon">📅</div><p>Không có hợp đồng nào để theo dõi</p></div></div>`;
+  }
+
+  let h=`<div class="card">
+    <div style="margin-bottom:16px;display:flex;gap:20px;font-size:12px;align-items:center">
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:var(--h5c-terracotta);display:inline-block"></span> Khẩn cấp (≤7 ngày)</span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:var(--h5c-amber);display:inline-block"></span> Cảnh báo (8–30 ngày)</span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:var(--h5c-sage);display:inline-block"></span> Bình thường (>30 ngày)</span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:#ccc;display:inline-block"></span> Đã hết hạn</span>
+    </div>
+    <div class="timeline-container">`;
+
+  combined.forEach(c=>{
+    const days=daysUntil(c.endDate);
+    let urgency='ok';
+    if(days===null||days<0)urgency='expired';
+    else if(days<=7)urgency='urgent';
+    else if(days<=30)urgency='warning';
+
+    const kindLabel=c.kind==='sales'?'Bán':'Mua';
+    const typeLabel=c.kind==='sales'?(SALE_TYPES[c.type]||c.type):(PURCHASE_TYPES[c.type]||c.type);
+    const daysDisplay=days===null?'—':days<0?`${Math.abs(days)} ngày trước`:days===0?'Hôm nay':`${days} ngày`;
+
+    h+=`<div class="timeline-item ${urgency}">
+      <div style="font-size:22px;width:36px;text-align:center">${c.kind==='sales'?'🤝':'📦'}</div>
+      <div class="timeline-meta">
+        <div class="name">${c.contractNumber||'—'} <span style="font-size:11px;font-weight:600;color:var(--h5c-text-secondary);margin-left:4px">[HĐ ${kindLabel}]</span></div>
+        <div class="detail">${c.partyName||'—'} · ${typeLabel} · Giá trị: ${fmtB(c.value||0)}đ · Bắt đầu: ${formatDate(c.startDate)}</div>
+      </div>
+      <div style="flex:1;margin:0 16px">
+        <div style="background:var(--h5c-border-subtle);border-radius:4px;height:6px;overflow:hidden">
+          ${c.startDate&&c.endDate?(()=>{
+            const total=new Date(c.endDate)-new Date(c.startDate);
+            const elapsed=new Date(today())-new Date(c.startDate);
+            const pct=Math.max(0,Math.min(100,total>0?Math.round(elapsed/total*100):100));
+            const barColor=urgency==='urgent'?'var(--h5c-terracotta)':urgency==='warning'?'var(--h5c-amber)':urgency==='expired'?'#ccc':'var(--h5c-sage)';
+            return `<div style="width:${pct}%;height:100%;background:${barColor};border-radius:4px;transition:width .3s"></div>`;
+          })():''}
+        </div>
+        <div style="font-size:10px;color:var(--h5c-text-secondary);margin-top:3px">Kết thúc: ${formatDate(c.endDate)}</div>
+      </div>
+      <div class="timeline-days">
+        <div class="num ${urgency}">${daysDisplay}</div>
+        <div class="lbl">${days!==null&&days>=0?'còn lại':days!==null&&days<0?'đã hết':'—'}</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-left:8px">
+        ${_can('contracts.edit')?`<button class="action-btn edit" onclick="openEditModal('${c.id}')" title="Sửa">✏️</button>`:''}
+        ${_can('contracts.renew')&&(c.status==='hieu_luc'||c.status==='het_han')?`<button class="action-btn renew" onclick="openRenewModal('${c.id}')" title="Gia hạn">🔄</button>`:''}
+      </div>
+    </div>`;
+  });
+
+  h+=`</div></div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// MODAL — CREATE / EDIT
+// ════════════════════════════════════════════════════════════════
+function openCreateModal(kind){
+  loadData();
+  document.getElementById('ctForm').reset();
+  document.getElementById('ctId').value='';
+  document.getElementById('ctKind').value=kind;
+  document.getElementById('ctModalTitle').textContent='Thêm hợp đồng '+(kind==='sales'?'Bán':'Mua');
+  document.getElementById('ctNumber').value=genContractNumber(kind);
+  document.getElementById('ctPartyLabel').textContent=(kind==='sales'?'Khách hàng':'Nhà cung cấp')+' *';
+  _populateTypeSelect(kind);
+  _populatePartySelect(kind,'');
+  document.getElementById('ctStatus').value='nhap';
+  document.getElementById('ctModal').classList.remove('hidden');
+}
+
+function openEditModal(id){
+  loadData();
+  const c=CONTRACTS.find(x=>x.id===id);if(!c)return;
+  document.getElementById('ctForm').reset();
+  document.getElementById('ctId').value=c.id;
+  document.getElementById('ctKind').value=c.kind;
+  document.getElementById('ctModalTitle').textContent='Sửa hợp đồng';
+  document.getElementById('ctNumber').value=c.contractNumber||'';
+  document.getElementById('ctPartyLabel').textContent=(c.kind==='sales'?'Khách hàng':'Nhà cung cấp')+' *';
+  _populateTypeSelect(c.kind,c.type);
+  _populatePartySelect(c.kind,c.partyId||c.partyName);
+  document.getElementById('ctValue').value=c.value||0;
+  document.getElementById('ctStatus').value=c.status||'nhap';
+  document.getElementById('ctStartDate').value=c.startDate||'';
+  document.getElementById('ctEndDate').value=c.endDate||'';
+  document.getElementById('ctPayTerms').value=c.payTerms||'';
+  document.getElementById('ctNotes').value=c.notes||'';
+  document.getElementById('ctModal').classList.remove('hidden');
+}
+
+function _populateTypeSelect(kind,selected){
+  const typeMap=kind==='sales'?SALE_TYPES:PURCHASE_TYPES;
+  const sel=document.getElementById('ctType');
+  sel.innerHTML=Object.entries(typeMap).map(([k,v])=>`<option value="${k}"${selected===k?' selected':''}>${v}</option>`).join('');
+}
+
+function _populatePartySelect(kind,selectedId){
+  const sel=document.getElementById('ctParty');
+  sel.innerHTML='<option value="">-- Chọn --</option>';
+  if(kind==='sales'){
+    const custs=getCustomers();
+    custs.forEach(c=>{
+      const opt=document.createElement('option');
+      opt.value=c.id;opt.textContent=c.name;
+      if(c.id===selectedId||c.name===selectedId)opt.selected=true;
+      sel.appendChild(opt);
+    });
+  } else {
+    const sups=getSuppliers();
+    sups.forEach(s=>{
+      const opt=document.createElement('option');
+      opt.value=s.id;opt.textContent=s.name;
+      if(s.id===selectedId||s.name===selectedId)opt.selected=true;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function saveContract(e){
+  e.preventDefault();
+  loadData();
+  const id=document.getElementById('ctId').value;
+  const kind=document.getElementById('ctKind').value;
+  const partyEl=document.getElementById('ctParty');
+  const partyId=partyEl.value;
+  const partyName=partyEl.options[partyEl.selectedIndex]?.text||'';
+
+  const data={
+    kind,
+    contractNumber:document.getElementById('ctNumber').value.trim(),
+    type:document.getElementById('ctType').value,
+    partyId,partyName,
+    value:parseFloat(document.getElementById('ctValue').value)||0,
+    status:document.getElementById('ctStatus').value,
+    startDate:document.getElementById('ctStartDate').value,
+    endDate:document.getElementById('ctEndDate').value,
+    payTerms:document.getElementById('ctPayTerms').value.trim(),
+    notes:document.getElementById('ctNotes').value.trim()
+  };
+
+  if(id){
+    const idx=CONTRACTS.findIndex(c=>c.id===id);
+    if(idx!==-1)CONTRACTS[idx]={...CONTRACTS[idx],...data,updatedAt:new Date().toISOString()};
+  } else {
+    CONTRACTS.push({id:genId(),...data,createdBy:state.user.name,createdAt:new Date().toISOString()});
+  }
+  saveData();
+  closeModal('ctModal');
+  if(typeof showToast==='function')showToast('Đã lưu hợp đồng','success');
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// MODAL — RENEW
+// ════════════════════════════════════════════════════════════════
+function openRenewModal(id){
+  loadData();
+  const c=CONTRACTS.find(x=>x.id===id);if(!c)return;
+  document.getElementById('renewSourceId').value=c.id;
+  document.getElementById('renewSourceNum').value=c.contractNumber||c.id;
+  // Default new start = day after end date
+  let newStart=c.endDate?new Date(new Date(c.endDate).getTime()+86400000).toISOString().split('T')[0]:today();
+  // Default new end = 1 year from new start
+  let newEnd=new Date(new Date(newStart).getTime()+365*86400000).toISOString().split('T')[0];
+  document.getElementById('renewStartDate').value=newStart;
+  document.getElementById('renewEndDate').value=newEnd;
+  document.getElementById('renewValue').value=c.value||0;
+  document.getElementById('renewPayTerms').value=c.payTerms||'';
+  document.getElementById('renewNotes').value='';
+  document.getElementById('renewModal').classList.remove('hidden');
+}
+
+function saveRenewal(e){
+  e.preventDefault();
+  loadData();
+  const sourceId=document.getElementById('renewSourceId').value;
+  const source=CONTRACTS.find(c=>c.id===sourceId);if(!source)return;
+
+  // Mark source as renewed
+  source.status='gia_han';
+  source.updatedAt=new Date().toISOString();
+
+  // Determine new contract number
+  const yr=new Date().getFullYear();
+  const prefix=source.kind==='sales'?'HDB':'HDM';
+  const sameYear=CONTRACTS.filter(c=>c.kind===source.kind&&(c.contractNumber||'').includes('-'+yr+'-'));
+  const n=sameYear.length+1;
+  const newNumber=prefix+'-'+yr+'-'+String(n).padStart(3,'0');
+
+  const newContract={
+    id:genId(),
+    kind:source.kind,
+    contractNumber:newNumber,
+    type:source.type,
+    partyId:source.partyId,
+    partyName:source.partyName,
+    value:parseFloat(document.getElementById('renewValue').value)||0,
+    status:'hieu_luc',
+    startDate:document.getElementById('renewStartDate').value,
+    endDate:document.getElementById('renewEndDate').value,
+    payTerms:document.getElementById('renewPayTerms').value.trim(),
+    notes:document.getElementById('renewNotes').value.trim(),
+    renewedFrom:source.contractNumber||sourceId,
+    createdBy:state.user.name,
+    createdAt:new Date().toISOString()
+  };
+  CONTRACTS.push(newContract);
+  saveData();
+  closeModal('renewModal');
+  if(typeof showToast==='function')showToast('Đã tạo hợp đồng gia hạn: '+newNumber,'success');
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DELETE
+// ════════════════════════════════════════════════════════════════
+function askDelete(id){state.deleteId=id;document.getElementById('deleteModal').classList.remove('hidden');}
+function confirmDelete(){
+  if(!state.deleteId)return;
+  loadData();
+  CONTRACTS=CONTRACTS.filter(c=>c.id!==state.deleteId);
+  saveData();
+  state.deleteId=null;
+  closeModal('deleteModal');
+  if(typeof showToast==='function')showToast('Đã xóa hợp đồng','success');
+  render();
+}
+
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('loginPassword').addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
+  const session=loadSession();
+  if(session){state.user=session;showMain();}
+});
+</script>
+</body>
+</html>

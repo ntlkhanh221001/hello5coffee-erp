@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Quản lý chất lượng</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>
+.qc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.qc-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);font-size:13px;background:var(--h5c-surface);color:var(--h5c-text);min-width:140px}
+.filter-input:focus{outline:none;border-color:var(--h5c-copper)}
+.result-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.result-badge.dat{background:#E8F0E8;color:#4A7A4D}
+.result-badge.khong_dat{background:#FBE8E6;color:#C44536}
+.result-badge.dat_co_dk{background:#FFF4E6;color:#D4851A}
+.cat-badge{display:inline-block;padding:3px 8px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700}
+.cat-badge.nguyen_lieu{background:#E6EFF8;color:#4A7FB5}
+.cat-badge.rang{background:#FBE8E6;color:#C44536}
+.cat-badge.thanh_pham{background:#E8F0E8;color:#4A7A4D}
+.cat-badge.dong_goi{background:#FFF4E6;color:#D4851A}
+.cat-badge.bao_quan{background:#F0EBF5;color:#7B5EA7}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--h5c-bg-subtle);color:var(--h5c-text);transition:all .2s}
+.action-btn.edit:hover{background:var(--h5c-amber);color:#fff}
+.action-btn.delete:hover{background:var(--h5c-terracotta);color:#fff}
+.action-btn.view:hover{background:var(--h5c-steel);color:#fff}
+.kpi-card.clickable{cursor:pointer;transition:all .2s}
+.kpi-card.clickable:hover{transform:translateY(-2px);box-shadow:var(--h5c-shadow-md)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{padding:8px 20px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+.detail-section{margin-bottom:20px}
+.detail-title{font-size:13px;font-weight:700;color:var(--h5c-text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--h5c-border)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-item{display:flex;flex-direction:column;gap:2px}
+.detail-label{font-size:11px;color:var(--h5c-text-secondary)}
+.detail-value{font-size:13px;font-weight:600;color:var(--h5c-text)}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-bottom:6px;display:block}
+.empty-state{text-align:center;padding:60px 20px;color:var(--h5c-text-secondary)}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state p{font-size:14px}
+.param-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.param-row-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:6px}
+.param-row-header span{font-size:10px;font-weight:700;color:var(--h5c-text-secondary);text-transform:uppercase}
+.remove-param{width:28px;height:28px;border:none;border-radius:var(--h5c-radius-sm);background:var(--h5c-terracotta-light);color:var(--h5c-terracotta);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.result-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;padding:8px;border-radius:var(--h5c-radius-sm);background:var(--h5c-bg-subtle)}
+.pass-indicator{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.pass-indicator.pass{background:#E8F0E8;color:#4A7A4D}
+.pass-indicator.fail{background:#FBE8E6;color:#C44536}
+.std-card{background:var(--h5c-surface);border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);padding:16px;margin-bottom:12px}
+.std-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.std-card-title{font-size:14px;font-weight:700;color:var(--h5c-text)}
+.std-card-meta{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.std-params{display:flex;flex-wrap:wrap;gap:6px}
+.std-param-tag{background:var(--h5c-bg-subtle);border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-sm);padding:4px 10px;font-size:11px}
+.cat-section{margin-bottom:24px}
+.cat-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--h5c-text-secondary);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--h5c-border)}
+.lot-no-qc{background:var(--h5c-terracotta-light);border-color:var(--h5c-terracotta)}
+.lot-no-qc td{color:var(--h5c-terracotta)}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.qc-filters{flex-direction:column}.param-row,.param-row-header,.result-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button id="loginBtn" class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title" id="pageTitle">Quản lý chất lượng</div></div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">TT</div>
+          <div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Inspection Modal -->
+<div id="inspModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:760px;max-height:90vh;overflow-y:auto">
+  <div class="modal-title" id="inspModalTitle">Tạo phiếu kiểm tra</div>
+  <form id="inspForm" onsubmit="saveInspection(event)">
+    <input type="hidden" id="inspId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Mã QC</label><input type="text" id="inspCode" class="modal-input" placeholder="Tự động" readonly></div>
+      <div class="modal-group"><label class="modal-label">Ngày kiểm tra *</label><input type="date" id="inspDate" class="modal-input" required></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Tiêu chuẩn *</label>
+        <select id="inspStandard" class="modal-input" required onchange="onStandardChange()">
+          <option value="">— Chọn tiêu chuẩn —</option>
+        </select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Người kiểm tra *</label><input type="text" id="inspInspector" class="modal-input" required placeholder="Tên người kiểm tra"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Mã lô</label>
+        <select id="inspLot" class="modal-input" onchange="onLotChange()">
+          <option value="">— Chọn lô (tuỳ chọn) —</option>
+        </select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Tên sản phẩm</label><input type="text" id="inspProduct" class="modal-input" placeholder="Tự động từ lô hoặc nhập tay"></div>
+    </div>
+    <div id="inspParamsSection" style="display:none">
+      <div class="detail-title" style="margin-bottom:12px">Kết quả đo lường</div>
+      <div class="param-row-header">
+        <span>Chỉ tiêu</span><span>Đơn vị</span><span>Min</span><span>Max</span><span>Giá trị đo</span><span>KQ</span>
+      </div>
+      <div id="inspParamRows"></div>
+      <div id="inspOverallResult" style="margin-top:12px;padding:10px 16px;border-radius:var(--h5c-radius-md);font-weight:700;font-size:14px;display:none"></div>
+    </div>
+    <div class="modal-group" style="margin-top:12px"><label class="modal-label">Ghi chú</label><textarea id="inspNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('inspModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Inspection Detail Modal -->
+<div id="inspDetailModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:700px;max-height:85vh;overflow-y:auto">
+  <div class="modal-title">Chi tiết kiểm tra chất lượng</div>
+  <div id="inspDetailContent"></div>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('inspDetailModal')">Đóng</button>
+    <button class="modal-btn primary" onclick="editFromDetail()">Sửa</button>
+  </div>
+</div>
+</div>
+
+<!-- Standard Modal -->
+<div id="stdModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto">
+  <div class="modal-title" id="stdModalTitle">Thêm tiêu chuẩn</div>
+  <form id="stdForm" onsubmit="saveStandard(event)">
+    <input type="hidden" id="stdId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Mã tiêu chuẩn</label><input type="text" id="stdCode" class="modal-input" placeholder="Tự động" readonly></div>
+      <div class="modal-group"><label class="modal-label">Danh mục *</label>
+        <select id="stdCategory" class="modal-input" required>
+          <option value="nguyen_lieu">Nguyên liệu</option>
+          <option value="rang">Rang</option>
+          <option value="thanh_pham">Thành phẩm</option>
+          <option value="dong_goi">Đóng gói</option>
+          <option value="bao_quan">Bảo quản</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group" style="grid-column:span 2"><label class="modal-label">Tên tiêu chuẩn *</label><input type="text" id="stdName" class="modal-input" required></div>
+    </div>
+    <div class="modal-group">
+      <label class="modal-label">Trạng thái</label>
+      <select id="stdActive" class="modal-input">
+        <option value="true">Đang áp dụng</option>
+        <option value="false">Tạm dừng</option>
+      </select>
+    </div>
+    <div class="detail-title" style="margin-bottom:12px">Các chỉ tiêu kiểm tra</div>
+    <div class="param-row-header">
+      <span>Tên chỉ tiêu</span><span>Đơn vị</span><span>Min</span><span>Max</span><span>Mục tiêu</span><span></span>
+    </div>
+    <div id="stdParamRows"></div>
+    <button type="button" class="btn secondary" onclick="addParamRow()" style="margin-bottom:16px">+ Thêm chỉ tiêu</button>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('stdModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Delete Confirm -->
+<div id="deleteModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:400px">
+  <div class="modal-title">Xác nhận xóa</div>
+  <p style="margin-bottom:20px" id="deleteModalMsg">Bạn có chắc muốn xóa mục này?</p>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('deleteModal')">Không</button>
+    <button class="modal-btn danger" onclick="confirmDelete()">Xóa</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// H5C SHARED STORE
+// ════════════════════════════════════════════════════════════════
+const H5C=window.H5C||{
+  _k:k=>'h5c_v1_'+k,
+  get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
+  init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
+  clear(k){localStorage.removeItem(this._k(k));},
+  salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
+};
+
+// ════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════════
+const CAT_LABELS={nguyen_lieu:'Nguyên liệu',rang:'Rang',thanh_pham:'Thành phẩm',dong_goi:'Đóng gói',bao_quan:'Bảo quản'};
+const RESULT_LABELS={dat:'Đạt',khong_dat:'Không đạt',dat_co_dk:'Đạt có ĐK'};
+
+const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+const today=()=>new Date().toISOString().split('T')[0];
+const thisMonth=()=>{const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');};
+const isCLevel=()=>state.user&&state.user.role==='C_LEVEL';
+
+const DEFAULT_STANDARDS=[
+  {id:'std_1',code:'TC001',name:'Độ ẩm hạt xanh',category:'nguyen_lieu',parameters:[{name:'Độ ẩm',unit:'%',min:10,max:12.5,target:11}],active:true,createdBy:'System',createdAt:'2025-01-01'},
+  {id:'std_2',code:'TC002',name:'Tỷ lệ hạt lỗi',category:'nguyen_lieu',parameters:[{name:'Hạt lỗi',unit:'%',min:0,max:5,target:2}],active:true,createdBy:'System',createdAt:'2025-01-01'},
+  {id:'std_3',code:'TC003',name:'Nhiệt độ rang',category:'rang',parameters:[{name:'Nhiệt độ',unit:'°C',min:190,max:230,target:210}],active:true,createdBy:'System',createdAt:'2025-01-01'},
+  {id:'std_4',code:'TC004',name:'Thời gian rang',category:'rang',parameters:[{name:'Thời gian',unit:'phút',min:10,max:18,target:14}],active:true,createdBy:'System',createdAt:'2025-01-01'},
+  {id:'std_5',code:'TC005',name:'Màu Agtron',category:'thanh_pham',parameters:[{name:'Agtron',unit:'',min:45,max:75,target:58}],active:true,createdBy:'System',createdAt:'2025-01-01'},
+  {id:'std_6',code:'TC006',name:'Cupping Score',category:'thanh_pham',parameters:[{name:'Điểm',unit:'',min:80,max:100,target:85}],active:true,createdBy:'System',createdAt:'2025-01-01'},
+  {id:'std_7',code:'TC007',name:'Độ ẩm thành phẩm',category:'thanh_pham',parameters:[{name:'Độ ẩm',unit:'%',min:1,max:3,target:2}],active:true,createdBy:'System',createdAt:'2025-01-01'},
+  {id:'std_8',code:'TC008',name:'Trọng lượng bao',category:'dong_goi',parameters:[{name:'Trọng lượng',unit:'g',min:245,max:255,target:250}],active:true,createdBy:'System',createdAt:'2025-01-01'}
+];
+
+// ════════════════════════════════════════════════════════════════
+// PERMISSION ENGINE
+// ════════════════════════════════════════════════════════════════
+const _ROLE_PERMS={
+  C_LEVEL:null,
+  MANAGER:{'qc.view':true,'qc.create':true,'qc.edit':true,'qc.delete':true,'qc.manage_standards':true},
+  EMPLOYEE_SALES:{'qc.view':true},
+  EMPLOYEE_FINANCE:{'qc.view':true},
+  EMPLOYEE_HR:{},
+  EMPLOYEE_WAREHOUSE:{'qc.view':true,'qc.create':true},
+  EMPLOYEE_PRODUCTION:{'qc.view':true,'qc.create':true,'qc.edit':'own'}
+};
+function _roleDefault(role,permId){const p=_ROLE_PERMS[role];if(p===null)return true;if(!p)return false;const v=p[permId];return v===true||v==='all'||v==='own';}
+function _can(permId){
+  try{
+    const session=state.user;if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL';
+    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
+    if(acc.role==='C_LEVEL')return true;
+    return _roleDefault(acc.role,permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let INSPECTIONS=[], STANDARDS=[];
+let state={
+  user:null, tab:'inspections', search:'', filterCategory:'all', filterResult:'all',
+  dateFrom:'', dateTo:'', page:1, perPage:15, deleteId:null, deleteType:'inspection', detailId:null
+};
+
+// ════════════════════════════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════════════════════════════
+const SESSION_KEY='h5c_erp_user';
+function saveSession(user){localStorage.setItem(SESSION_KEY,JSON.stringify({...user,loginAt:Date.now()}));}
+function loadSession(){try{const raw=localStorage.getItem(SESSION_KEY);if(!raw)return null;const s=JSON.parse(raw);if(s.loginAt&&Date.now()-s.loginAt>8*3600000){localStorage.removeItem(SESSION_KEY);return null;}return s;}catch(e){return null;}}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+
+// ════════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════════
+function _getAccountsForLogin(){
+  const stored=H5C.get('accounts');
+  if(stored&&stored.length)return stored;
+  return[
+    {email:'admin@hello5coffee.com',pw:'Admin@123456',name:'Louis Nguyen',role:'C_LEVEL',pos:'CCO & Co-Founder',empId:'EMP001'},
+    {email:'manager@hello5coffee.com',pw:'123456',name:'Nguyễn Thị Lan',role:'MANAGER',pos:'Trưởng phòng',empId:'EMP002'},
+    {email:'sales@hello5coffee.com',pw:'123456',name:'Trần Minh Sales',role:'EMPLOYEE_SALES',pos:'NV Kinh doanh',empId:'EMP003'},
+    {email:'finance@hello5coffee.com',pw:'123456',name:'Phạm Thị Mai',role:'EMPLOYEE_FINANCE',pos:'Kế toán viên',empId:'EMP004'},
+    {email:'nv@hello5coffee.com',pw:'123456',name:'Đặng Văn Hùng',role:'EMPLOYEE_HR',pos:'NV Nhân sự',empId:'EMP005'}
+  ];
+}
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const accounts=_getAccountsForLogin();
+  const acc=accounts.find(a=>(a.email||'').toLowerCase()===email&&a.pw===pw);
+  if(!acc){document.getElementById('loginError').style.display='block';return;}
+  document.getElementById('loginError').style.display='none';
+  const user={name:acc.name,email:acc.email,role:acc.role,pos:acc.pos,empId:acc.empId};
+  state.user=user;saveSession(user);showMain();
+}
+function handleLogout(){state.user=null;clearSession();document.getElementById('loginPage').style.display='';document.getElementById('mainLayout').classList.add('hidden');}
+function showMain(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=state.user.name;
+  document.getElementById('userRole').textContent=state.user.pos||state.user.role;
+  document.getElementById('userAvatar').textContent=(state.user.name||'?').split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════════
+function loadData(){
+  INSPECTIONS=H5C.get('qc_inspections')||[];
+  const stored=H5C.get('qc_standards');
+  if(stored&&stored.length){STANDARDS=stored;}
+  else{STANDARDS=[...DEFAULT_STANDARDS];H5C.set('qc_standards',STANDARDS);}
+}
+function genInspId(){return'QC'+Date.now().toString(36).toUpperCase();}
+function genInspCode(){
+  let n=INSPECTIONS.length+1;
+  while(INSPECTIONS.find(x=>x.code==='QC'+String(n).padStart(4,'0')))n++;
+  return'QC'+String(n).padStart(4,'0');
+}
+function genStdId(){return'TC'+Date.now().toString(36).toUpperCase();}
+function genStdCode(){
+  let n=STANDARDS.length+1;
+  while(STANDARDS.find(x=>x.code==='TC'+String(n).padStart(3,'0')))n++;
+  return'TC'+String(n).padStart(3,'0');
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════
+function render(){
+  loadData();
+  const mn=thisMonth();
+  const monthInsp=INSPECTIONS.filter(x=>x.date&&x.date.startsWith(mn));
+  const passRate=monthInsp.length?Math.round(monthInsp.filter(x=>x.overallResult==='dat').length/monthInsp.length*100):0;
+  const failCount=monthInsp.filter(x=>x.overallResult==='khong_dat').length;
+  const activeStd=STANDARDS.filter(x=>x.active).length;
+
+  let html=`
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card clickable"><div class="kpi-label">Tổng kiểm tra</div><div class="kpi-value">${monthInsp.length}</div><div class="stat-sub">Tháng ${new Date().getMonth()+1}/${new Date().getFullYear()}</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">Tỷ lệ đạt</div><div class="kpi-value" style="color:var(--h5c-sage)">${passRate}%</div><div class="stat-sub">${monthInsp.filter(x=>x.overallResult==='dat').length} phiếu đạt</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">Không đạt</div><div class="kpi-value" style="color:var(--h5c-terracotta)">${failCount}</div><div class="stat-sub">Tháng này</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">Tiêu chuẩn</div><div class="kpi-value" style="color:var(--h5c-steel)">${activeStd}</div><div class="stat-sub">${STANDARDS.length} tổng cộng</div></div>
+    </div>
+    <div class="card">
+      <div class="tab-bar">
+        <button class="tab-btn${state.tab==='inspections'?' active':''}" onclick="switchTab('inspections')">Kiểm tra</button>
+        <button class="tab-btn${state.tab==='standards'?' active':''}" onclick="switchTab('standards')">Tiêu chuẩn</button>
+        <button class="tab-btn${state.tab==='lots'?' active':''}" onclick="switchTab('lots')">Lô hàng</button>
+      </div>
+      ${state.tab==='inspections'?renderInspectionsTab():state.tab==='standards'?renderStandardsTab():renderLotsTab()}
+    </div>`;
+  document.getElementById('pageContent').innerHTML=html;
+}
+
+function switchTab(tab){state.tab=tab;state.page=1;state.search='';render();}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 1 - INSPECTIONS
+// ════════════════════════════════════════════════════════════════
+function renderInspectionsTab(){
+  let filtered=[...INSPECTIONS];
+  if(state.search){const q=state.search.toLowerCase();filtered=filtered.filter(x=>(x.code||'').toLowerCase().includes(q)||(x.productName||'').toLowerCase().includes(q)||(x.lotCode||'').toLowerCase().includes(q)||(x.inspector||'').toLowerCase().includes(q));}
+  if(state.filterCategory!=='all')filtered=filtered.filter(x=>x.category===state.filterCategory);
+  if(state.filterResult!=='all')filtered=filtered.filter(x=>x.overallResult===state.filterResult);
+  if(state.dateFrom)filtered=filtered.filter(x=>x.date>=state.dateFrom);
+  if(state.dateTo)filtered=filtered.filter(x=>x.date<=state.dateTo);
+  filtered.sort((a,b)=>b.date>a.date?1:-1);
+
+  const totalPages=Math.ceil(filtered.length/state.perPage)||1;
+  if(state.page>totalPages)state.page=totalPages;
+  const start=(state.page-1)*state.perPage;
+  const pageData=filtered.slice(start,start+state.perPage);
+
+  let h=`<div class="qc-header">
+    <div class="qc-filters">
+      <input type="text" class="filter-input" placeholder="🔍 Tìm mã QC, sản phẩm, lô..." value="${state.search}" oninput="state.search=this.value;state.page=1;render()">
+      <select class="filter-input" onchange="state.filterCategory=this.value;state.page=1;render()">
+        <option value="all">Tất cả danh mục</option>
+        ${Object.entries(CAT_LABELS).map(([k,v])=>`<option value="${k}"${state.filterCategory===k?' selected':''}>${v}</option>`).join('')}
+      </select>
+      <select class="filter-input" onchange="state.filterResult=this.value;state.page=1;render()">
+        <option value="all">Tất cả kết quả</option>
+        ${Object.entries(RESULT_LABELS).map(([k,v])=>`<option value="${k}"${state.filterResult===k?' selected':''}>${v}</option>`).join('')}
+      </select>
+      <input type="date" class="filter-input" value="${state.dateFrom}" title="Từ ngày" onchange="state.dateFrom=this.value;state.page=1;render()">
+      <input type="date" class="filter-input" value="${state.dateTo}" title="Đến ngày" onchange="state.dateTo=this.value;state.page=1;render()">
+    </div>
+    <div style="display:flex;gap:8px">
+      ${_can('qc.create')?'<button class="btn primary" onclick="openCreateInspModal()">+ Tạo phiếu KT</button>':''}
+    </div>
+  </div>`;
+
+  if(!filtered.length){
+    h+=`<div class="empty-state"><div class="icon">🔬</div><p>Chưa có phiếu kiểm tra nào</p></div>`;
+    return h;
+  }
+
+  h+=`<div class="table-container"><table class="data-table"><thead><tr>
+    <th>Mã QC</th><th>Ngày</th><th>Sản phẩm / Lô</th><th>Tiêu chuẩn</th><th>Danh mục</th><th>Kết quả</th><th>Người KT</th><th>Thao tác</th>
+  </tr></thead><tbody>`;
+  pageData.forEach(x=>{
+    h+=`<tr onclick="viewInspection('${x.id}')" style="cursor:pointer">
+      <td><span style="font-size:11px;font-weight:700;color:var(--h5c-text-secondary)">${x.code||'—'}</span></td>
+      <td style="font-size:12px">${formatDate(x.date)}</td>
+      <td><div style="font-size:13px;font-weight:600">${x.productName||'—'}</div><div style="font-size:10px;color:var(--h5c-text-secondary)">${x.lotCode||''}</div></td>
+      <td style="font-size:12px">${x.standardName||'—'}</td>
+      <td><span class="cat-badge ${x.category}">${CAT_LABELS[x.category]||x.category||'—'}</span></td>
+      <td><span class="result-badge ${x.overallResult||'pending'}">${RESULT_LABELS[x.overallResult]||'Chờ'}</span></td>
+      <td style="font-size:12px">${x.inspector||'—'}</td>
+      <td onclick="event.stopPropagation()"><div class="action-btns">
+        <button class="action-btn view" title="Xem" onclick="viewInspection('${x.id}')">👁</button>
+        ${_can('qc.edit')?`<button class="action-btn edit" title="Sửa" onclick="editInspection('${x.id}')">✏️</button>`:''}
+        ${_can('qc.delete')?`<button class="action-btn delete" title="Xóa" onclick="deleteInspection('${x.id}')">🗑️</button>`:''}
+      </div></td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>`;
+
+  if(totalPages>1){
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:12px;color:var(--h5c-text-secondary)">
+      <span>Hiển thị ${start+1}-${Math.min(start+state.perPage,filtered.length)} / ${filtered.length} phiếu</span>
+      <div style="display:flex;gap:4px">
+        <button class="btn small" onclick="state.page=1;render()" ${state.page===1?'disabled':''}>«</button>
+        <button class="btn small" onclick="state.page--;render()" ${state.page===1?'disabled':''}>‹</button>`;
+    for(let i=Math.max(1,state.page-2);i<=Math.min(totalPages,state.page+2);i++){
+      h+=`<button class="btn small${i===state.page?' primary':''}" onclick="state.page=${i};render()">${i}</button>`;
+    }
+    h+=`<button class="btn small" onclick="state.page++;render()" ${state.page===totalPages?'disabled':''}>›</button>
+        <button class="btn small" onclick="state.page=${totalPages};render()" ${state.page===totalPages?'disabled':''}>»</button>
+      </div></div>`;
+  }
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 2 - STANDARDS
+// ════════════════════════════════════════════════════════════════
+function renderStandardsTab(){
+  const catOrder=['nguyen_lieu','rang','thanh_pham','dong_goi','bao_quan'];
+  let h=`<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+    ${_can('qc.manage_standards')?'<button class="btn primary" onclick="openCreateStdModal()">+ Thêm tiêu chuẩn</button>':''}
+  </div>`;
+
+  if(!STANDARDS.length){
+    h+=`<div class="empty-state"><div class="icon">📋</div><p>Chưa có tiêu chuẩn nào</p></div>`;
+    return h;
+  }
+
+  catOrder.forEach(cat=>{
+    const items=STANDARDS.filter(s=>s.category===cat);
+    if(!items.length)return;
+    h+=`<div class="cat-section"><div class="cat-section-title">${CAT_LABELS[cat]||cat}</div>`;
+    items.forEach(s=>{
+      h+=`<div class="std-card">
+        <div class="std-card-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;font-weight:700;color:var(--h5c-text-secondary)">${s.code}</span>
+              <span class="cat-badge ${s.category}">${CAT_LABELS[s.category]}</span>
+              <span style="font-size:11px;padding:2px 8px;border-radius:var(--h5c-radius-full);background:${s.active?'#E8F0E8':'#F5F5F5'};color:${s.active?'#4A7A4D':'#999'}">${s.active?'Đang áp dụng':'Tạm dừng'}</span>
+            </div>
+            <div class="std-card-title" style="margin-top:4px">${s.name}</div>
+            <div class="std-card-meta">${(s.parameters||[]).length} chỉ tiêu</div>
+          </div>
+          <div class="action-btns">
+            ${_can('qc.manage_standards')?`<button class="action-btn edit" title="Sửa" onclick="editStandard('${s.id}')">✏️</button>`:''}
+            ${_can('qc.manage_standards')&&_can('qc.delete')?`<button class="action-btn delete" title="Xóa" onclick="deleteStandard('${s.id}')">🗑️</button>`:''}
+          </div>
+        </div>
+        <div class="std-params">
+          ${(s.parameters||[]).map(p=>`<span class="std-param-tag">${p.name}${p.unit?' ('+p.unit+')':''}: ${p.min}–${p.max}${p.unit?' '+p.unit:''}, mục tiêu ${p.target}${p.unit?' '+p.unit:''}</span>`).join('')}
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 3 - LOT RESULTS
+// ════════════════════════════════════════════════════════════════
+function renderLotsTab(){
+  const lots=H5C.get('lots')||[];
+  const skus=H5C.get('skus')||[];
+
+  if(!lots.length){
+    return`<div class="empty-state"><div class="icon">📦</div><p>Chưa có lô hàng nào trong kho</p></div>`;
+  }
+
+  let h=`<div class="table-container"><table class="data-table"><thead><tr>
+    <th>Mã lô</th><th>Sản phẩm</th><th>Số lần KT</th><th>Kết quả gần nhất</th><th>Ngày KT</th><th>Thao tác</th>
+  </tr></thead><tbody>`;
+
+  lots.forEach(lot=>{
+    const lotInsp=INSPECTIONS.filter(x=>x.lotId===lot.id||x.lotCode===lot.code);
+    const latest=lotInsp.length?lotInsp.sort((a,b)=>b.date>a.date?1:-1)[0]:null;
+    const sku=skus.find(s=>s.id===lot.skuId||s.code===lot.skuCode);
+    const prodName=lot.productName||sku&&sku.name||lot.skuName||'—';
+    const noQc=!lotInsp.length;
+
+    h+=`<tr class="${noQc?'lot-no-qc':''}">
+      <td><span style="font-size:11px;font-weight:700">${lot.code||lot.id||'—'}</span></td>
+      <td style="font-size:13px;font-weight:600">${prodName}</td>
+      <td style="text-align:center">${lotInsp.length}</td>
+      <td>${latest?`<span class="result-badge ${latest.overallResult}">${RESULT_LABELS[latest.overallResult]||'—'}</span>`:'<span style="font-size:11px;color:var(--h5c-text-secondary)">Chưa kiểm tra</span>'}</td>
+      <td style="font-size:12px">${latest?formatDate(latest.date):'—'}</td>
+      <td><div class="action-btns">
+        ${lotInsp.length?`<button class="action-btn view" title="Xem lịch sử KT" onclick="viewLotInspections('${lot.id||lot.code}','${lot.code}')">👁</button>`:''}
+        ${_can('qc.create')?`<button class="action-btn" style="width:auto;padding:0 10px;font-size:11px" title="Tạo phiếu KT" onclick="openCreateInspModalForLot('${lot.id||lot.code}','${lot.code}','${(prodName||'').replace(/'/g,"\\'")}')">+ KT</button>`:''}
+      </div></td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// INSPECTION MODAL
+// ════════════════════════════════════════════════════════════════
+function openCreateInspModal(prefillLotId,prefillLotCode,prefillProduct){
+  document.getElementById('inspModalTitle').textContent='Tạo phiếu kiểm tra';
+  document.getElementById('inspForm').reset();
+  document.getElementById('inspId').value='';
+  document.getElementById('inspCode').value=genInspCode();
+  document.getElementById('inspDate').value=today();
+  document.getElementById('inspParamsSection').style.display='none';
+  document.getElementById('inspParamRows').innerHTML='';
+  document.getElementById('inspOverallResult').style.display='none';
+
+  // Populate standard dropdown
+  const sel=document.getElementById('inspStandard');
+  sel.innerHTML='<option value="">— Chọn tiêu chuẩn —</option>';
+  STANDARDS.filter(s=>s.active).forEach(s=>{
+    sel.innerHTML+=`<option value="${s.id}">${s.code} — ${s.name} (${CAT_LABELS[s.category]})</option>`;
+  });
+
+  // Populate lots dropdown
+  const lotSel=document.getElementById('inspLot');
+  const lots=H5C.get('lots')||[];
+  lotSel.innerHTML='<option value="">— Chọn lô (tuỳ chọn) —</option>';
+  lots.forEach(l=>{
+    const skus=H5C.get('skus')||[];
+    const sku=skus.find(s=>s.id===l.skuId||s.code===l.skuCode);
+    const pname=l.productName||sku&&sku.name||l.skuName||'';
+    lotSel.innerHTML+=`<option value="${l.id||l.code}" data-code="${l.code||l.id}" data-product="${pname}">${l.code||l.id}${pname?' — '+pname:''}</option>`;
+  });
+
+  if(prefillLotId){
+    lotSel.value=prefillLotId;
+    document.getElementById('inspProduct').value=prefillProduct||'';
+  }
+
+  document.getElementById('inspModal').classList.remove('hidden');
+}
+
+function openCreateInspModalForLot(lotId,lotCode,prodName){
+  openCreateInspModal(lotId,lotCode,prodName);
+}
+
+function onLotChange(){
+  const sel=document.getElementById('inspLot');
+  const opt=sel.options[sel.selectedIndex];
+  if(opt&&opt.value){
+    const prod=opt.getAttribute('data-product')||'';
+    if(prod)document.getElementById('inspProduct').value=prod;
+  }
+}
+
+function onStandardChange(){
+  const stdId=document.getElementById('inspStandard').value;
+  const std=STANDARDS.find(s=>s.id===stdId);
+  const section=document.getElementById('inspParamsSection');
+  const rowsEl=document.getElementById('inspParamRows');
+  const overallEl=document.getElementById('inspOverallResult');
+  if(!std){section.style.display='none';rowsEl.innerHTML='';overallEl.style.display='none';return;}
+  section.style.display='block';
+  rowsEl.innerHTML='';
+  (std.parameters||[]).forEach((p,i)=>{
+    rowsEl.innerHTML+=`<div class="result-row" id="prow_${i}">
+      <span style="font-size:13px;font-weight:600">${p.name}</span>
+      <span style="font-size:12px;color:var(--h5c-text-secondary)">${p.unit||'—'}</span>
+      <span style="font-size:12px">${p.min}</span>
+      <span style="font-size:12px">${p.max}</span>
+      <input type="number" step="any" class="modal-input" style="padding:6px 10px;font-size:13px" id="pval_${i}" placeholder="${p.target}" oninput="calcParamResult(${i},${p.min},${p.max})">
+      <div class="pass-indicator" id="pind_${i}">—</div>
+    </div>`;
+  });
+  overallEl.style.display='none';
+}
+
+function calcParamResult(idx,min,max){
+  const val=parseFloat(document.getElementById('pval_'+idx).value);
+  const ind=document.getElementById('pind_'+idx);
+  if(isNaN(val)){ind.className='pass-indicator';ind.textContent='—';calcOverall();return;}
+  const pass=val>=min&&val<=max;
+  ind.className='pass-indicator '+(pass?'pass':'fail');
+  ind.textContent=pass?'✓':'✗';
+  calcOverall();
+}
+
+function calcOverall(){
+  const stdId=document.getElementById('inspStandard').value;
+  const std=STANDARDS.find(s=>s.id===stdId);
+  if(!std)return;
+  const params=std.parameters||[];
+  let hasValue=false,allPass=true,anyFail=false;
+  params.forEach((p,i)=>{
+    const val=parseFloat(document.getElementById('pval_'+i)&&document.getElementById('pval_'+i).value);
+    if(!isNaN(val)){hasValue=true;const pass=val>=p.min&&val<=p.max;if(!pass)anyFail=true;}
+  });
+  if(!hasValue)return;
+  const overallEl=document.getElementById('inspOverallResult');
+  overallEl.style.display='block';
+  let result,bg,color;
+  if(anyFail){result='Không đạt';bg='#FBE8E6';color='#C44536';}
+  else{result='Đạt';bg='#E8F0E8';color='#4A7A4D';}
+  overallEl.style.background=bg;overallEl.style.color=color;
+  overallEl.textContent='Kết quả tổng hợp: '+result;
+}
+
+function editInspection(id){
+  const x=INSPECTIONS.find(i=>i.id===id);if(!x)return;
+  openCreateInspModal();
+  setTimeout(()=>{
+    document.getElementById('inspModalTitle').textContent='Sửa phiếu kiểm tra';
+    document.getElementById('inspId').value=x.id;
+    document.getElementById('inspCode').value=x.code||'';
+    document.getElementById('inspDate').value=x.date||'';
+    document.getElementById('inspInspector').value=x.inspector||'';
+    document.getElementById('inspProduct').value=x.productName||'';
+    document.getElementById('inspNotes').value=x.notes||'';
+    const stdSel=document.getElementById('inspStandard');
+    stdSel.value=x.standardId||'';
+    onStandardChange();
+    setTimeout(()=>{
+      const std=STANDARDS.find(s=>s.id===x.standardId);
+      if(std&&x.results){
+        x.results.forEach((r,i)=>{
+          const el=document.getElementById('pval_'+i);
+          if(el){el.value=r.value;calcParamResult(i,std.parameters[i].min,std.parameters[i].max);}
+        });
+      }
+      const lotSel=document.getElementById('inspLot');
+      if(x.lotId)lotSel.value=x.lotId;
+    },50);
+  },50);
+}
+
+function saveInspection(e){
+  e.preventDefault();
+  const id=document.getElementById('inspId').value;
+  const stdId=document.getElementById('inspStandard').value;
+  const std=STANDARDS.find(s=>s.id===stdId);
+  const lotSel=document.getElementById('inspLot');
+  const lotOpt=lotSel.options[lotSel.selectedIndex];
+
+  let results=[];
+  let anyFail=false,hasAny=false;
+  if(std){
+    (std.parameters||[]).forEach((p,i)=>{
+      const val=parseFloat(document.getElementById('pval_'+i)&&document.getElementById('pval_'+i).value);
+      if(!isNaN(val)){
+        hasAny=true;
+        const pass=val>=p.min&&val<=p.max;
+        if(!pass)anyFail=true;
+        results.push({paramName:p.name,unit:p.unit,value:val,min:p.min,max:p.max,pass});
+      }
+    });
+  }
+  const overallResult=!hasAny?'pending':anyFail?'khong_dat':'dat';
+
+  const data={
+    code:document.getElementById('inspCode').value,
+    date:document.getElementById('inspDate').value,
+    standardId:stdId,
+    standardName:std?std.name:'',
+    category:std?std.category:'',
+    lotId:lotSel.value||'',
+    lotCode:lotOpt&&lotOpt.value?lotOpt.getAttribute('data-code')||'':'',
+    productName:document.getElementById('inspProduct').value.trim(),
+    inspector:document.getElementById('inspInspector').value.trim(),
+    results,
+    overallResult,
+    notes:document.getElementById('inspNotes').value.trim(),
+    images:[],
+    status:hasAny?'completed':'pending'
+  };
+
+  if(id){
+    const idx=INSPECTIONS.findIndex(x=>x.id===id);
+    if(idx!==-1)INSPECTIONS[idx]={...INSPECTIONS[idx],...data,updatedAt:today()};
+    if(typeof showToast==='function')showToast('Đã cập nhật phiếu kiểm tra','success');
+  }else{
+    INSPECTIONS.unshift({id:genInspId(),...data,createdBy:state.user.name,createdAt:today()});
+    if(typeof showToast==='function')showToast('Đã tạo phiếu kiểm tra','success');
+  }
+  H5C.set('qc_inspections',INSPECTIONS);
+  closeModal('inspModal');render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// INSPECTION DETAIL
+// ════════════════════════════════════════════════════════════════
+function viewInspection(id){
+  const x=INSPECTIONS.find(i=>i.id===id);if(!x)return;
+  state.detailId=id;
+  let html=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <span style="font-size:18px;font-weight:800">${x.code||'—'}</span>
+      <span class="result-badge ${x.overallResult||'pending'}" style="font-size:12px">${RESULT_LABELS[x.overallResult]||'Chờ'}</span>
+      <span class="cat-badge ${x.category}">${CAT_LABELS[x.category]||'—'}</span>
+    </div>
+    <div class="detail-section">
+      <div class="detail-title">Thông tin chung</div>
+      <div class="detail-grid">
+        <div class="detail-item"><span class="detail-label">Ngày kiểm tra</span><span class="detail-value">${formatDate(x.date)}</span></div>
+        <div class="detail-item"><span class="detail-label">Người kiểm tra</span><span class="detail-value">${x.inspector||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Tiêu chuẩn</span><span class="detail-value">${x.standardName||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Sản phẩm</span><span class="detail-value">${x.productName||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Mã lô</span><span class="detail-value">${x.lotCode||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Trạng thái</span><span class="detail-value">${x.status==='completed'?'Hoàn thành':'Chờ'}</span></div>
+      </div>
+    </div>`;
+
+  if(x.results&&x.results.length){
+    html+=`<div class="detail-section">
+      <div class="detail-title">Kết quả đo lường</div>
+      <table class="data-table" style="font-size:12px">
+        <thead><tr><th>Chỉ tiêu</th><th>Đơn vị</th><th>Min</th><th>Max</th><th>Giá trị đo</th><th>KQ</th></tr></thead>
+        <tbody>`;
+    x.results.forEach(r=>{
+      html+=`<tr>
+        <td style="font-weight:600">${r.paramName}</td>
+        <td>${r.unit||'—'}</td>
+        <td>${r.min}</td>
+        <td>${r.max}</td>
+        <td style="font-weight:700;font-size:14px">${r.value}</td>
+        <td><span class="pass-indicator ${r.pass?'pass':'fail'}" style="display:inline-flex">${r.pass?'✓':'✗'}</span></td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+
+  if(x.notes){
+    html+=`<div class="detail-section"><div class="detail-title">Ghi chú</div><p style="font-size:13px;color:var(--h5c-text-secondary)">${x.notes}</p></div>`;
+  }
+  html+=`<div style="font-size:11px;color:var(--h5c-text-muted);margin-top:16px">Tạo bởi ${x.createdBy||'—'} · ${formatDate(x.createdAt)}</div>`;
+
+  document.getElementById('inspDetailContent').innerHTML=html;
+  document.getElementById('inspDetailModal').classList.remove('hidden');
+}
+
+function editFromDetail(){
+  closeModal('inspDetailModal');
+  if(state.detailId)editInspection(state.detailId);
+}
+
+function viewLotInspections(lotId,lotCode){
+  const lotInsp=INSPECTIONS.filter(x=>x.lotId===lotId||x.lotCode===lotCode);
+  if(!lotInsp.length)return;
+  const latest=lotInsp.sort((a,b)=>b.date>a.date?1:-1)[0];
+  viewInspection(latest.id);
+}
+
+// ════════════════════════════════════════════════════════════════
+// STANDARDS MODAL
+// ════════════════════════════════════════════════════════════════
+let _stdParams=[];
+
+function openCreateStdModal(){
+  document.getElementById('stdModalTitle').textContent='Thêm tiêu chuẩn';
+  document.getElementById('stdForm').reset();
+  document.getElementById('stdId').value='';
+  document.getElementById('stdCode').value=genStdCode();
+  document.getElementById('stdActive').value='true';
+  _stdParams=[];
+  renderStdParamRows();
+  document.getElementById('stdModal').classList.remove('hidden');
+}
+
+function editStandard(id){
+  const s=STANDARDS.find(x=>x.id===id);if(!s)return;
+  document.getElementById('stdModalTitle').textContent='Sửa tiêu chuẩn';
+  document.getElementById('stdId').value=s.id;
+  document.getElementById('stdCode').value=s.code||'';
+  document.getElementById('stdCategory').value=s.category||'nguyen_lieu';
+  document.getElementById('stdName').value=s.name||'';
+  document.getElementById('stdActive').value=s.active?'true':'false';
+  _stdParams=(s.parameters||[]).map(p=>({...p}));
+  renderStdParamRows();
+  document.getElementById('stdModal').classList.remove('hidden');
+}
+
+function addParamRow(){
+  _stdParams.push({name:'',unit:'',min:0,max:100,target:50});
+  renderStdParamRows();
+}
+function removeParamRow(idx){_stdParams.splice(idx,1);renderStdParamRows();}
+function renderStdParamRows(){
+  const el=document.getElementById('stdParamRows');
+  if(!_stdParams.length){el.innerHTML='<p style="font-size:12px;color:var(--h5c-text-secondary);margin-bottom:12px">Chưa có chỉ tiêu. Nhấn "+ Thêm chỉ tiêu" để bắt đầu.</p>';return;}
+  el.innerHTML=_stdParams.map((p,i)=>`<div class="param-row">
+    <input type="text" class="modal-input" style="padding:7px 10px" value="${p.name||''}" placeholder="Tên chỉ tiêu" oninput="_stdParams[${i}].name=this.value">
+    <input type="text" class="modal-input" style="padding:7px 10px" value="${p.unit||''}" placeholder="Đ.vị" oninput="_stdParams[${i}].unit=this.value">
+    <input type="number" step="any" class="modal-input" style="padding:7px 10px" value="${p.min}" placeholder="Min" oninput="_stdParams[${i}].min=parseFloat(this.value)||0">
+    <input type="number" step="any" class="modal-input" style="padding:7px 10px" value="${p.max}" placeholder="Max" oninput="_stdParams[${i}].max=parseFloat(this.value)||0">
+    <input type="number" step="any" class="modal-input" style="padding:7px 10px" value="${p.target}" placeholder="MĐích" oninput="_stdParams[${i}].target=parseFloat(this.value)||0">
+    <button type="button" class="remove-param" onclick="removeParamRow(${i})">×</button>
+  </div>`).join('');
+}
+
+function saveStandard(e){
+  e.preventDefault();
+  const id=document.getElementById('stdId').value;
+  const data={
+    code:document.getElementById('stdCode').value,
+    category:document.getElementById('stdCategory').value,
+    name:document.getElementById('stdName').value.trim(),
+    active:document.getElementById('stdActive').value==='true',
+    parameters:_stdParams.filter(p=>p.name.trim())
+  };
+  if(id){
+    const idx=STANDARDS.findIndex(s=>s.id===id);
+    if(idx!==-1)STANDARDS[idx]={...STANDARDS[idx],...data,updatedAt:today()};
+    if(typeof showToast==='function')showToast('Đã cập nhật tiêu chuẩn','success');
+  }else{
+    STANDARDS.push({id:genStdId(),...data,createdBy:state.user.name,createdAt:today()});
+    if(typeof showToast==='function')showToast('Đã thêm tiêu chuẩn mới','success');
+  }
+  H5C.set('qc_standards',STANDARDS);
+  closeModal('stdModal');render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DELETE
+// ════════════════════════════════════════════════════════════════
+function deleteInspection(id){
+  state.deleteId=id;state.deleteType='inspection';
+  document.getElementById('deleteModalMsg').textContent='Bạn có chắc muốn xóa phiếu kiểm tra này?';
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+function deleteStandard(id){
+  state.deleteId=id;state.deleteType='standard';
+  document.getElementById('deleteModalMsg').textContent='Bạn có chắc muốn xóa tiêu chuẩn này? Các phiếu kiểm tra liên quan sẽ không bị xóa.';
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+function confirmDelete(){
+  if(state.deleteType==='inspection'){
+    INSPECTIONS=INSPECTIONS.filter(x=>x.id!==state.deleteId);
+    H5C.set('qc_inspections',INSPECTIONS);
+    if(typeof showToast==='function')showToast('Đã xóa phiếu kiểm tra','success');
+  }else if(state.deleteType==='standard'){
+    STANDARDS=STANDARDS.filter(x=>x.id!==state.deleteId);
+    H5C.set('qc_standards',STANDARDS);
+    if(typeof showToast==='function')showToast('Đã xóa tiêu chuẩn','success');
+  }
+  closeModal('deleteModal');state.deleteId=null;render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('loginPassword').addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
+  const session=loadSession();
+  if(session){state.user=session;showMain();}
+});
+</script>
+</body>
+</html>

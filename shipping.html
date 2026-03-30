@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Quản lý vận chuyển</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>
+.ship-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.ship-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);font-size:13px;background:var(--h5c-surface);color:var(--h5c-text);min-width:140px}
+.filter-input:focus{outline:none;border-color:var(--h5c-copper)}
+.status-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.status-badge.cho_lay{background:#FFF8E6;color:#D4851A}
+.status-badge.dang_giao{background:#E6EFF8;color:#4A7FB5}
+.status-badge.da_giao{background:#E8F0E8;color:#4A7A4D}
+.status-badge.that_bai{background:#FBE8E6;color:#C44536}
+.status-badge.hoan{background:#F0EBF5;color:#7B5EA7}
+.type-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.type-badge.noi_bo{background:#E8F0E8;color:#4A7A4D}
+.type-badge.doi_tac_3pl{background:#E6EFF8;color:#4A7FB5}
+.type-badge.freelancer{background:#FFF4E6;color:#D4851A}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--h5c-bg-subtle);color:var(--h5c-text);transition:all .2s}
+.action-btn.edit:hover{background:var(--h5c-amber);color:#fff}
+.action-btn.delete:hover{background:var(--h5c-terracotta);color:#fff}
+.action-btn.view:hover{background:var(--h5c-steel);color:#fff}
+.kpi-card.clickable{cursor:pointer;transition:all .2s}
+.kpi-card.clickable:hover{transform:translateY(-2px);box-shadow:var(--h5c-shadow-md)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{padding:8px 20px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+.partner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:8px}
+.partner-card{background:var(--h5c-surface);border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-lg);padding:20px;transition:all .2s}
+.partner-card:hover{box-shadow:var(--h5c-shadow-md);border-color:var(--h5c-copper)}
+.partner-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.partner-name{font-size:15px;font-weight:800;color:var(--h5c-text)}
+.partner-meta{font-size:12px;color:var(--h5c-text-secondary);margin-top:4px}
+.partner-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--h5c-border-subtle)}
+.partner-stat{display:flex;flex-direction:column;gap:2px}
+.partner-stat-label{font-size:10px;color:var(--h5c-text-secondary);text-transform:uppercase;letter-spacing:.3px}
+.partner-stat-value{font-size:13px;font-weight:700;color:var(--h5c-text)}
+.partner-inactive{opacity:.55}
+.detail-section{margin-bottom:20px}
+.detail-title{font-size:13px;font-weight:700;color:var(--h5c-text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--h5c-border)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-item{display:flex;flex-direction:column;gap:2px}
+.detail-label{font-size:11px;color:var(--h5c-text-secondary)}
+.detail-value{font-size:13px;font-weight:600;color:var(--h5c-text)}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-bottom:6px;display:block}
+.empty-state{text-align:center;padding:60px 20px;color:var(--h5c-text-secondary)}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state p{font-size:14px}
+.summary-table{width:100%;border-collapse:collapse;font-size:13px}
+.summary-table th{background:var(--h5c-bg-subtle);padding:10px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--h5c-text-secondary)}
+.summary-table td{padding:10px 12px;border-bottom:1px solid var(--h5c-border-subtle)}
+.summary-table tr:last-child td{border-bottom:none}
+.update-status-btns{display:flex;gap:6px;flex-wrap:wrap}
+.update-status-btn{padding:5px 12px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-sm);font-size:11px;font-weight:600;cursor:pointer;background:var(--h5c-surface);color:var(--h5c-text);transition:all .2s}
+.update-status-btn:hover{border-color:var(--h5c-copper);color:var(--h5c-copper)}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.ship-filters{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button id="loginBtn" class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title" id="pageTitle">Quản lý vận chuyển</div></div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">TT</div>
+          <div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Shipment Modal -->
+<div id="shipModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:720px;max-height:90vh;overflow-y:auto">
+  <div class="modal-title" id="shipModalTitle">Thêm đơn giao hàng</div>
+  <form id="shipForm" onsubmit="saveShipment(event)">
+    <input type="hidden" id="shipId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Mã GH</label><input type="text" id="shipCode" class="modal-input" placeholder="Tự động" readonly></div>
+      <div class="modal-group"><label class="modal-label">Đơn hàng liên kết</label>
+        <select id="shipOrderId" class="modal-input" onchange="fillOrderInfo()">
+          <option value="">— Không liên kết —</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Tên khách hàng *</label><input type="text" id="shipCustomerName" class="modal-input" required></div>
+      <div class="modal-group"><label class="modal-label">Số điện thoại</label><input type="tel" id="shipPhone" class="modal-input"></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Địa chỉ giao hàng *</label><input type="text" id="shipAddress" class="modal-input" required></div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Tỉnh/Thành</label><input type="text" id="shipCity" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Phương thức</label>
+        <select id="shipMethod" class="modal-input">
+          <option value="xe_may">Xe máy</option>
+          <option value="xe_tai">Xe tải</option>
+          <option value="chuyen_phat">Chuyển phát</option>
+          <option value="tu_den">Tự đến lấy</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Đối tác vận chuyển</label>
+        <select id="shipPartnerId" class="modal-input" onchange="autoCalcFee()">
+          <option value="">— Tự xử lý —</option>
+        </select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Khối lượng (kg)</label><input type="number" id="shipWeight" class="modal-input" min="0" step="0.1" oninput="autoCalcFee()"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Phí vận chuyển (đ)</label><input type="number" id="shipFee" class="modal-input" min="0"></div>
+      <div class="modal-group"><label class="modal-label">Tiền COD (đ)</label><input type="number" id="shipCOD" class="modal-input" min="0" value="0"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Mã tracking</label><input type="text" id="shipTracking" class="modal-input" placeholder="Mã theo dõi đơn hàng"></div>
+      <div class="modal-group"><label class="modal-label">Ngày dự kiến giao</label><input type="date" id="shipEstDate" class="modal-input"></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="shipNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('shipModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Update Status Modal -->
+<div id="statusModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:420px">
+  <div class="modal-title" id="statusModalTitle">Cập nhật trạng thái</div>
+  <input type="hidden" id="statusShipId">
+  <div class="modal-group">
+    <label class="modal-label">Trạng thái mới</label>
+    <select id="newStatus" class="modal-input">
+      <option value="cho_lay">Chờ lấy hàng</option>
+      <option value="dang_giao">Đang giao</option>
+      <option value="da_giao">Đã giao</option>
+      <option value="that_bai">Thất bại</option>
+      <option value="hoan">Hoàn hàng</option>
+    </select>
+  </div>
+  <div class="modal-group" id="deliveredDateGroup" style="display:none">
+    <label class="modal-label">Ngày giao thành công</label>
+    <input type="date" id="deliveredDate" class="modal-input">
+  </div>
+  <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="statusNote" class="modal-input" rows="2"></textarea></div>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('statusModal')">Hủy</button>
+    <button class="modal-btn primary" onclick="confirmStatusUpdate()">Cập nhật</button>
+  </div>
+</div>
+</div>
+
+<!-- Partner Modal -->
+<div id="partnerModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:620px">
+  <div class="modal-title" id="partnerModalTitle">Thêm đối tác vận chuyển</div>
+  <form id="partnerForm" onsubmit="savePartner(event)">
+    <input type="hidden" id="partnerId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Tên đối tác *</label><input type="text" id="partnerName" class="modal-input" required></div>
+      <div class="modal-group"><label class="modal-label">Loại *</label>
+        <select id="partnerType" class="modal-input" required>
+          <option value="noi_bo">Nội bộ</option>
+          <option value="doi_tac_3pl">Đối tác 3PL</option>
+          <option value="freelancer">Freelancer</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Người liên hệ</label><input type="text" id="partnerContact" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Số điện thoại</label><input type="tel" id="partnerPhone" class="modal-input"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Email</label><input type="email" id="partnerEmail" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Khu vực phục vụ</label><input type="text" id="partnerAreas" class="modal-input" placeholder="VD: HCM, Bình Dương, Đồng Nai"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Phí cơ bản (đ/đơn)</label><input type="number" id="partnerBaseFee" class="modal-input" min="0" value="0"></div>
+      <div class="modal-group"><label class="modal-label">Phí theo kg (đ/kg)</label><input type="number" id="partnerPricePerKg" class="modal-input" min="0" value="0"></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Trạng thái</label>
+      <select id="partnerActive" class="modal-input">
+        <option value="true">Đang hoạt động</option>
+        <option value="false">Ngừng hoạt động</option>
+      </select>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="partnerNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('partnerModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Detail Modal -->
+<div id="shipDetailModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:680px;max-height:85vh;overflow-y:auto">
+  <div class="modal-title">Chi tiết đơn giao hàng</div>
+  <div id="shipDetailContent"></div>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('shipDetailModal')">Đóng</button>
+    <button class="modal-btn primary" onclick="editFromDetail()">Sửa</button>
+  </div>
+</div>
+</div>
+
+<!-- Delete Confirm -->
+<div id="deleteModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:400px">
+  <div class="modal-title">Xác nhận xóa</div>
+  <p style="margin-bottom:20px" id="deleteModalMsg">Bạn có chắc muốn xóa mục này?</p>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('deleteModal')">Không</button>
+    <button class="modal-btn danger" onclick="confirmDelete()">Xóa</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// H5C SHARED STORE
+// ════════════════════════════════════════════════════════════════
+const H5C=window.H5C||{
+  _k:k=>'h5c_v1_'+k,
+  get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
+  init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
+  clear(k){localStorage.removeItem(this._k(k));},
+  salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
+};
+
+// ════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════════
+const METHOD_LABELS={xe_tai:'Xe tải',xe_may:'Xe máy',chuyen_phat:'Chuyển phát',tu_den:'Tự đến lấy'};
+const STATUS_LABELS={cho_lay:'Chờ lấy hàng',dang_giao:'Đang giao',da_giao:'Đã giao',that_bai:'Thất bại',hoan:'Hoàn hàng'};
+const PARTNER_TYPE_LABELS={noi_bo:'Nội bộ',doi_tac_3pl:'Đối tác 3PL',freelancer:'Freelancer'};
+
+const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
+const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
+
+// ════════════════════════════════════════════════════════════════
+// PERMISSION ENGINE
+// ════════════════════════════════════════════════════════════════
+const _ROLE_PERMS={
+  C_LEVEL:null,
+  MANAGER:{
+    'shipping.view':true,'shipping.create':true,'shipping.edit':true,
+    'shipping.update_status':true,'shipping.delete':true
+  },
+  EMPLOYEE_SALES:{
+    'shipping.view':true,'shipping.create':true,'shipping.edit':'own','shipping.update_status':true
+  },
+  EMPLOYEE_FINANCE:{
+    'shipping.view':true
+  },
+  EMPLOYEE_HR:{
+    'shipping.view':true
+  }
+};
+function _roleDefault(role,permId){const p=_ROLE_PERMS[role];if(p===null)return true;if(!p)return false;const v=p[permId];return v===true||v==='all'||v==='own';}
+
+function _can(permId){
+  try{
+    const session=state.user;if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL';
+    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
+    if(acc.role==='C_LEVEL')return true;
+    return _roleDefault(acc.role,permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+function _canScope(permId){
+  try{
+    const session=state.user;if(!session)return 'none';
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL'?'all':'own';
+    if(!acc.permissions){if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return 'all';return 'own';}
+    const val=acc.permissions[permId];
+    if(val==='own')return 'own';if(val===true||val==='all')return 'all';return 'none';
+  }catch(e){return 'none';}
+}
+
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let SHIPMENTS=[], PARTNERS=[];
+let state={
+  user:null, tab:'shipments', page:1, perPage:15,
+  search:'', filterStatus:'all', filterPartner:'all', dateFrom:'', dateTo:'',
+  detailId:null, deleteId:null, deleteType:'shipment'
+};
+
+// ════════════════════════════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════════════════════════════
+const SESSION_KEY='h5c_erp_user';
+function saveSession(user){localStorage.setItem(SESSION_KEY,JSON.stringify({...user,loginAt:Date.now()}));}
+function loadSession(){try{const raw=localStorage.getItem(SESSION_KEY);if(!raw)return null;const s=JSON.parse(raw);if(s.loginAt&&Date.now()-s.loginAt>8*3600000){localStorage.removeItem(SESSION_KEY);return null;}return s;}catch(e){return null;}}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+
+// ════════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════════
+function _getAccountsForLogin(){
+  const stored=H5C.get('accounts');
+  if(stored&&stored.length)return stored;
+  return[
+    {email:'admin@hello5coffee.com',pw:'Admin@123456',name:'Louis Nguyen',role:'C_LEVEL',pos:'CCO & Co-Founder',empId:'EMP001'},
+    {email:'manager@hello5coffee.com',pw:'123456',name:'Nguyễn Thị Lan',role:'MANAGER',pos:'Trưởng phòng',empId:'EMP002'},
+    {email:'sales@hello5coffee.com',pw:'123456',name:'Trần Minh Sales',role:'EMPLOYEE_SALES',pos:'NV Kinh doanh',empId:'EMP003'},
+    {email:'finance@hello5coffee.com',pw:'123456',name:'Phạm Thị Mai',role:'EMPLOYEE_FINANCE',pos:'Kế toán viên',empId:'EMP004'},
+    {email:'nv@hello5coffee.com',pw:'123456',name:'Đặng Văn Hùng',role:'EMPLOYEE_HR',pos:'NV Nhân sự',empId:'EMP005'}
+  ];
+}
+
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const accounts=_getAccountsForLogin();
+  const acc=accounts.find(a=>(a.email||'').toLowerCase()===email&&a.pw===pw);
+  if(!acc){document.getElementById('loginError').style.display='block';return;}
+  document.getElementById('loginError').style.display='none';
+  const user={name:acc.name,email:acc.email,role:acc.role,pos:acc.pos,empId:acc.empId};
+  state.user=user;saveSession(user);showMain();
+}
+function handleLogout(){state.user=null;clearSession();document.getElementById('loginPage').style.display='';document.getElementById('mainLayout').classList.add('hidden');}
+function showMain(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=state.user.name;
+  document.getElementById('userRole').textContent=state.user.pos||state.user.role;
+  document.getElementById('userAvatar').textContent=getInitials(state.user.name);
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════════
+function loadData(){
+  SHIPMENTS=H5C.get('shipments')||[];
+  PARTNERS=H5C.get('shipping_partners')||[];
+}
+
+function genShipId(){return 'GH'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();}
+function genPartnerId(){return 'DT'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();}
+function genShipCode(){let n=SHIPMENTS.length+1;while(SHIPMENTS.find(s=>s.code==='GH'+String(n).padStart(4,'0')))n++;return 'GH'+String(n).padStart(4,'0');}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════
+function render(){
+  loadData();
+  if(!_can('shipping.view')){
+    document.getElementById('pageContent').innerHTML='<div class="empty-state"><div class="icon">🔒</div><p>Bạn không có quyền truy cập module này</p></div>';
+    return;
+  }
+
+  const total=SHIPMENTS.length;
+  const dangGiao=SHIPMENTS.filter(s=>s.status==='dang_giao').length;
+  const daGiao=SHIPMENTS.filter(s=>s.status==='da_giao').length;
+  const successRate=total?Math.round((daGiao/total)*100):0;
+  const tongPhi=SHIPMENTS.reduce((s,x)=>s+(x.shippingFee||0),0);
+
+  let html=`
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card clickable"><div class="kpi-label">Tổng đơn giao</div><div class="kpi-value">${total}</div><div class="stat-sub">${PARTNERS.filter(p=>p.active!==false).length} đối tác VC</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">Đang giao</div><div class="kpi-value" style="color:var(--h5c-steel)">${dangGiao}</div><div class="stat-sub">${SHIPMENTS.filter(s=>s.status==='cho_lay').length} chờ lấy hàng</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">Đã giao</div><div class="kpi-value" style="color:var(--h5c-sage)">${daGiao}</div><div class="stat-sub">${successRate}% tỷ lệ thành công</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">Tổng phí VC</div><div class="kpi-value" style="color:var(--h5c-copper)">${fmtB(tongPhi)}đ</div><div class="stat-sub">Tổng chi phí vận chuyển</div></div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn${state.tab==='shipments'?' active':''}" onclick="state.tab='shipments';state.page=1;render()">📦 Đơn giao hàng</button>
+      <button class="tab-btn${state.tab==='partners'?' active':''}" onclick="state.tab='partners';render()">🤝 Đối tác VC</button>
+      <button class="tab-btn${state.tab==='costs'?' active':''}" onclick="state.tab='costs';render()">💰 Phí vận chuyển</button>
+    </div>`;
+
+  if(state.tab==='shipments') html+=renderShipmentsTab();
+  else if(state.tab==='partners') html+=renderPartnersTab();
+  else html+=renderCostsTab();
+
+  document.getElementById('pageContent').innerHTML=html;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 1 — ĐƠN GIAO HÀNG
+// ════════════════════════════════════════════════════════════════
+function renderShipmentsTab(){
+  let filtered=[...SHIPMENTS];
+
+  if(state.search){
+    const q=state.search.toLowerCase();
+    filtered=filtered.filter(s=>
+      (s.code||'').toLowerCase().includes(q)||
+      (s.customerName||'').toLowerCase().includes(q)||
+      (s.orderCode||'').toLowerCase().includes(q)||
+      (s.address||'').toLowerCase().includes(q)||
+      (s.trackingCode||'').toLowerCase().includes(q)
+    );
+  }
+  if(state.filterStatus!=='all')filtered=filtered.filter(s=>s.status===state.filterStatus);
+  if(state.filterPartner!=='all')filtered=filtered.filter(s=>s.partnerId===state.filterPartner);
+  if(state.dateFrom)filtered=filtered.filter(s=>s.createdAt&&s.createdAt>=state.dateFrom);
+  if(state.dateTo)filtered=filtered.filter(s=>s.createdAt&&s.createdAt<=state.dateTo);
+
+  filtered.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+
+  const totalPages=Math.ceil(filtered.length/state.perPage)||1;
+  if(state.page>totalPages)state.page=totalPages;
+  const start=(state.page-1)*state.perPage;
+  const pageData=filtered.slice(start,start+state.perPage);
+
+  const partnerOptions=PARTNERS.filter(p=>p.active!==false).map(p=>`<option value="${p.id}"${state.filterPartner===p.id?' selected':''}>${p.name}</option>`).join('');
+
+  let h=`<div class="card">
+    <div class="ship-header">
+      <div class="ship-filters">
+        <input type="text" class="filter-input" placeholder="🔍 Tìm mã GH, khách, địa chỉ..." value="${state.search}" oninput="state.search=this.value;state.page=1;render()">
+        <select class="filter-input" onchange="state.filterStatus=this.value;state.page=1;render()">
+          <option value="all">Tất cả TT</option>
+          ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}"${state.filterStatus===k?' selected':''}>${v}</option>`).join('')}
+        </select>
+        <select class="filter-input" onchange="state.filterPartner=this.value;state.page=1;render()">
+          <option value="all">Tất cả đối tác</option>
+          ${partnerOptions}
+        </select>
+        <input type="date" class="filter-input" value="${state.dateFrom}" onchange="state.dateFrom=this.value;state.page=1;render()" title="Từ ngày">
+        <input type="date" class="filter-input" value="${state.dateTo}" onchange="state.dateTo=this.value;state.page=1;render()" title="Đến ngày">
+      </div>
+      <div style="display:flex;gap:8px">
+        ${_can('shipping.create')?'<button class="btn primary" onclick="openCreateShipModal()">+ Tạo đơn giao</button>':''}
+      </div>
+    </div>`;
+
+  if(!filtered.length){
+    h+=`<div class="empty-state"><div class="icon">📦</div><p>Chưa có đơn giao hàng nào</p></div>`;
+  }else{
+    h+=`<div class="table-container"><table class="data-table">
+      <thead><tr>
+        <th>Mã GH</th><th>Đơn hàng</th><th>Khách hàng</th><th>Địa chỉ</th>
+        <th>Đối tác VC</th><th>Phương thức</th><th>Phí VC</th><th>Trạng thái</th><th>Thao tác</th>
+      </tr></thead><tbody>`;
+
+    pageData.forEach(s=>{
+      const partner=PARTNERS.find(p=>p.id===s.partnerId);
+      h+=`<tr onclick="viewShipment('${s.id}')" style="cursor:pointer">
+        <td><span style="font-size:11px;font-weight:700;color:var(--h5c-text-secondary)">${s.code||'—'}</span></td>
+        <td style="font-size:12px">${s.orderCode||'—'}</td>
+        <td>
+          <div style="font-weight:700;font-size:13px">${s.customerName||'—'}</div>
+          <div style="font-size:10px;color:var(--h5c-text-secondary)">${s.phone||''}</div>
+        </td>
+        <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.address||'—'}${s.city?', '+s.city:''}</td>
+        <td style="font-size:12px">${partner?partner.name:'—'}</td>
+        <td style="font-size:12px">${METHOD_LABELS[s.method]||s.method||'—'}</td>
+        <td style="font-weight:700;color:var(--h5c-copper)">${s.shippingFee?fmt(s.shippingFee)+'đ':'—'}</td>
+        <td><span class="status-badge ${s.status}">${STATUS_LABELS[s.status]||s.status}</span></td>
+        <td onclick="event.stopPropagation()"><div class="action-btns">
+          <button class="action-btn view" title="Xem" onclick="viewShipment('${s.id}')">👁</button>
+          ${_can('shipping.update_status')?`<button class="action-btn" title="Cập nhật TT" onclick="openStatusModal('${s.id}')" style="font-size:11px;width:auto;padding:0 8px">📋 TT</button>`:''}
+          ${_can('shipping.edit')?`<button class="action-btn edit" title="Sửa" onclick="editShipment('${s.id}')">✏️</button>`:''}
+          ${_can('shipping.delete')?`<button class="action-btn delete" title="Xóa" onclick="deleteShipment('${s.id}')">🗑️</button>`:''}
+        </div></td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+
+    if(totalPages>1){
+      h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:12px;color:var(--h5c-text-secondary)">
+        <span>Hiển thị ${start+1}–${Math.min(start+state.perPage,filtered.length)} / ${filtered.length} đơn</span>
+        <div style="display:flex;gap:4px">
+          <button class="btn small" onclick="state.page=1;render()" ${state.page===1?'disabled':''}>«</button>
+          <button class="btn small" onclick="state.page--;render()" ${state.page===1?'disabled':''}>‹</button>`;
+      for(let i=Math.max(1,state.page-2);i<=Math.min(totalPages,state.page+2);i++){
+        h+=`<button class="btn small${i===state.page?' primary':''}" onclick="state.page=${i};render()">${i}</button>`;
+      }
+      h+=`<button class="btn small" onclick="state.page++;render()" ${state.page===totalPages?'disabled':''}>›</button>
+          <button class="btn small" onclick="state.page=${totalPages};render()" ${state.page===totalPages?'disabled':''}>»</button>
+        </div></div>`;
+    }
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 2 — ĐỐI TÁC VC
+// ════════════════════════════════════════════════════════════════
+function renderPartnersTab(){
+  let h=`<div class="card">
+    <div class="ship-header">
+      <div style="font-size:14px;font-weight:700">Đối tác vận chuyển (${PARTNERS.length})</div>
+      <div style="display:flex;gap:8px">
+        ${_can('shipping.create')?'<button class="btn primary" onclick="openCreatePartnerModal()">+ Thêm đối tác</button>':''}
+      </div>
+    </div>`;
+
+  if(!PARTNERS.length){
+    h+=`<div class="empty-state"><div class="icon">🤝</div><p>Chưa có đối tác vận chuyển nào</p></div>`;
+  }else{
+    h+=`<div class="partner-grid">`;
+    PARTNERS.forEach(p=>{
+      const shipCount=SHIPMENTS.filter(s=>s.partnerId===p.id).length;
+      const successCount=SHIPMENTS.filter(s=>s.partnerId===p.id&&s.status==='da_giao').length;
+      const successRate=shipCount?Math.round((successCount/shipCount)*100):0;
+      const totalFee=SHIPMENTS.filter(s=>s.partnerId===p.id).reduce((sum,s)=>sum+(s.shippingFee||0),0);
+      const areas=(p.areas||[]).join(', ')||(p.areas&&typeof p.areas==='string'?p.areas:'');
+      h+=`<div class="partner-card${p.active===false?' partner-inactive':''}">
+        <div class="partner-card-header">
+          <div>
+            <div class="partner-name">${p.name}</div>
+            <div class="partner-meta">${p.contactPerson||''} ${p.phone?'· '+p.phone:''}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <span class="type-badge ${p.type}">${PARTNER_TYPE_LABELS[p.type]||p.type}</span>
+            ${p.active===false?'<span style="font-size:9px;color:var(--h5c-terracotta);font-weight:700">NGỪNG HĐ</span>':''}
+          </div>
+        </div>
+        ${areas?`<div style="font-size:11px;color:var(--h5c-text-secondary);margin-bottom:4px">📍 ${areas}</div>`:''}
+        <div style="font-size:11px;color:var(--h5c-text-secondary)">
+          Phí cơ bản: <strong>${fmt(p.baseFee||0)}đ</strong> · Phí/kg: <strong>${fmt(p.pricePerKg||0)}đ</strong>
+        </div>
+        <div class="partner-stats">
+          <div class="partner-stat"><span class="partner-stat-label">Số đơn</span><span class="partner-stat-value">${shipCount}</span></div>
+          <div class="partner-stat"><span class="partner-stat-label">Tỷ lệ giao</span><span class="partner-stat-value" style="color:var(--h5c-sage)">${successRate}%</span></div>
+          <div class="partner-stat"><span class="partner-stat-label">Tổng phí</span><span class="partner-stat-value" style="color:var(--h5c-copper)">${fmtB(totalFee)}đ</span></div>
+          <div class="partner-stat"><span class="partner-stat-label">Phí TB/đơn</span><span class="partner-stat-value">${shipCount?fmt(Math.round(totalFee/shipCount))+'đ':'—'}</span></div>
+        </div>
+        ${(_can('shipping.edit')||_can('shipping.delete'))?`<div class="action-btns" style="margin-top:12px">
+          ${_can('shipping.edit')?`<button class="action-btn edit" title="Sửa" onclick="editPartner('${p.id}')">✏️</button>`:''}
+          ${_can('shipping.delete')?`<button class="action-btn delete" title="Xóa" onclick="deletePartnerAction('${p.id}')">🗑️</button>`:''}
+        </div>`:''}
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 3 — PHÍ VẬN CHUYỂN
+// ════════════════════════════════════════════════════════════════
+function renderCostsTab(){
+  const byPartner={};
+  SHIPMENTS.forEach(s=>{
+    const key=s.partnerId||'__none__';
+    if(!byPartner[key])byPartner[key]={count:0,total:0,success:0};
+    byPartner[key].count++;
+    byPartner[key].total+=s.shippingFee||0;
+    if(s.status==='da_giao')byPartner[key].success++;
+  });
+
+  const byMethod={};
+  SHIPMENTS.forEach(s=>{
+    const key=s.method||'unknown';
+    if(!byMethod[key])byMethod[key]={count:0,total:0};
+    byMethod[key].count++;
+    byMethod[key].total+=s.shippingFee||0;
+  });
+
+  let h=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="card">
+      <div style="font-size:14px;font-weight:800;margin-bottom:16px">Theo đối tác vận chuyển</div>`;
+
+  if(!Object.keys(byPartner).length){
+    h+=`<div class="empty-state" style="padding:30px"><div class="icon" style="font-size:32px">📊</div><p>Chưa có dữ liệu</p></div>`;
+  }else{
+    h+=`<table class="summary-table"><thead><tr>
+      <th>Đối tác</th><th>Số đơn</th><th>Tổng phí</th><th>TB/đơn</th><th>TL thành công</th>
+    </tr></thead><tbody>`;
+    Object.entries(byPartner).forEach(([pid,d])=>{
+      const partner=pid==='__none__'?null:PARTNERS.find(p=>p.id===pid);
+      const name=partner?partner.name:'Không có đối tác';
+      const rate=d.count?Math.round((d.success/d.count)*100):0;
+      h+=`<tr>
+        <td style="font-weight:700">${name}</td>
+        <td>${d.count}</td>
+        <td style="color:var(--h5c-copper);font-weight:700">${fmt(d.total)}đ</td>
+        <td>${d.count?fmt(Math.round(d.total/d.count))+'đ':'—'}</td>
+        <td><span style="color:${rate>=80?'var(--h5c-sage)':rate>=50?'var(--h5c-amber)':'var(--h5c-terracotta)'};font-weight:700">${rate}%</span></td>
+      </tr>`;
+    });
+    const grandTotal=Object.values(byPartner).reduce((s,d)=>s+d.total,0);
+    const grandCount=Object.values(byPartner).reduce((s,d)=>s+d.count,0);
+    h+=`<tr style="background:var(--h5c-bg-subtle);font-weight:700">
+      <td>Tổng cộng</td><td>${grandCount}</td>
+      <td style="color:var(--h5c-copper)">${fmt(grandTotal)}đ</td>
+      <td>${grandCount?fmt(Math.round(grandTotal/grandCount))+'đ':'—'}</td><td>—</td>
+    </tr></tbody></table>`;
+  }
+  h+=`</div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:800;margin-bottom:16px">Theo phương thức</div>`;
+
+  if(!Object.keys(byMethod).length){
+    h+=`<div class="empty-state" style="padding:30px"><div class="icon" style="font-size:32px">🚚</div><p>Chưa có dữ liệu</p></div>`;
+  }else{
+    h+=`<table class="summary-table"><thead><tr>
+      <th>Phương thức</th><th>Số đơn</th><th>Tổng phí</th><th>TB/đơn</th>
+    </tr></thead><tbody>`;
+    Object.entries(byMethod).forEach(([method,d])=>{
+      h+=`<tr>
+        <td style="font-weight:700">${METHOD_LABELS[method]||method}</td>
+        <td>${d.count}</td>
+        <td style="color:var(--h5c-copper);font-weight:700">${fmt(d.total)}đ</td>
+        <td>${d.count?fmt(Math.round(d.total/d.count))+'đ':'—'}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table>`;
+  }
+  h+=`</div></div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// SHIPMENT MODAL — CREATE / EDIT
+// ════════════════════════════════════════════════════════════════
+function openCreateShipModal(){
+  loadData();
+  document.getElementById('shipModalTitle').textContent='Tạo đơn giao hàng';
+  document.getElementById('shipForm').reset();
+  document.getElementById('shipId').value='';
+  document.getElementById('shipCode').value=genShipCode();
+  document.getElementById('shipCOD').value=0;
+  populateOrderDropdown('');
+  populatePartnerDropdown('');
+  document.getElementById('shipModal').classList.remove('hidden');
+}
+
+function editShipment(id){
+  loadData();
+  const s=SHIPMENTS.find(x=>x.id===id);if(!s)return;
+  document.getElementById('shipModalTitle').textContent='Sửa đơn giao hàng';
+  document.getElementById('shipId').value=s.id;
+  document.getElementById('shipCode').value=s.code||'';
+  populateOrderDropdown(s.orderId||'');
+  document.getElementById('shipCustomerName').value=s.customerName||'';
+  document.getElementById('shipPhone').value=s.phone||'';
+  document.getElementById('shipAddress').value=s.address||'';
+  document.getElementById('shipCity').value=s.city||'';
+  document.getElementById('shipMethod').value=s.method||'xe_may';
+  populatePartnerDropdown(s.partnerId||'');
+  document.getElementById('shipWeight').value=s.weight||'';
+  document.getElementById('shipFee').value=s.shippingFee||'';
+  document.getElementById('shipCOD').value=s.codAmount||0;
+  document.getElementById('shipTracking').value=s.trackingCode||'';
+  document.getElementById('shipEstDate').value=s.estimatedDate||'';
+  document.getElementById('shipNotes').value=s.notes||'';
+  document.getElementById('shipModal').classList.remove('hidden');
+}
+
+function populateOrderDropdown(selectedOrderId){
+  const orders=H5C.get('orders')||[];
+  const sel=document.getElementById('shipOrderId');
+  sel.innerHTML='<option value="">— Không liên kết —</option>';
+  orders.forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o.id;
+    opt.textContent=(o.id||'')+(o.customer?' — '+o.customer:'');
+    if(o.id===selectedOrderId)opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
+
+function populatePartnerDropdown(selectedPartnerId){
+  const sel=document.getElementById('shipPartnerId');
+  sel.innerHTML='<option value="">— Tự xử lý —</option>';
+  PARTNERS.filter(p=>p.active!==false).forEach(p=>{
+    const opt=document.createElement('option');
+    opt.value=p.id;
+    opt.textContent=p.name;
+    if(p.id===selectedPartnerId)opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
+
+function fillOrderInfo(){
+  const orderId=document.getElementById('shipOrderId').value;
+  if(!orderId)return;
+  const orders=H5C.get('orders')||[];
+  const order=orders.find(o=>o.id===orderId);
+  if(!order)return;
+  if(order.customer)document.getElementById('shipCustomerName').value=order.customer;
+  if(order.phone)document.getElementById('shipPhone').value=order.phone;
+  if(order.address)document.getElementById('shipAddress').value=order.address||'';
+  if(order.city)document.getElementById('shipCity').value=order.city||'';
+  if(order.total)document.getElementById('shipCOD').value=order.total||0;
+}
+
+function autoCalcFee(){
+  const partnerId=document.getElementById('shipPartnerId').value;
+  const weight=parseFloat(document.getElementById('shipWeight').value)||0;
+  if(!partnerId)return;
+  const partner=PARTNERS.find(p=>p.id===partnerId);
+  if(!partner)return;
+  const fee=(partner.baseFee||0)+(weight*(partner.pricePerKg||0));
+  document.getElementById('shipFee').value=Math.round(fee);
+}
+
+function saveShipment(e){
+  e.preventDefault();
+  loadData();
+  const id=document.getElementById('shipId').value;
+  const orderId=document.getElementById('shipOrderId').value;
+  const partnerId=document.getElementById('shipPartnerId').value;
+  const partner=PARTNERS.find(p=>p.id===partnerId);
+  const orders=H5C.get('orders')||[];
+  const order=orders.find(o=>o.id===orderId);
+
+  const data={
+    orderId:orderId||'',
+    orderCode:order?order.id:'',
+    customerName:document.getElementById('shipCustomerName').value.trim(),
+    phone:document.getElementById('shipPhone').value.trim(),
+    address:document.getElementById('shipAddress').value.trim(),
+    city:document.getElementById('shipCity').value.trim(),
+    method:document.getElementById('shipMethod').value,
+    partnerId:partnerId||'',
+    partnerName:partner?partner.name:'',
+    weight:parseFloat(document.getElementById('shipWeight').value)||0,
+    shippingFee:parseFloat(document.getElementById('shipFee').value)||0,
+    codAmount:parseFloat(document.getElementById('shipCOD').value)||0,
+    trackingCode:document.getElementById('shipTracking').value.trim(),
+    estimatedDate:document.getElementById('shipEstDate').value,
+    notes:document.getElementById('shipNotes').value.trim()
+  };
+
+  if(id){
+    const idx=SHIPMENTS.findIndex(s=>s.id===id);
+    if(idx!==-1)SHIPMENTS[idx]={...SHIPMENTS[idx],...data,updatedAt:new Date().toISOString().split('T')[0]};
+    if(typeof showToast==='function')showToast('Đã cập nhật đơn giao hàng','success');
+  }else{
+    const today=new Date().toISOString().split('T')[0];
+    SHIPMENTS.unshift({id:genShipId(),code:document.getElementById('shipCode').value,...data,status:'cho_lay',createdAt:today,createdBy:state.user.name});
+    if(typeof showToast==='function')showToast('Đã tạo đơn giao hàng mới','success');
+  }
+  H5C.set('shipments',SHIPMENTS);
+  closeModal('shipModal');render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// UPDATE STATUS
+// ════════════════════════════════════════════════════════════════
+function openStatusModal(id){
+  const s=SHIPMENTS.find(x=>x.id===id);if(!s)return;
+  document.getElementById('statusShipId').value=id;
+  document.getElementById('statusModalTitle').textContent='Cập nhật TT — '+s.code;
+  document.getElementById('newStatus').value=s.status||'cho_lay';
+  document.getElementById('statusNote').value='';
+  document.getElementById('deliveredDate').value=new Date().toISOString().split('T')[0];
+  toggleDeliveredDate();
+  document.getElementById('statusModal').classList.remove('hidden');
+}
+
+function toggleDeliveredDate(){
+  const v=document.getElementById('newStatus').value;
+  document.getElementById('deliveredDateGroup').style.display=(v==='da_giao')?'':'none';
+}
+
+function confirmStatusUpdate(){
+  loadData();
+  const id=document.getElementById('statusShipId').value;
+  const newStatus=document.getElementById('newStatus').value;
+  const note=document.getElementById('statusNote').value.trim();
+  const delivDate=document.getElementById('deliveredDate').value;
+  const idx=SHIPMENTS.findIndex(s=>s.id===id);
+  if(idx===-1)return;
+  SHIPMENTS[idx].status=newStatus;
+  SHIPMENTS[idx].updatedAt=new Date().toISOString().split('T')[0];
+  if(newStatus==='da_giao')SHIPMENTS[idx].deliveredDate=delivDate;
+  if(note)SHIPMENTS[idx].notes=(SHIPMENTS[idx].notes?SHIPMENTS[idx].notes+'\n':'')+note;
+  H5C.set('shipments',SHIPMENTS);
+  closeModal('statusModal');
+  if(typeof showToast==='function')showToast('Đã cập nhật trạng thái','success');
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DETAIL VIEW
+// ════════════════════════════════════════════════════════════════
+function viewShipment(id){
+  loadData();
+  const s=SHIPMENTS.find(x=>x.id===id);if(!s)return;
+  state.detailId=id;
+  const partner=PARTNERS.find(p=>p.id===s.partnerId);
+  let html=`
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+      <div style="font-size:36px">📦</div>
+      <div>
+        <div style="font-size:18px;font-weight:800">${s.code||s.id}</div>
+        <div style="font-size:13px;color:var(--h5c-text-secondary)">
+          <span class="status-badge ${s.status}">${STATUS_LABELS[s.status]||s.status}</span>
+          ${s.method?' · '+METHOD_LABELS[s.method]:''}
+        </div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-title">Thông tin giao hàng</div>
+      <div class="detail-grid">
+        <div class="detail-item"><span class="detail-label">Khách hàng</span><span class="detail-value">${s.customerName||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Số điện thoại</span><span class="detail-value">${s.phone||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Địa chỉ</span><span class="detail-value">${s.address||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Tỉnh/Thành</span><span class="detail-value">${s.city||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Đơn hàng</span><span class="detail-value">${s.orderCode||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Mã tracking</span><span class="detail-value">${s.trackingCode||'—'}</span></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-title">Vận chuyển & Chi phí</div>
+      <div class="detail-grid">
+        <div class="detail-item"><span class="detail-label">Đối tác VC</span><span class="detail-value">${partner?partner.name:'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Phương thức</span><span class="detail-value">${METHOD_LABELS[s.method]||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Khối lượng</span><span class="detail-value">${s.weight?s.weight+' kg':'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Phí vận chuyển</span><span class="detail-value" style="color:var(--h5c-copper)">${s.shippingFee?fmt(s.shippingFee)+'đ':'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Tiền COD</span><span class="detail-value">${s.codAmount?fmt(s.codAmount)+'đ':'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Ngày dự kiến</span><span class="detail-value">${formatDate(s.estimatedDate)}</span></div>
+        ${s.deliveredDate?`<div class="detail-item"><span class="detail-label">Ngày giao thực tế</span><span class="detail-value" style="color:var(--h5c-sage)">${formatDate(s.deliveredDate)}</span></div>`:''}
+      </div>
+    </div>`;
+
+  if(s.notes){
+    html+=`<div class="detail-section"><div class="detail-title">Ghi chú</div><p style="font-size:13px;color:var(--h5c-text-secondary);white-space:pre-wrap">${s.notes}</p></div>`;
+  }
+  html+=`<div style="font-size:11px;color:var(--h5c-text-muted);margin-top:16px">Tạo bởi ${s.createdBy||'—'} · ${formatDate(s.createdAt)}</div>`;
+
+  document.getElementById('shipDetailContent').innerHTML=html;
+  document.getElementById('shipDetailModal').classList.remove('hidden');
+}
+
+function editFromDetail(){
+  closeModal('shipDetailModal');
+  if(state.detailId)editShipment(state.detailId);
+}
+
+// ════════════════════════════════════════════════════════════════
+// PARTNER MODAL — CREATE / EDIT
+// ════════════════════════════════════════════════════════════════
+function openCreatePartnerModal(){
+  document.getElementById('partnerModalTitle').textContent='Thêm đối tác vận chuyển';
+  document.getElementById('partnerForm').reset();
+  document.getElementById('partnerId').value='';
+  document.getElementById('partnerActive').value='true';
+  document.getElementById('partnerBaseFee').value=0;
+  document.getElementById('partnerPricePerKg').value=0;
+  document.getElementById('partnerModal').classList.remove('hidden');
+}
+
+function editPartner(id){
+  loadData();
+  const p=PARTNERS.find(x=>x.id===id);if(!p)return;
+  document.getElementById('partnerModalTitle').textContent='Sửa đối tác vận chuyển';
+  document.getElementById('partnerId').value=p.id;
+  document.getElementById('partnerName').value=p.name||'';
+  document.getElementById('partnerType').value=p.type||'doi_tac_3pl';
+  document.getElementById('partnerContact').value=p.contactPerson||'';
+  document.getElementById('partnerPhone').value=p.phone||'';
+  document.getElementById('partnerEmail').value=p.email||'';
+  document.getElementById('partnerAreas').value=(p.areas||[]).join(', ')||(typeof p.areas==='string'?p.areas:'');
+  document.getElementById('partnerBaseFee').value=p.baseFee||0;
+  document.getElementById('partnerPricePerKg').value=p.pricePerKg||0;
+  document.getElementById('partnerActive').value=p.active===false?'false':'true';
+  document.getElementById('partnerNotes').value=p.notes||'';
+  document.getElementById('partnerModal').classList.remove('hidden');
+}
+
+function savePartner(e){
+  e.preventDefault();
+  loadData();
+  const id=document.getElementById('partnerId').value;
+  const areasRaw=document.getElementById('partnerAreas').value.trim();
+  const areas=areasRaw?areasRaw.split(',').map(a=>a.trim()).filter(Boolean):[];
+  const data={
+    name:document.getElementById('partnerName').value.trim(),
+    type:document.getElementById('partnerType').value,
+    contactPerson:document.getElementById('partnerContact').value.trim(),
+    phone:document.getElementById('partnerPhone').value.trim(),
+    email:document.getElementById('partnerEmail').value.trim(),
+    areas,
+    baseFee:parseFloat(document.getElementById('partnerBaseFee').value)||0,
+    pricePerKg:parseFloat(document.getElementById('partnerPricePerKg').value)||0,
+    active:document.getElementById('partnerActive').value==='true',
+    notes:document.getElementById('partnerNotes').value.trim()
+  };
+  if(id){
+    const idx=PARTNERS.findIndex(p=>p.id===id);
+    if(idx!==-1)PARTNERS[idx]={...PARTNERS[idx],...data,updatedAt:new Date().toISOString().split('T')[0]};
+    if(typeof showToast==='function')showToast('Đã cập nhật đối tác','success');
+  }else{
+    PARTNERS.unshift({id:genPartnerId(),...data,createdAt:new Date().toISOString().split('T')[0]});
+    if(typeof showToast==='function')showToast('Đã thêm đối tác mới','success');
+  }
+  H5C.set('shipping_partners',PARTNERS);
+  closeModal('partnerModal');render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DELETE
+// ════════════════════════════════════════════════════════════════
+function deleteShipment(id){
+  state.deleteId=id;state.deleteType='shipment';
+  document.getElementById('deleteModalMsg').textContent='Bạn có chắc muốn xóa đơn giao hàng này?';
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+function deletePartnerAction(id){
+  state.deleteId=id;state.deleteType='partner';
+  document.getElementById('deleteModalMsg').textContent='Bạn có chắc muốn xóa đối tác vận chuyển này?';
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+function confirmDelete(){
+  loadData();
+  if(state.deleteId){
+    if(state.deleteType==='shipment'){
+      SHIPMENTS=SHIPMENTS.filter(s=>s.id!==state.deleteId);
+      H5C.set('shipments',SHIPMENTS);
+      if(typeof showToast==='function')showToast('Đã xóa đơn giao hàng','success');
+    }else{
+      PARTNERS=PARTNERS.filter(p=>p.id!==state.deleteId);
+      H5C.set('shipping_partners',PARTNERS);
+      if(typeof showToast==='function')showToast('Đã xóa đối tác','success');
+    }
+  }
+  closeModal('deleteModal');state.deleteId=null;render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('loginPassword').addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
+  document.getElementById('newStatus').addEventListener('change',toggleDeliveredDate);
+  const session=loadSession();
+  if(session){state.user=session;showMain();}
+});
+</script>
+</body>
+</html>

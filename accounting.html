@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Kế toán tổng hợp</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>
+.ac-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.ac-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);font-size:13px;background:var(--h5c-surface);color:var(--h5c-text);min-width:140px}
+.filter-input:focus{outline:none;border-color:var(--h5c-copper)}
+.tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{padding:10px 22px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--h5c-bg-subtle);color:var(--h5c-text);transition:all .2s}
+.action-btn.edit:hover{background:var(--h5c-amber);color:#fff}
+.action-btn.delete:hover{background:var(--h5c-terracotta);color:#fff}
+.action-btn.post:hover{background:var(--h5c-sage);color:#fff}
+.type-badge{display:inline-block;padding:3px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
+.type-badge.asset{background:#E8F0E8;color:#4A7A4D}
+.type-badge.liability{background:#FBE8E6;color:#C44536}
+.type-badge.equity{background:#F0EBF5;color:#7B5EA7}
+.type-badge.revenue{background:#E6EFF8;color:#4A7FB5}
+.type-badge.expense{background:#FFF4E6;color:#D4851A}
+.status-badge{display:inline-block;padding:3px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
+.status-badge.draft{background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+.status-badge.posted{background:#E8F0E8;color:#4A7A4D}
+.status-badge.cancelled{background:#FBE8E6;color:#C44536}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-bottom:6px;display:block}
+.empty-state{text-align:center;padding:60px 20px;color:var(--h5c-text-secondary)}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state p{font-size:14px}
+.je-lines-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+.je-lines-table th{background:var(--h5c-bg-subtle);padding:8px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--h5c-text-secondary)}
+.je-lines-table td{padding:6px 6px;border-bottom:1px solid var(--h5c-border-subtle)}
+.je-lines-table td input,.je-lines-table td select{width:100%;padding:6px 8px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-sm);font-size:12px;background:var(--h5c-surface);color:var(--h5c-text)}
+.je-lines-table td input:focus,.je-lines-table td select:focus{outline:none;border-color:var(--h5c-copper)}
+.je-balance-row{display:flex;justify-content:flex-end;gap:24px;padding:10px 0;border-top:2px solid var(--h5c-border);font-size:13px;font-weight:700}
+.balanced{color:var(--h5c-sage)}
+.unbalanced{color:var(--h5c-terracotta)}
+.ledger-account-block{margin-bottom:24px}
+.ledger-account-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--h5c-espresso);color:#fff;border-radius:var(--h5c-radius-sm);margin-bottom:0}
+.ledger-account-header .acc-code{font-size:18px;font-weight:800;color:var(--h5c-copper)}
+.ledger-account-header .acc-name{font-size:13px;font-weight:600}
+.ledger-account-header .acc-balance{font-size:14px;font-weight:800}
+.ledger-row{display:grid;grid-template-columns:110px 1fr 110px 120px 120px 130px;gap:8px;padding:10px 16px;border-bottom:1px solid var(--h5c-border-subtle);font-size:12px;align-items:center}
+.ledger-row.header-row{background:var(--h5c-bg-subtle);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--h5c-text-secondary);border-bottom:1px solid var(--h5c-border)}
+.ledger-row:not(.header-row):hover{background:var(--h5c-bg)}
+.debit{color:var(--h5c-terracotta);font-weight:700}
+.credit{color:var(--h5c-sage);font-weight:700}
+.running{font-weight:800;color:var(--h5c-text)}
+.report-section{margin-bottom:28px}
+.report-title{font-size:15px;font-weight:800;color:var(--h5c-text);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--h5c-copper)}
+.report-table{width:100%;border-collapse:collapse}
+.report-table tr td{padding:8px 12px;font-size:13px;border-bottom:1px solid var(--h5c-border-subtle)}
+.report-table tr:hover td{background:var(--h5c-bg)}
+.report-table .indent-1{padding-left:28px}
+.report-table .group-row td{font-weight:700;background:var(--h5c-bg-subtle);font-size:13px}
+.report-table .total-row td{font-weight:800;font-size:14px;border-top:2px solid var(--h5c-border);background:var(--h5c-surface)}
+.report-table .positive{color:var(--h5c-sage)}
+.report-table .negative{color:var(--h5c-terracotta)}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.ledger-row{grid-template-columns:90px 1fr 90px 110px}.report-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title">Kế toán tổng hợp</div></div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">TT</div>
+          <div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Account Modal -->
+<div id="accountModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:520px">
+  <div class="modal-title" id="accountModalTitle">Thêm tài khoản</div>
+  <form id="accountForm" onsubmit="saveAccount(event)">
+    <input type="hidden" id="accountId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Mã TK *</label><input type="text" id="accountCode" class="modal-input" required placeholder="VD: 111"></div>
+      <div class="modal-group"><label class="modal-label">Loại tài khoản *</label>
+        <select id="accountType" class="modal-input" required>
+          <option value="asset">Tài sản</option>
+          <option value="liability">Nợ phải trả</option>
+          <option value="equity">Vốn chủ sở hữu</option>
+          <option value="revenue">Doanh thu</option>
+          <option value="expense">Chi phí</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Tên tài khoản *</label><input type="text" id="accountName" class="modal-input" required placeholder="VD: Tiền mặt"></div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">TK cha</label><input type="text" id="accountParent" class="modal-input" placeholder="Mã TK cha (nếu có)"></div>
+      <div class="modal-group"><label class="modal-label">Số dư đầu kỳ (VNĐ)</label><input type="number" id="accountBalance" class="modal-input" value="0" min="0"></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="accountNote" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('accountModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Journal Entry Modal -->
+<div id="jeModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:820px;max-height:90vh;overflow-y:auto">
+  <div class="modal-title" id="jeModalTitle">Tạo bút toán</div>
+  <form id="jeForm" onsubmit="saveJournalEntry(event)">
+    <input type="hidden" id="jeId">
+    <div class="modal-row three">
+      <div class="modal-group"><label class="modal-label">Ngày *</label><input type="date" id="jeDate" class="modal-input" required></div>
+      <div class="modal-group"><label class="modal-label">Mã tham chiếu</label><input type="text" id="jeRef" class="modal-input" placeholder="Số HĐ, chứng từ..."></div>
+      <div class="modal-group"><label class="modal-label">Trạng thái</label>
+        <select id="jeStatus" class="modal-input">
+          <option value="draft">Nháp</option>
+          <option value="posted">Đã ghi sổ</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Diễn giải *</label><input type="text" id="jeDesc" class="modal-input" required placeholder="Mô tả giao dịch"></div>
+    <div class="modal-group">
+      <label class="modal-label">Dòng bút toán (Nợ / Có)</label>
+      <table class="je-lines-table">
+        <thead><tr>
+          <th style="width:160px">Tài khoản</th>
+          <th>Diễn giải dòng</th>
+          <th style="width:140px">Nợ (Debit)</th>
+          <th style="width:140px">Có (Credit)</th>
+          <th style="width:36px"></th>
+        </tr></thead>
+        <tbody id="jeLinesBody"></tbody>
+      </table>
+      <button type="button" class="btn secondary" onclick="addJeLine(null)" style="font-size:12px;padding:6px 14px">+ Thêm dòng</button>
+      <div class="je-balance-row">
+        <span>Tổng Nợ: <strong id="jeTotalDebit">0đ</strong></span>
+        <span>Tổng Có: <strong id="jeTotalCredit">0đ</strong></span>
+        <span id="jeBalanceStatus" class="unbalanced">Chưa cân bằng</span>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('jeModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu bút toán</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Delete Confirm -->
+<div id="deleteModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:400px">
+  <div class="modal-title">Xác nhận xóa</div>
+  <p style="margin-bottom:20px" id="deleteMsg">Bạn có chắc muốn xóa không?</p>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('deleteModal')">Không</button>
+    <button class="modal-btn danger" onclick="confirmDelete()">Xóa</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// H5C SHARED STORE
+// ════════════════════════════════════════════════════════════════
+const H5C=window.H5C||{
+  _k:k=>'h5c_v1_'+k,
+  get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
+  init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
+  clear(k){localStorage.removeItem(this._k(k));},
+  salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
+};
+
+// ════════════════════════════════════════════════════════════════
+// CONSTANTS & HELPERS
+// ════════════════════════════════════════════════════════════════
+const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
+const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
+
+const TYPE_LABELS={asset:'Tài sản',liability:'Nợ phải trả',equity:'Vốn chủ sở hữu',revenue:'Doanh thu',expense:'Chi phí'};
+const STATUS_LABELS={draft:'Nháp',posted:'Đã ghi sổ',cancelled:'Đã hủy'};
+
+const DEFAULT_ACCOUNTS=[
+  {code:'111',name:'Tiền mặt',type:'asset',parent:'',openingBalance:0,note:''},
+  {code:'112',name:'Tiền gửi ngân hàng',type:'asset',parent:'',openingBalance:0,note:''},
+  {code:'131',name:'Phải thu khách hàng',type:'asset',parent:'',openingBalance:0,note:''},
+  {code:'152',name:'Nguyên vật liệu',type:'asset',parent:'',openingBalance:0,note:''},
+  {code:'155',name:'Thành phẩm',type:'asset',parent:'',openingBalance:0,note:''},
+  {code:'156',name:'Hàng hóa',type:'asset',parent:'',openingBalance:0,note:''},
+  {code:'211',name:'TSCĐ hữu hình',type:'asset',parent:'',openingBalance:0,note:''},
+  {code:'331',name:'Phải trả người bán',type:'liability',parent:'',openingBalance:0,note:''},
+  {code:'334',name:'Phải trả người lao động',type:'liability',parent:'',openingBalance:0,note:''},
+  {code:'411',name:'Vốn đầu tư chủ sở hữu',type:'equity',parent:'',openingBalance:0,note:''},
+  {code:'421',name:'Lợi nhuận chưa phân phối',type:'equity',parent:'',openingBalance:0,note:''},
+  {code:'511',name:'Doanh thu bán hàng',type:'revenue',parent:'',openingBalance:0,note:''},
+  {code:'515',name:'Doanh thu tài chính',type:'revenue',parent:'',openingBalance:0,note:''},
+  {code:'621',name:'Chi phí nguyên vật liệu',type:'expense',parent:'',openingBalance:0,note:''},
+  {code:'622',name:'Chi phí nhân công',type:'expense',parent:'',openingBalance:0,note:''},
+  {code:'627',name:'Chi phí sản xuất chung',type:'expense',parent:'',openingBalance:0,note:''},
+  {code:'641',name:'Chi phí bán hàng',type:'expense',parent:'',openingBalance:0,note:''},
+  {code:'642',name:'Chi phí quản lý',type:'expense',parent:'',openingBalance:0,note:''}
+];
+
+// ════════════════════════════════════════════════════════════════
+// PERMISSIONS
+// ════════════════════════════════════════════════════════════════
+const _ROLE_PERMS={
+  C_LEVEL:null,
+  MANAGER:{
+    'accounting.view':true,'accounting.create':false,'accounting.edit':false,
+    'accounting.post':false,'accounting.delete':false
+  },
+  EMPLOYEE_FINANCE:{
+    'accounting.view':true,'accounting.create':true,'accounting.edit':true,
+    'accounting.post':true,'accounting.delete':true
+  },
+  EMPLOYEE_SALES:{'accounting.view':false},
+  EMPLOYEE_HR:{'accounting.view':false}
+};
+function _roleDefault(role,permId){
+  const p=_ROLE_PERMS[role];
+  if(p===null)return true;
+  if(!p)return false;
+  const v=p[permId];
+  return v===true||v==='all'||v==='own';
+}
+function _can(permId){
+  try{
+    const session=state.user;if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL';
+    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
+    if(acc.role==='C_LEVEL')return true;
+    return _roleDefault(acc.role,permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+function _canScope(permId){
+  try{
+    const session=state.user;if(!session)return 'none';
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL'?'all':'own';
+    if(!acc.permissions){if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return 'all';return 'own';}
+    const val=acc.permissions[permId];
+    if(val==='own')return 'own';if(val===true||val==='all')return 'all';return 'none';
+  }catch(e){return 'none';}
+}
+
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let ACCOUNTS=[], JOURNAL_ENTRIES=[];
+let state={
+  user:null, tab:'accounts',
+  acSearch:'', acFilterType:'all',
+  jeSearch:'', jeFilterStatus:'all', jeDateFrom:'', jeDateTo:'',
+  glAccount:'', glDateFrom:'', glDateTo:'',
+  reportMonth:'',
+  deleteTarget:null, deleteType:null
+};
+
+// ════════════════════════════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════════════════════════════
+const SESSION_KEY='h5c_erp_user';
+function saveSession(user){localStorage.setItem(SESSION_KEY,JSON.stringify({...user,loginAt:Date.now()}));}
+function loadSession(){
+  try{
+    const raw=localStorage.getItem(SESSION_KEY);if(!raw)return null;
+    const s=JSON.parse(raw);
+    if(s.loginAt&&Date.now()-s.loginAt>8*3600000){localStorage.removeItem(SESSION_KEY);return null;}
+    return s;
+  }catch(e){return null;}
+}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+
+// ════════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════════
+function _getAccountsForLogin(){
+  const stored=H5C.get('accounts');if(stored&&stored.length)return stored;
+  return[
+    {email:'admin@hello5coffee.com',pw:'Admin@123456',name:'Louis Nguyen',role:'C_LEVEL',pos:'CCO & Co-Founder',empId:'EMP001'},
+    {email:'manager@hello5coffee.com',pw:'123456',name:'Nguyễn Thị Lan',role:'MANAGER',pos:'Trưởng phòng',empId:'EMP002'},
+    {email:'finance@hello5coffee.com',pw:'123456',name:'Phạm Thị Mai',role:'EMPLOYEE_FINANCE',pos:'Kế toán viên',empId:'EMP004'}
+  ];
+}
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const acc=_getAccountsForLogin().find(a=>(a.email||'').toLowerCase()===email&&a.pw===pw);
+  if(!acc){document.getElementById('loginError').style.display='block';return;}
+  document.getElementById('loginError').style.display='none';
+  state.user={name:acc.name,email:acc.email,role:acc.role,pos:acc.pos,empId:acc.empId};
+  saveSession(state.user);showMain();
+}
+function handleLogout(){
+  state.user=null;clearSession();
+  document.getElementById('loginPage').style.display='';
+  document.getElementById('mainLayout').classList.add('hidden');
+}
+function showMain(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=state.user.name;
+  document.getElementById('userRole').textContent=state.user.pos||state.user.role;
+  document.getElementById('userAvatar').textContent=getInitials(state.user.name);
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════════
+function loadData(){
+  ACCOUNTS=H5C.init('chart_of_accounts',DEFAULT_ACCOUNTS);
+  JOURNAL_ENTRIES=H5C.get('journal_entries')||[];
+}
+
+function getAccountBalance(code){
+  const acc=ACCOUNTS.find(a=>a.code===code);
+  if(!acc)return 0;
+  let balance=acc.openingBalance||0;
+  JOURNAL_ENTRIES.filter(je=>je.status==='posted').forEach(je=>{
+    (je.lines||[]).forEach(l=>{
+      if(l.account===code)balance+=(l.debit||0)-(l.credit||0);
+    });
+  });
+  return balance;
+}
+
+function getCurrentPeriod(){
+  const now=new Date();
+  const y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0');
+  return{from:y+'-'+m+'-01',to:y+'-'+m+'-31',label:m+'/'+y};
+}
+
+function getPeriodRevenue(from,to){
+  const revCodes=ACCOUNTS.filter(a=>a.type==='revenue').map(a=>a.code);
+  let total=0;
+  JOURNAL_ENTRIES.filter(je=>je.status==='posted'&&je.date>=from&&je.date<=to).forEach(je=>{
+    (je.lines||[]).forEach(l=>{
+      if(revCodes.includes(l.account))total+=(l.credit||0)-(l.debit||0);
+    });
+  });
+  return total;
+}
+
+function getPeriodExpense(from,to){
+  const expCodes=ACCOUNTS.filter(a=>a.type==='expense').map(a=>a.code);
+  let total=0;
+  JOURNAL_ENTRIES.filter(je=>je.status==='posted'&&je.date>=from&&je.date<=to).forEach(je=>{
+    (je.lines||[]).forEach(l=>{
+      if(expCodes.includes(l.account))total+=(l.debit||0)-(l.credit||0);
+    });
+  });
+  return total;
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER MAIN
+// ════════════════════════════════════════════════════════════════
+function render(){
+  if(!_can('accounting.view')){
+    document.getElementById('pageContent').innerHTML=`<div class="card"><div class="empty-state"><div class="icon">🔒</div><p>Bạn không có quyền truy cập module Kế toán tổng hợp.</p></div></div>`;
+    return;
+  }
+  loadData();
+  const period=getCurrentPeriod();
+  const revenue=getPeriodRevenue(period.from,period.to);
+  const expenses=getPeriodExpense(period.from,period.to);
+  const profit=revenue-expenses;
+
+  let html=`
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card">
+        <div class="kpi-label">Tổng tài khoản</div>
+        <div class="kpi-value">${ACCOUNTS.length}</div>
+        <div class="stat-sub">${ACCOUNTS.filter(a=>a.type==='asset').length} tài sản · ${ACCOUNTS.filter(a=>a.type==='expense').length} chi phí</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Tổng bút toán</div>
+        <div class="kpi-value">${JOURNAL_ENTRIES.length}</div>
+        <div class="stat-sub">${JOURNAL_ENTRIES.filter(je=>je.status==='posted').length} đã ghi sổ</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Doanh thu kỳ</div>
+        <div class="kpi-value" style="color:var(--h5c-sage)">${fmtB(revenue)}đ</div>
+        <div class="stat-sub">Tháng ${period.label}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Lợi nhuận kỳ</div>
+        <div class="kpi-value" style="color:${profit>=0?'var(--h5c-sage)':'var(--h5c-terracotta)'}">${profit>=0?'+':''}${fmtB(profit)}đ</div>
+        <div class="stat-sub">Doanh thu − Chi phí</div>
+      </div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn${state.tab==='accounts'?' active':''}" onclick="state.tab='accounts';render()">Tài khoản</button>
+      <button class="tab-btn${state.tab==='journal'?' active':''}" onclick="state.tab='journal';render()">Bút toán</button>
+      <button class="tab-btn${state.tab==='ledger'?' active':''}" onclick="state.tab='ledger';render()">Sổ cái</button>
+      <button class="tab-btn${state.tab==='reports'?' active':''}" onclick="state.tab='reports';render()">Báo cáo TC</button>
+    </div>`;
+
+  if(state.tab==='accounts')html+=renderAccounts();
+  else if(state.tab==='journal')html+=renderJournal();
+  else if(state.tab==='ledger')html+=renderLedger();
+  else if(state.tab==='reports')html+=renderReports();
+
+  document.getElementById('pageContent').innerHTML=html;
+}
+
+// ── TAB: CHART OF ACCOUNTS ─────────────────────────────────────
+function renderAccounts(){
+  let filtered=[...ACCOUNTS].sort((a,b)=>a.code.localeCompare(b.code));
+  if(state.acSearch){
+    const q=state.acSearch.toLowerCase();
+    filtered=filtered.filter(a=>(a.code||'').includes(q)||(a.name||'').toLowerCase().includes(q));
+  }
+  if(state.acFilterType!=='all')filtered=filtered.filter(a=>a.type===state.acFilterType);
+
+  let h=`<div class="card"><div class="ac-header">
+    <div class="ac-filters">
+      <input type="text" class="filter-input" placeholder="Tìm mã, tên tài khoản..." value="${state.acSearch}" oninput="state.acSearch=this.value;render()">
+      <select class="filter-input" onchange="state.acFilterType=this.value;render()">
+        <option value="all">Tất cả loại</option>
+        ${Object.entries(TYPE_LABELS).map(([k,v])=>`<option value="${k}"${state.acFilterType===k?' selected':''}>${v}</option>`).join('')}
+      </select>
+    </div>
+    ${_can('accounting.create')?'<button class="btn primary" onclick="openAccountModal()">+ Thêm tài khoản</button>':''}
+  </div>`;
+
+  if(!filtered.length){
+    h+=`<div class="empty-state"><div class="icon">📊</div><p>Không có tài khoản nào</p></div>`;
+  }else{
+    const showActions=_can('accounting.edit')||_can('accounting.delete');
+    h+=`<div class="table-container"><table class="data-table"><thead><tr>
+      <th>Mã TK</th><th>Tên tài khoản</th><th>Loại</th><th>TK cha</th><th style="text-align:right">Số dư hiện tại</th>
+      ${showActions?'<th>Thao tác</th>':''}
+    </tr></thead><tbody>`;
+    filtered.forEach(a=>{
+      const bal=getAccountBalance(a.code);
+      h+=`<tr>
+        <td><strong style="font-family:monospace;font-size:13px">${a.code}</strong></td>
+        <td style="font-weight:600">${a.name}</td>
+        <td><span class="type-badge ${a.type}">${TYPE_LABELS[a.type]||a.type}</span></td>
+        <td style="font-size:12px;color:var(--h5c-text-secondary)">${a.parent||'—'}</td>
+        <td style="font-weight:700;text-align:right;font-family:monospace">${fmt(bal)}đ</td>
+        ${showActions?`<td><div class="action-btns">
+          ${_can('accounting.edit')?`<button class="action-btn edit" title="Sửa" onclick="editAccount('${a.code}')">✏️</button>`:''}
+          ${_can('accounting.delete')?`<button class="action-btn delete" title="Xóa" onclick="promptDeleteAccount('${a.code}')">🗑️</button>`:''}
+        </div></td>`:''}
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ── TAB: JOURNAL ENTRIES ───────────────────────────────────────
+function renderJournal(){
+  let filtered=[...JOURNAL_ENTRIES].sort((a,b)=>b.date>a.date?1:b.date<a.date?-1:0);
+  if(state.jeSearch){
+    const q=state.jeSearch.toLowerCase();
+    filtered=filtered.filter(je=>(je.id||'').toLowerCase().includes(q)||(je.desc||'').toLowerCase().includes(q)||(je.reference||'').toLowerCase().includes(q));
+  }
+  if(state.jeFilterStatus!=='all')filtered=filtered.filter(je=>je.status===state.jeFilterStatus);
+  if(state.jeDateFrom)filtered=filtered.filter(je=>je.date>=state.jeDateFrom);
+  if(state.jeDateTo)filtered=filtered.filter(je=>je.date<=state.jeDateTo);
+
+  const showActions=_can('accounting.edit')||_can('accounting.post')||_can('accounting.delete');
+  let h=`<div class="card"><div class="ac-header">
+    <div class="ac-filters">
+      <input type="text" class="filter-input" placeholder="Tìm mã BT, diễn giải..." value="${state.jeSearch}" oninput="state.jeSearch=this.value;render()">
+      <select class="filter-input" onchange="state.jeFilterStatus=this.value;render()">
+        <option value="all">Tất cả TT</option>
+        ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}"${state.jeFilterStatus===k?' selected':''}>${v}</option>`).join('')}
+      </select>
+      <input type="date" class="filter-input" value="${state.jeDateFrom}" onchange="state.jeDateFrom=this.value;render()" title="Từ ngày">
+      <input type="date" class="filter-input" value="${state.jeDateTo}" onchange="state.jeDateTo=this.value;render()" title="Đến ngày">
+    </div>
+    ${_can('accounting.create')?'<button class="btn primary" onclick="openJeModal()">+ Tạo bút toán</button>':''}
+  </div>`;
+
+  if(!filtered.length){
+    h+=`<div class="empty-state"><div class="icon">📝</div><p>Chưa có bút toán nào</p></div>`;
+  }else{
+    h+=`<div class="table-container"><table class="data-table"><thead><tr>
+      <th>Mã BT</th><th>Ngày</th><th>Diễn giải</th><th>Tham chiếu</th>
+      <th style="text-align:right">Tổng Nợ</th><th>Trạng thái</th><th>Người tạo</th>
+      ${showActions?'<th>Thao tác</th>':''}
+    </tr></thead><tbody>`;
+    filtered.forEach(je=>{
+      const totalDebit=(je.lines||[]).reduce((s,l)=>s+(l.debit||0),0);
+      h+=`<tr>
+        <td><strong style="font-size:11px;font-family:monospace">${je.id}</strong></td>
+        <td style="font-size:12px">${formatDate(je.date)}</td>
+        <td style="font-size:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${je.desc||'—'}</td>
+        <td style="font-size:11px;color:var(--h5c-text-secondary)">${je.reference||'—'}</td>
+        <td style="font-weight:700;text-align:right;font-family:monospace">${fmt(totalDebit)}đ</td>
+        <td><span class="status-badge ${je.status||'draft'}">${STATUS_LABELS[je.status||'draft']}</span></td>
+        <td style="font-size:12px">${je.createdBy||'—'}</td>
+        ${showActions?`<td><div class="action-btns">
+          ${_can('accounting.edit')&&je.status==='draft'?`<button class="action-btn edit" title="Sửa" onclick="editJe('${je.id}')">✏️</button>`:''}
+          ${_can('accounting.post')&&je.status==='draft'?`<button class="action-btn post" title="Ghi sổ" onclick="postJe('${je.id}')">✅</button>`:''}
+          ${_can('accounting.delete')&&je.status!=='posted'?`<button class="action-btn delete" title="Xóa" onclick="promptDeleteJe('${je.id}')">🗑️</button>`:''}
+        </div></td>`:''}
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ── TAB: GENERAL LEDGER ────────────────────────────────────────
+function renderLedger(){
+  const sortedAccounts=[...ACCOUNTS].sort((a,b)=>a.code.localeCompare(b.code));
+  let h=`<div class="card"><div class="ac-header" style="margin-bottom:16px">
+    <div class="ac-filters">
+      <select class="filter-input" onchange="state.glAccount=this.value;render()">
+        <option value="">-- Tất cả tài khoản --</option>
+        ${sortedAccounts.map(a=>`<option value="${a.code}"${state.glAccount===a.code?' selected':''}>${a.code} — ${a.name}</option>`).join('')}
+      </select>
+      <input type="date" class="filter-input" value="${state.glDateFrom}" onchange="state.glDateFrom=this.value;render()" title="Từ ngày">
+      <input type="date" class="filter-input" value="${state.glDateTo}" onchange="state.glDateTo=this.value;render()" title="Đến ngày">
+    </div>
+    <span style="font-size:12px;color:var(--h5c-text-secondary)">Chỉ hiển thị bút toán đã ghi sổ</span>
+  </div>`;
+
+  const displayAccounts=state.glAccount
+    ?sortedAccounts.filter(a=>a.code===state.glAccount)
+    :sortedAccounts;
+
+  let anyData=false;
+  displayAccounts.forEach(acc=>{
+    let postedEntries=JOURNAL_ENTRIES.filter(je=>je.status==='posted');
+    if(state.glDateFrom)postedEntries=postedEntries.filter(je=>je.date>=state.glDateFrom);
+    if(state.glDateTo)postedEntries=postedEntries.filter(je=>je.date<=state.glDateTo);
+
+    const lines=[];
+    postedEntries.sort((a,b)=>a.date>b.date?1:a.date<b.date?-1:0).forEach(je=>{
+      (je.lines||[]).forEach(l=>{
+        if(l.account===acc.code){
+          lines.push({date:je.date,jeId:je.id,desc:l.lineDesc||je.desc,debit:l.debit||0,credit:l.credit||0});
+        }
+      });
+    });
+    if(!lines.length)return;
+
+    anyData=true;
+    let running=acc.openingBalance||0;
+    h+=`<div class="ledger-account-block">
+      <div class="ledger-account-header">
+        <div><span class="acc-code">${acc.code}</span>&nbsp;&nbsp;<span class="acc-name">${acc.name}</span></div>
+        <div>
+          <span class="type-badge ${acc.type}" style="margin-right:12px">${TYPE_LABELS[acc.type]}</span>
+          <span class="acc-balance">${fmt(getAccountBalance(acc.code))}đ</span>
+        </div>
+      </div>
+      <div class="ledger-row header-row">
+        <span>Ngày</span><span>Diễn giải</span><span>Mã BT</span>
+        <span style="text-align:right">Nợ</span><span style="text-align:right">Có</span>
+        <span style="text-align:right">Số dư</span>
+      </div>
+      <div class="ledger-row" style="font-size:11px;color:var(--h5c-text-secondary)">
+        <span></span><span style="font-style:italic">Số dư đầu kỳ</span><span></span>
+        <span></span><span></span>
+        <span style="text-align:right;font-weight:700">${fmt(acc.openingBalance||0)}đ</span>
+      </div>`;
+
+    lines.forEach(l=>{
+      running+=(l.debit||0)-(l.credit||0);
+      h+=`<div class="ledger-row">
+        <span style="font-size:11px">${formatDate(l.date)}</span>
+        <span style="font-size:12px">${l.desc||'—'}</span>
+        <span style="font-size:11px;font-family:monospace;color:var(--h5c-text-secondary)">${l.jeId}</span>
+        <span class="debit" style="text-align:right">${l.debit?fmt(l.debit)+'đ':'—'}</span>
+        <span class="credit" style="text-align:right">${l.credit?fmt(l.credit)+'đ':'—'}</span>
+        <span class="running" style="text-align:right">${fmt(running)}đ</span>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+
+  if(!anyData){
+    h+=`<div class="empty-state"><div class="icon">📒</div><p>Không có dữ liệu sổ cái. Hãy tạo bút toán và ghi sổ để xem dữ liệu.</p></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ── TAB: FINANCIAL REPORTS ─────────────────────────────────────
+function renderReports(){
+  const now=new Date();
+  if(!state.reportMonth)state.reportMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const[ry,rm]=state.reportMonth.split('-');
+  const from=state.reportMonth+'-01';
+  const to=state.reportMonth+'-31';
+
+  function accRevPeriod(code){
+    let b=0;
+    JOURNAL_ENTRIES.filter(je=>je.status==='posted'&&je.date>=from&&je.date<=to).forEach(je=>{
+      (je.lines||[]).forEach(l=>{if(l.account===code)b+=(l.credit||0)-(l.debit||0);});
+    });
+    return b;
+  }
+  function accExpPeriod(code){
+    let b=0;
+    JOURNAL_ENTRIES.filter(je=>je.status==='posted'&&je.date>=from&&je.date<=to).forEach(je=>{
+      (je.lines||[]).forEach(l=>{if(l.account===code)b+=(l.debit||0)-(l.credit||0);});
+    });
+    return b;
+  }
+
+  const revenueAccs=ACCOUNTS.filter(a=>a.type==='revenue');
+  const expenseAccs=ACCOUNTS.filter(a=>a.type==='expense');
+  const assetAccs=ACCOUNTS.filter(a=>a.type==='asset');
+  const liabAccs=ACCOUNTS.filter(a=>a.type==='liability');
+  const equityAccs=ACCOUNTS.filter(a=>a.type==='equity');
+
+  const totalRevenue=revenueAccs.reduce((s,a)=>s+accRevPeriod(a.code),0);
+  const totalExpense=expenseAccs.reduce((s,a)=>s+accExpPeriod(a.code),0);
+  const profit=totalRevenue-totalExpense;
+
+  const totalAssets=assetAccs.reduce((s,a)=>s+getAccountBalance(a.code),0);
+  const totalLiabilities=liabAccs.reduce((s,a)=>s+Math.abs(getAccountBalance(a.code)),0);
+  const totalEquityBase=equityAccs.reduce((s,a)=>s+Math.abs(getAccountBalance(a.code)),0);
+  const totalEquity=totalEquityBase+profit;
+
+  let h=`<div class="card"><div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700">Kỳ báo cáo:</div>
+    <input type="month" class="filter-input" value="${state.reportMonth}" onchange="state.reportMonth=this.value;render()" style="min-width:160px">
+  </div>
+  <div class="report-grid">
+    <div class="report-section">
+      <div class="report-title">Báo cáo KQKD — Tháng ${rm}/${ry}</div>
+      <table class="report-table">
+        <tr class="group-row"><td colspan="2">I. Doanh thu</td></tr>`;
+
+  revenueAccs.forEach(a=>{
+    const v=accRevPeriod(a.code);
+    h+=`<tr><td class="indent-1">${a.code} — ${a.name}</td><td style="text-align:right;font-family:monospace">${fmt(v)}đ</td></tr>`;
+  });
+  h+=`<tr class="group-row"><td>Tổng doanh thu</td><td style="text-align:right;font-family:monospace" class="positive">${fmt(totalRevenue)}đ</td></tr>
+      <tr><td colspan="2" style="height:8px"></td></tr>
+      <tr class="group-row"><td colspan="2">II. Chi phí</td></tr>`;
+
+  expenseAccs.forEach(a=>{
+    const v=accExpPeriod(a.code);
+    h+=`<tr><td class="indent-1">${a.code} — ${a.name}</td><td style="text-align:right;font-family:monospace">${fmt(v)}đ</td></tr>`;
+  });
+  h+=`<tr class="group-row"><td>Tổng chi phí</td><td style="text-align:right;font-family:monospace" class="negative">${fmt(totalExpense)}đ</td></tr>
+      <tr><td colspan="2" style="height:8px"></td></tr>
+      <tr class="total-row">
+        <td>LỢI NHUẬN THUẦN</td>
+        <td style="text-align:right;font-family:monospace" class="${profit>=0?'positive':'negative'}">${profit>=0?'+':''}${fmt(profit)}đ</td>
+      </tr>
+      </table>
+    </div>
+
+    <div class="report-section">
+      <div class="report-title">Bảng cân đối kế toán</div>
+      <table class="report-table">
+        <tr class="group-row"><td colspan="2">TÀI SẢN</td></tr>`;
+
+  assetAccs.forEach(a=>{
+    const v=getAccountBalance(a.code);
+    h+=`<tr><td class="indent-1">${a.code} — ${a.name}</td><td style="text-align:right;font-family:monospace">${fmt(v)}đ</td></tr>`;
+  });
+  h+=`<tr class="group-row"><td>Tổng tài sản (A)</td><td style="text-align:right;font-family:monospace" class="positive">${fmt(totalAssets)}đ</td></tr>
+      <tr><td colspan="2" style="height:8px"></td></tr>
+      <tr class="group-row"><td colspan="2">NỢ PHẢI TRẢ</td></tr>`;
+
+  liabAccs.forEach(a=>{
+    const v=Math.abs(getAccountBalance(a.code));
+    h+=`<tr><td class="indent-1">${a.code} — ${a.name}</td><td style="text-align:right;font-family:monospace">${fmt(v)}đ</td></tr>`;
+  });
+  h+=`<tr class="group-row"><td>Tổng nợ phải trả (B)</td><td style="text-align:right;font-family:monospace" class="negative">${fmt(totalLiabilities)}đ</td></tr>
+      <tr><td colspan="2" style="height:8px"></td></tr>
+      <tr class="group-row"><td colspan="2">VỐN CHỦ SỞ HỮU</td></tr>`;
+
+  equityAccs.forEach(a=>{
+    const v=Math.abs(getAccountBalance(a.code));
+    h+=`<tr><td class="indent-1">${a.code} — ${a.name}</td><td style="text-align:right;font-family:monospace">${fmt(v)}đ</td></tr>`;
+  });
+  h+=`<tr><td class="indent-1" style="font-style:italic">Lợi nhuận kỳ này</td><td style="text-align:right;font-family:monospace" class="${profit>=0?'positive':'negative'}">${fmt(profit)}đ</td></tr>
+      <tr class="group-row"><td>Tổng VCSH (C)</td><td style="text-align:right;font-family:monospace">${fmt(totalEquity)}đ</td></tr>
+      <tr><td colspan="2" style="height:8px"></td></tr>
+      <tr class="total-row">
+        <td>TỔNG NỢ + VCSH (B+C)</td>
+        <td style="text-align:right;font-family:monospace" class="${Math.abs(totalAssets-(totalLiabilities+totalEquity))<1?'positive':'negative'}">${fmt(totalLiabilities+totalEquity)}đ</td>
+      </tr>
+      </table>
+    </div>
+  </div>
+  </div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// ACCOUNT CRUD
+// ════════════════════════════════════════════════════════════════
+function openAccountModal(){
+  document.getElementById('accountForm').reset();
+  document.getElementById('accountId').value='';
+  document.getElementById('accountBalance').value='0';
+  document.getElementById('accountModalTitle').textContent='Thêm tài khoản';
+  document.getElementById('accountModal').classList.remove('hidden');
+}
+function editAccount(code){
+  const a=ACCOUNTS.find(x=>x.code===code);if(!a)return;
+  document.getElementById('accountForm').reset();
+  document.getElementById('accountId').value=a.code;
+  document.getElementById('accountModalTitle').textContent='Sửa tài khoản';
+  document.getElementById('accountCode').value=a.code;
+  document.getElementById('accountType').value=a.type;
+  document.getElementById('accountName').value=a.name;
+  document.getElementById('accountParent').value=a.parent||'';
+  document.getElementById('accountBalance').value=a.openingBalance||0;
+  document.getElementById('accountNote').value=a.note||'';
+  document.getElementById('accountModal').classList.remove('hidden');
+}
+function saveAccount(ev){
+  ev.preventDefault();
+  const origCode=document.getElementById('accountId').value;
+  const code=document.getElementById('accountCode').value.trim();
+  const data={
+    code,
+    name:document.getElementById('accountName').value.trim(),
+    type:document.getElementById('accountType').value,
+    parent:document.getElementById('accountParent').value.trim(),
+    openingBalance:parseInt(document.getElementById('accountBalance').value)||0,
+    note:document.getElementById('accountNote').value.trim()
+  };
+  if(origCode){
+    const idx=ACCOUNTS.findIndex(a=>a.code===origCode);
+    if(idx!==-1)ACCOUNTS[idx]={...ACCOUNTS[idx],...data};
+  }else{
+    if(ACCOUNTS.find(a=>a.code===code)){alert('Mã tài khoản "'+code+'" đã tồn tại!');return;}
+    ACCOUNTS.push(data);
+  }
+  H5C.set('chart_of_accounts',ACCOUNTS);
+  closeModal('accountModal');
+  if(typeof showToast==='function')showToast(origCode?'Đã cập nhật tài khoản':'Đã thêm tài khoản '+code,'success');
+  render();
+}
+function promptDeleteAccount(code){
+  state.deleteTarget=code;state.deleteType='account';
+  document.getElementById('deleteMsg').textContent='Xóa tài khoản '+code+'? Hành động này không thể hoàn tác.';
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+// ════════════════════════════════════════════════════════════════
+// JOURNAL ENTRY CRUD
+// ════════════════════════════════════════════════════════════════
+function openJeModal(){
+  document.getElementById('jeForm').reset();
+  document.getElementById('jeId').value='';
+  document.getElementById('jeModalTitle').textContent='Tạo bút toán';
+  document.getElementById('jeDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('jeStatus').value='draft';
+  document.getElementById('jeLinesBody').innerHTML='';
+  addJeLine(null);addJeLine(null);
+  updateJeBalance();
+  document.getElementById('jeModal').classList.remove('hidden');
+}
+function editJe(id){
+  const je=JOURNAL_ENTRIES.find(x=>x.id===id);if(!je)return;
+  document.getElementById('jeForm').reset();
+  document.getElementById('jeId').value=je.id;
+  document.getElementById('jeModalTitle').textContent='Sửa bút toán';
+  document.getElementById('jeDate').value=je.date||'';
+  document.getElementById('jeRef').value=je.reference||'';
+  document.getElementById('jeDesc').value=je.desc||'';
+  document.getElementById('jeStatus').value=je.status||'draft';
+  document.getElementById('jeLinesBody').innerHTML='';
+  (je.lines||[]).forEach(l=>addJeLine(l));
+  if((je.lines||[]).length<2)addJeLine(null);
+  updateJeBalance();
+  document.getElementById('jeModal').classList.remove('hidden');
+}
+function addJeLine(data){
+  const tbody=document.getElementById('jeLinesBody');
+  const sortedAccounts=[...ACCOUNTS].sort((a,b)=>a.code.localeCompare(b.code));
+  const accOptions=sortedAccounts.map(a=>`<option value="${a.code}"${data&&data.account===a.code?' selected':''}>${a.code} — ${a.name}</option>`).join('');
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><select onchange="updateJeBalance()"><option value="">-- Chọn TK --</option>${accOptions}</select></td>
+    <td><input type="text" placeholder="Diễn giải dòng" value="${data?escHtml(data.lineDesc||''):''}"></td>
+    <td><input type="number" min="0" step="1000" placeholder="0" value="${data&&data.debit?data.debit:''}" oninput="updateJeBalance()"></td>
+    <td><input type="number" min="0" step="1000" placeholder="0" value="${data&&data.credit?data.credit:''}" oninput="updateJeBalance()"></td>
+    <td style="text-align:center"><button type="button" style="background:none;border:none;cursor:pointer;color:var(--h5c-terracotta);font-size:18px;line-height:1" onclick="this.closest('tr').remove();updateJeBalance()">×</button></td>`;
+  tbody.appendChild(tr);
+}
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function updateJeBalance(){
+  const rows=document.getElementById('jeLinesBody').rows;
+  let totalD=0,totalC=0;
+  for(const r of rows){
+    totalD+=parseFloat(r.cells[2].querySelector('input').value)||0;
+    totalC+=parseFloat(r.cells[3].querySelector('input').value)||0;
+  }
+  document.getElementById('jeTotalDebit').textContent=fmt(totalD)+'đ';
+  document.getElementById('jeTotalCredit').textContent=fmt(totalC)+'đ';
+  const balEl=document.getElementById('jeBalanceStatus');
+  if(totalD>0&&Math.abs(totalD-totalC)<1){
+    balEl.textContent='Cân bằng ✓';balEl.className='balanced';
+  }else{
+    balEl.textContent='Chưa cân bằng';balEl.className='unbalanced';
+  }
+}
+function saveJournalEntry(ev){
+  ev.preventDefault();
+  const rows=document.getElementById('jeLinesBody').rows;
+  const lines=[];
+  for(const r of rows){
+    const account=r.cells[0].querySelector('select').value;
+    const lineDesc=r.cells[1].querySelector('input').value.trim();
+    const debit=parseFloat(r.cells[2].querySelector('input').value)||0;
+    const credit=parseFloat(r.cells[3].querySelector('input').value)||0;
+    if(account&&(debit||credit))lines.push({account,lineDesc,debit,credit});
+  }
+  if(!lines.length){alert('Vui lòng nhập ít nhất một dòng bút toán.');return;}
+  const totalD=lines.reduce((s,l)=>s+(l.debit||0),0);
+  const totalC=lines.reduce((s,l)=>s+(l.credit||0),0);
+  if(Math.abs(totalD-totalC)>0.5){alert('Bút toán chưa cân bằng!\nTổng Nợ: '+fmt(totalD)+'đ\nTổng Có: '+fmt(totalC)+'đ\nChênh lệch: '+fmt(Math.abs(totalD-totalC))+'đ');return;}
+
+  const id=document.getElementById('jeId').value;
+  const data={
+    date:document.getElementById('jeDate').value,
+    reference:document.getElementById('jeRef').value.trim(),
+    desc:document.getElementById('jeDesc').value.trim(),
+    status:document.getElementById('jeStatus').value,
+    lines
+  };
+  if(id){
+    const idx=JOURNAL_ENTRIES.findIndex(je=>je.id===id);
+    if(idx!==-1)JOURNAL_ENTRIES[idx]={...JOURNAL_ENTRIES[idx],...data};
+  }else{
+    let newId;do{newId='JE'+Date.now().toString(36).toUpperCase();}while(JOURNAL_ENTRIES.find(je=>je.id===newId));
+    JOURNAL_ENTRIES.push({id:newId,...data,createdBy:state.user.name,createdAt:new Date().toISOString()});
+  }
+  H5C.set('journal_entries',JOURNAL_ENTRIES);
+  closeModal('jeModal');
+  if(typeof showToast==='function')showToast(id?'Đã cập nhật bút toán':'Đã tạo bút toán','success');
+  render();
+}
+function postJe(id){
+  if(!confirm('Ghi sổ bút toán '+id+'?\nSau khi ghi sổ sẽ không thể sửa hoặc xóa.'))return;
+  const je=JOURNAL_ENTRIES.find(x=>x.id===id);if(!je)return;
+  je.status='posted';
+  je.postedBy=state.user.name;
+  je.postedAt=new Date().toISOString();
+  H5C.set('journal_entries',JOURNAL_ENTRIES);
+  if(typeof showToast==='function')showToast('Đã ghi sổ bút toán '+id,'success');
+  render();
+}
+function promptDeleteJe(id){
+  state.deleteTarget=id;state.deleteType='je';
+  document.getElementById('deleteMsg').textContent='Xóa bút toán '+id+'? Hành động này không thể hoàn tác.';
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+function confirmDelete(){
+  if(state.deleteType==='account'){
+    ACCOUNTS=ACCOUNTS.filter(a=>a.code!==state.deleteTarget);
+    H5C.set('chart_of_accounts',ACCOUNTS);
+    if(typeof showToast==='function')showToast('Đã xóa tài khoản','success');
+  }else if(state.deleteType==='je'){
+    JOURNAL_ENTRIES=JOURNAL_ENTRIES.filter(je=>je.id!==state.deleteTarget);
+    H5C.set('journal_entries',JOURNAL_ENTRIES);
+    if(typeof showToast==='function')showToast('Đã xóa bút toán','success');
+  }
+  state.deleteTarget=null;state.deleteType=null;
+  closeModal('deleteModal');
+  render();
+}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('loginPassword').addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
+  const session=loadSession();
+  if(session){state.user=session;showMain();}
+});
+</script>
+</body>
+</html>

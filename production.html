@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Sản xuất</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>
+.prod-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.prod-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);font-size:13px;background:var(--h5c-surface);color:var(--h5c-text);min-width:140px}
+.filter-input:focus{outline:none;border-color:var(--h5c-copper)}
+.tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{padding:10px 24px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+.tab-btn .count{display:inline-block;background:var(--h5c-bg-subtle);padding:2px 8px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:6px}
+.tab-btn.active .count{background:var(--h5c-copper-light);color:var(--h5c-copper-dark)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.status-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
+.status-badge.draft{background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+.status-badge.planned{background:var(--h5c-steel-light);color:var(--h5c-steel)}
+.status-badge.in_progress{background:var(--h5c-amber-light);color:var(--h5c-amber)}
+.status-badge.completed{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.status-badge.cancelled{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.priority-badge{display:inline-block;padding:3px 8px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.priority-badge.high{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.priority-badge.normal{background:var(--h5c-steel-light);color:var(--h5c-steel)}
+.priority-badge.low{background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--h5c-bg-subtle);color:var(--h5c-text);transition:all .2s}
+.action-btn:hover{background:var(--h5c-copper);color:#fff}
+/* Kanban */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;min-height:400px}
+.kanban-col{background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:12px;display:flex;flex-direction:column;gap:10px}
+.kanban-col-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-radius:var(--h5c-radius-sm);display:flex;justify-content:space-between;align-items:center}
+.kanban-card{background:var(--h5c-surface);border-radius:var(--h5c-radius-md);padding:14px;box-shadow:var(--h5c-shadow-sm);cursor:pointer;transition:all .2s;border-left:4px solid transparent}
+.kanban-card:hover{box-shadow:var(--h5c-shadow-md);transform:translateY(-1px)}
+.kanban-card.high{border-left-color:var(--h5c-terracotta)}
+.kanban-card.normal{border-left-color:var(--h5c-steel)}
+.kanban-card.low{border-left-color:var(--h5c-text-muted)}
+.kanban-card .title{font-weight:700;font-size:13px;margin-bottom:6px}
+.kanban-card .sku{font-size:11px;color:var(--h5c-text-secondary);margin-bottom:8px}
+.kanban-card .meta{display:flex;justify-content:space-between;font-size:10px;color:var(--h5c-text-muted)}
+.kanban-card .qty{font-weight:800;font-size:14px;color:var(--h5c-copper-dark)}
+/* Stages */
+.stage-flow{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.stage-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid var(--h5c-border);color:var(--h5c-text-muted)}
+.stage-dot.done{background:var(--h5c-sage);border-color:var(--h5c-sage);color:#fff}
+.stage-dot.active{background:var(--h5c-amber);border-color:var(--h5c-amber);color:#fff}
+/* BOM */
+.bom-material{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--h5c-bg);border-radius:var(--h5c-radius-sm);margin-bottom:6px;font-size:12px}
+.bom-material .name{flex:1;font-weight:600}
+.bom-material .qty{font-weight:700;color:var(--h5c-copper-dark)}
+.bom-material .waste{font-size:10px;color:var(--h5c-text-muted)}
+.shortage-badge{display:inline-block;padding:3px 8px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.surplus-badge{display:inline-block;padding:3px 8px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-bottom:6px;display:block}
+.material-rows{max-height:250px;overflow-y:auto}
+.material-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px}
+.material-row input,.material-row select{font-size:12px;padding:8px}
+@media(max-width:1200px){.kanban{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.kanban{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div><div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title">Quản lý Sản xuất</div></div>
+      <div class="topbar-right">
+        <div class="user-info"><div class="user-avatar" id="userAvatar">TT</div><div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div></div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Production Order Modal -->
+<div id="poModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:640px;max-height:85vh;overflow-y:auto">
+  <div class="modal-title" id="poModalTitle">Tạo lệnh sản xuất</div>
+  <form id="poForm" onsubmit="saveProdOrder(event)">
+    <input type="hidden" id="poId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Sản phẩm *</label>
+        <select id="poSku" class="modal-input" required onchange="onSkuChange()">
+          <option value="">-- Chọn SKU --</option>
+        </select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Số lượng SX *</label><input type="number" id="poPlanQty" class="modal-input" required min="1"></div>
+    </div>
+    <div class="modal-row three">
+      <div class="modal-group"><label class="modal-label">Ưu tiên</label>
+        <select id="poPriority" class="modal-input"><option value="normal">Bình thường</option><option value="high">Cao</option><option value="low">Thấp</option></select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Ngày bắt đầu</label><input type="date" id="poStartDate" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Ngày kết thúc</label><input type="date" id="poEndDate" class="modal-input"></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Phụ trách</label>
+        <select id="poAssign" class="modal-input"><option value="">-- Chọn --</option></select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Đơn hàng liên kết</label>
+        <select id="poOrderRef" class="modal-input"><option value="">-- Không --</option></select>
+      </div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="poNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('poModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- BOM Modal -->
+<div id="bomModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:700px;max-height:85vh;overflow-y:auto">
+  <div class="modal-title" id="bomModalTitle">Công thức sản xuất (BOM)</div>
+  <form id="bomForm" onsubmit="saveBOM(event)">
+    <input type="hidden" id="bomId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Sản phẩm *</label>
+        <select id="bomSku" class="modal-input" required><option value="">-- Chọn SKU --</option></select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Sản lượng đầu ra</label>
+        <div style="display:flex;gap:8px"><input type="number" id="bomOutputQty" class="modal-input" value="1" min="1" style="flex:1"><input type="text" id="bomOutputUnit" class="modal-input" value="Kg" style="width:80px"></div>
+      </div>
+    </div>
+    <div class="modal-group">
+      <label class="modal-label">Nguyên liệu</label>
+      <div class="material-rows" id="bomMaterials"></div>
+      <button type="button" class="btn small" onclick="addBomRow()" style="margin-top:8px">+ Thêm nguyên liệu</button>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="bomNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('bomModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Complete Modal -->
+<div id="completeModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:440px">
+  <div class="modal-title">Hoàn thành lệnh SX</div>
+  <input type="hidden" id="completeId">
+  <div class="modal-group"><label class="modal-label">Số lượng thực tế *</label><input type="number" id="completeActualQty" class="modal-input" min="0" required></div>
+  <div class="modal-group"><label class="modal-label">Kiểm tra chất lượng</label>
+    <div style="display:flex;gap:16px;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="qcResult" value="pass" checked> Đạt</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="qcResult" value="fail"> Không đạt</label>
+    </div>
+  </div>
+  <div class="modal-group"><label class="modal-label">Ghi chú QC</label><textarea id="completeQcNotes" class="modal-input" rows="2"></textarea></div>
+  <div class="modal-btns">
+    <button type="button" class="modal-btn cancel" onclick="closeModal('completeModal')">Hủy</button>
+    <button class="modal-btn primary" onclick="confirmComplete()">Hoàn thành</button>
+  </div>
+</div>
+</div>
+
+<script>
+const H5C=window.H5C||{
+  _k:k=>'h5c_v1_'+k,
+  get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
+  init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
+  clear(k){localStorage.removeItem(this._k(k));},
+  salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
+};
+
+const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
+
+const STATUS_LABELS={draft:'Nháp',planned:'Đã lên kế hoạch',in_progress:'Đang SX',completed:'Hoàn thành',cancelled:'Đã hủy'};
+const STATUS_ICONS={draft:'📝',planned:'📋',in_progress:'⚙️',completed:'✅',cancelled:'❌'};
+const PRIORITY_LABELS={high:'Cao',normal:'Bình thường',low:'Thấp'};
+const STAGES=[
+  {key:'nhap_lieu',label:'Nhập liệu',icon:'📦'},
+  {key:'rang',label:'Rang',icon:'🔥'},
+  {key:'phoi_tron',label:'Phối trộn',icon:'🫘'},
+  {key:'dong_goi',label:'Đóng gói',icon:'📦'},
+  {key:'qc',label:'QC',icon:'🔍'},
+  {key:'nhap_kho',label:'Nhập kho',icon:'🏭'}
+];
+
+function _can(permId){
+  try{
+    const session=state.user;if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL';
+    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
+    if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return true;
+    return false;
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+
+let PROD_ORDERS=[];
+let BOMS=[];
+let state={user:null,tab:'kanban',search:'',filterStatus:'all',bomRows:[]};
+
+const SESSION_KEY='h5c_erp_user';
+function saveSession(user){localStorage.setItem(SESSION_KEY,JSON.stringify({...user,loginAt:Date.now()}));}
+function loadSession(){try{const raw=localStorage.getItem(SESSION_KEY);if(!raw)return null;const s=JSON.parse(raw);if(s.loginAt&&Date.now()-s.loginAt>8*3600000){localStorage.removeItem(SESSION_KEY);return null;}return s;}catch(e){return null;}}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+
+function _getAccountsForLogin(){
+  const stored=H5C.get('accounts');if(stored&&stored.length)return stored;
+  return[
+    {email:'admin@hello5coffee.com',pw:'Admin@123456',name:'Louis Nguyen',role:'C_LEVEL',pos:'CCO & Co-Founder',empId:'EMP001'},
+    {email:'manager@hello5coffee.com',pw:'123456',name:'Nguyễn Thị Lan',role:'MANAGER',pos:'Trưởng phòng',empId:'EMP002'},
+    {email:'sales@hello5coffee.com',pw:'123456',name:'Trần Minh Sales',role:'EMPLOYEE_SALES',pos:'NV Kinh doanh',empId:'EMP003'},
+    {email:'finance@hello5coffee.com',pw:'123456',name:'Phạm Thị Mai',role:'EMPLOYEE_FINANCE',pos:'Kế toán viên',empId:'EMP004'},
+    {email:'nv@hello5coffee.com',pw:'123456',name:'Đặng Văn Hùng',role:'EMPLOYEE_HR',pos:'NV Nhân sự',empId:'EMP005'}
+  ];
+}
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const acc=_getAccountsForLogin().find(a=>(a.email||'').toLowerCase()===email&&a.pw===pw);
+  if(!acc){document.getElementById('loginError').style.display='block';return;}
+  document.getElementById('loginError').style.display='none';
+  state.user={name:acc.name,email:acc.email,role:acc.role,pos:acc.pos,empId:acc.empId};
+  saveSession(state.user);showMain();
+}
+function handleLogout(){state.user=null;clearSession();document.getElementById('loginPage').style.display='';document.getElementById('mainLayout').classList.add('hidden');}
+function showMain(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=state.user.name;
+  document.getElementById('userRole').textContent=state.user.pos||'';
+  document.getElementById('userAvatar').textContent=getInitials(state.user.name);
+  render();
+}
+
+function loadData(){
+  PROD_ORDERS=H5C.get('production_orders')||[];
+  BOMS=H5C.get('boms')||[];
+}
+
+function genPOId(){
+  let n=PROD_ORDERS.length+1;
+  while(PROD_ORDERS.find(p=>p.id==='LSX'+String(n).padStart(3,'0')))n++;
+  return'LSX'+String(n).padStart(3,'0');
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════
+function render(){
+  loadData();
+  const now=new Date();const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const thisMonth=PROD_ORDERS.filter(p=>(p.createdAt||'').startsWith(monthKey));
+  const inProgress=PROD_ORDERS.filter(p=>p.status==='in_progress').length;
+  const completedMonth=thisMonth.filter(p=>p.status==='completed').length;
+  const yieldArr=PROD_ORDERS.filter(p=>p.status==='completed'&&p.planQty>0);
+  const yieldRate=yieldArr.length?Math.round(yieldArr.reduce((s,p)=>s+(p.actualQty||0)/p.planQty,0)/yieldArr.length*100):0;
+
+  let html=`
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card"><div class="kpi-label">Lệnh SX tháng này</div><div class="kpi-value">${thisMonth.length}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Đang sản xuất</div><div class="kpi-value" style="color:var(--h5c-amber)">${inProgress}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Hoàn thành tháng</div><div class="kpi-value" style="color:var(--h5c-sage)">${completedMonth}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Tỷ lệ đạt</div><div class="kpi-value" style="color:var(--h5c-copper-dark)">${yieldRate}%</div><div class="stat-sub">Thực tế / Kế hoạch</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn${state.tab==='kanban'?' active':''}" onclick="state.tab='kanban';render()">Kanban</button>
+      <button class="tab-btn${state.tab==='table'?' active':''}" onclick="state.tab='table';render()">Bảng</button>
+      <button class="tab-btn${state.tab==='bom'?' active':''}" onclick="state.tab='bom';render()">BOM/Công thức <span class="count">${BOMS.length}</span></button>
+      <button class="tab-btn${state.tab==='materials'?' active':''}" onclick="state.tab='materials';render()">Nhu cầu NVL</button>
+    </div>`;
+
+  if(state.tab==='kanban')html+=renderKanban();
+  else if(state.tab==='table')html+=renderTable();
+  else if(state.tab==='bom')html+=renderBOM();
+  else html+=renderMaterials();
+
+  document.getElementById('pageContent').innerHTML=html;
+}
+
+function renderKanban(){
+  const cols=[
+    {status:'draft',label:'Nháp',color:'var(--h5c-text-secondary)',bg:'var(--h5c-bg-subtle)'},
+    {status:'planned',label:'Đã lên KH',color:'var(--h5c-steel)',bg:'var(--h5c-steel-light)'},
+    {status:'in_progress',label:'Đang SX',color:'var(--h5c-amber)',bg:'var(--h5c-amber-light)'},
+    {status:'completed',label:'Hoàn thành',color:'var(--h5c-sage)',bg:'var(--h5c-sage-light)'}
+  ];
+  let h=`<div style="display:flex;justify-content:flex-end;margin-bottom:12px;gap:8px">
+    ${_can('production.create')?'<button class="btn primary" onclick="openProdOrderModal()">+ Lệnh SX</button>':''}
+  </div><div class="kanban">`;
+  cols.forEach(col=>{
+    const items=PROD_ORDERS.filter(p=>p.status===col.status).sort((a,b)=>{const pr={high:0,normal:1,low:2};return(pr[a.priority]||1)-(pr[b.priority]||1);});
+    h+=`<div class="kanban-col">
+      <div class="kanban-col-header" style="background:${col.bg};color:${col.color}">${col.label}<span>${items.length}</span></div>`;
+    items.forEach(p=>{
+      h+=`<div class="kanban-card ${p.priority}" onclick="viewProdOrder('${p.id}')">
+        <div class="title">${p.id}</div>
+        <div class="sku">${p.skuName||'—'}</div>
+        <div class="qty">${fmt(p.planQty)} ${p.unit||'kg'}</div>
+        <div class="meta"><span>${p.assignedTo||'Chưa gán'}</span><span>${formatDate(p.startDate)}</span></div>
+        ${renderStageFlow(p)}
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+
+function renderStageFlow(po){
+  const currentIdx=STAGES.findIndex(s=>s.key===po.currentStage);
+  return`<div class="stage-flow">${STAGES.map((s,i)=>{
+    const cls=i<currentIdx?'done':i===currentIdx?'active':'';
+    return`<div class="stage-dot ${cls}" title="${s.label}">${s.icon}</div>`;
+  }).join('')}</div>`;
+}
+
+function renderTable(){
+  let filtered=[...PROD_ORDERS];
+  if(state.search){const q=state.search.toLowerCase();filtered=filtered.filter(p=>(p.id||'').toLowerCase().includes(q)||(p.skuName||'').toLowerCase().includes(q));}
+  if(state.filterStatus!=='all')filtered=filtered.filter(p=>p.status===state.filterStatus);
+  filtered.sort((a,b)=>b.createdAt>a.createdAt?1:-1);
+
+  let h=`<div class="card"><div class="prod-header">
+    <div class="prod-filters">
+      <input type="text" class="filter-input" placeholder="🔍 Tìm mã LSX, SKU..." value="${state.search}" oninput="state.search=this.value;render()">
+      <select class="filter-input" onchange="state.filterStatus=this.value;render()">
+        <option value="all">Tất cả TT</option>
+        ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}"${state.filterStatus===k?' selected':''}>${v}</option>`).join('')}
+      </select>
+    </div>
+    ${_can('production.create')?'<button class="btn primary" onclick="openProdOrderModal()">+ Lệnh SX</button>':''}
+  </div>
+  <div class="table-container"><table class="data-table"><thead><tr>
+    <th>Mã LSX</th><th>Sản phẩm</th><th>SL kế hoạch</th><th>SL thực tế</th><th>Ưu tiên</th><th>Trạng thái</th><th>Giai đoạn</th><th>Phụ trách</th><th>Ngày BĐ</th><th>Thao tác</th>
+  </tr></thead><tbody>`;
+  filtered.forEach(p=>{
+    h+=`<tr>
+      <td><strong>${p.id}</strong></td>
+      <td style="font-size:12px">${p.skuName||'—'}</td>
+      <td style="font-weight:700">${fmt(p.planQty)}</td>
+      <td style="font-weight:700;color:${p.actualQty?'var(--h5c-sage)':'var(--h5c-text-muted)'}">${p.actualQty?fmt(p.actualQty):'—'}</td>
+      <td><span class="priority-badge ${p.priority}">${PRIORITY_LABELS[p.priority]||p.priority}</span></td>
+      <td><span class="status-badge ${p.status}">${STATUS_ICONS[p.status]} ${STATUS_LABELS[p.status]}</span></td>
+      <td style="font-size:11px">${STAGES.find(s=>s.key===p.currentStage)?.label||'—'}</td>
+      <td style="font-size:12px">${p.assignedTo||'—'}</td>
+      <td style="font-size:12px">${formatDate(p.startDate)}</td>
+      <td><div class="action-btns">
+        ${p.status!=='completed'&&p.status!=='cancelled'&&_can('production.edit')?`<button class="action-btn" title="Tiến giai đoạn" onclick="advanceStage('${p.id}')">⏩</button>`:''}
+        ${p.status==='in_progress'&&_can('production.complete')?`<button class="action-btn" title="Hoàn thành" onclick="openCompleteModal('${p.id}')">✅</button>`:''}
+        ${_can('production.edit')?`<button class="action-btn" title="Sửa" onclick="editProdOrder('${p.id}')">✏️</button>`:''}
+      </div></td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+  return h;
+}
+
+function renderBOM(){
+  let h=`<div class="card"><div class="prod-header">
+    <h3 style="margin:0;font-size:16px">Công thức sản xuất (BOM)</h3>
+    ${_can('production.create')?'<button class="btn primary" onclick="openBOMModal()">+ Thêm BOM</button>':''}
+  </div>`;
+  if(!BOMS.length){
+    h+=`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)"><div style="font-size:40px;margin-bottom:12px">📋</div><p>Chưa có công thức nào</p></div>`;
+  }else{
+    BOMS.forEach(b=>{
+      h+=`<div style="border:1px solid var(--h5c-border-subtle);border-radius:var(--h5c-radius-md);padding:16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div><strong style="font-size:14px">${b.skuName||'—'}</strong><span style="font-size:11px;color:var(--h5c-text-secondary);margin-left:8px">→ ${b.outputQty||1} ${b.outputUnit||'Kg'}</span></div>
+          <div class="action-btns">
+            <button class="action-btn" title="Sửa" onclick="editBOM('${b.id}')">✏️</button>
+            <button class="action-btn" title="Xóa" onclick="deleteBOM('${b.id}')">🗑️</button>
+          </div>
+        </div>`;
+      (b.materials||[]).forEach(m=>{
+        h+=`<div class="bom-material"><span class="name">${m.name}</span><span class="qty">${m.qty} ${m.unit||'kg'}</span><span class="waste">${m.wastePct||0}% hao hụt</span></div>`;
+      });
+      h+=`</div>`;
+    });
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function renderMaterials(){
+  const planned=PROD_ORDERS.filter(p=>p.status==='planned'||p.status==='in_progress');
+  const needs={};
+  planned.forEach(po=>{
+    const bom=BOMS.find(b=>b.skuId===po.skuId);
+    if(!bom)return;
+    const ratio=po.planQty/(bom.outputQty||1);
+    (bom.materials||[]).forEach(m=>{
+      const key=m.materialId||m.name;
+      if(!needs[key])needs[key]={name:m.name,unit:m.unit||'kg',required:0};
+      needs[key].required+=m.qty*ratio*(1+(m.wastePct||0)/100);
+    });
+  });
+
+  const lots=H5C.get('lots')||[];
+  const skus=H5C.get('skus')||[];
+
+  let h=`<div class="card"><div class="prod-header"><h3 style="margin:0;font-size:16px">Nhu cầu nguyên vật liệu</h3>
+    <span style="font-size:12px;color:var(--h5c-text-secondary)">Dựa trên ${planned.length} lệnh SX đang chờ/thực hiện</span>
+  </div>`;
+  const entries=Object.values(needs);
+  if(!entries.length){
+    h+=`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)"><p>Không có nhu cầu NVL (không có lệnh SX pending hoặc chưa có BOM)</p></div>`;
+  }else{
+    h+=`<div class="table-container"><table class="data-table"><thead><tr><th>Nguyên liệu</th><th>Cần</th><th>Tồn kho</th><th>Chênh lệch</th><th>Trạng thái</th></tr></thead><tbody>`;
+    entries.forEach(n=>{
+      const matchSku=skus.find(s=>(s.name||'').toLowerCase().includes(n.name.toLowerCase()));
+      const stock=matchSku?lots.filter(l=>l.skuId===matchSku.id).reduce((s,l)=>s+(l.qtyRemain!=null?l.qtyRemain:l.qty||0),0):0;
+      const diff=stock-Math.ceil(n.required);
+      h+=`<tr>
+        <td><strong>${n.name}</strong></td>
+        <td style="font-weight:700">${fmt(Math.ceil(n.required))} ${n.unit}</td>
+        <td>${fmt(stock)} ${n.unit}</td>
+        <td style="font-weight:700;color:${diff>=0?'var(--h5c-sage)':'var(--h5c-terracotta)'}">${diff>=0?'+':''}${fmt(diff)}</td>
+        <td>${diff>=0?'<span class="surplus-badge">Đủ</span>':'<span class="shortage-badge">Thiếu</span>'}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// PRODUCTION ORDER CRUD
+// ════════════════════════════════════════════════════════════════
+function openProdOrderModal(id){
+  document.getElementById('poForm').reset();
+  document.getElementById('poId').value='';
+  document.getElementById('poModalTitle').textContent='Tạo lệnh sản xuất';
+  // Populate SKU dropdown
+  const skus=H5C.get('skus')||[];
+  document.getElementById('poSku').innerHTML='<option value="">-- Chọn SKU --</option>'+skus.map(s=>`<option value="${s.id}" data-name="${s.name}">${s.name}</option>`).join('');
+  // Populate assign dropdown
+  const emps=H5C.salesList?H5C.salesList():(H5C.get('employees')||[]).filter(e=>e.status!=='inactive').map(e=>e.name);
+  document.getElementById('poAssign').innerHTML='<option value="">-- Chọn --</option>'+emps.map(n=>`<option value="${n}">${n}</option>`).join('');
+  // Populate order ref
+  const orders=H5C.get('orders')||[];
+  document.getElementById('poOrderRef').innerHTML='<option value="">-- Không --</option>'+orders.filter(o=>o.status!=='cancelled').map(o=>`<option value="${o.id}">${o.id} — ${o.customer}</option>`).join('');
+  document.getElementById('poModal').classList.remove('hidden');
+}
+
+function editProdOrder(id){
+  const p=PROD_ORDERS.find(x=>x.id===id);if(!p)return;
+  openProdOrderModal();
+  document.getElementById('poId').value=p.id;
+  document.getElementById('poModalTitle').textContent='Sửa lệnh SX: '+p.id;
+  document.getElementById('poSku').value=p.skuId||'';
+  document.getElementById('poPlanQty').value=p.planQty||'';
+  document.getElementById('poPriority').value=p.priority||'normal';
+  document.getElementById('poStartDate').value=p.startDate||'';
+  document.getElementById('poEndDate').value=p.endDate||'';
+  document.getElementById('poAssign').value=p.assignedTo||'';
+  document.getElementById('poOrderRef').value=p.orderRef||'';
+  document.getElementById('poNotes').value=p.notes||'';
+}
+
+function saveProdOrder(e){
+  e.preventDefault();
+  const id=document.getElementById('poId').value;
+  const skuSel=document.getElementById('poSku');
+  const data={
+    skuId:skuSel.value,
+    skuName:skuSel.options[skuSel.selectedIndex]?.text||'',
+    planQty:parseInt(document.getElementById('poPlanQty').value)||0,
+    priority:document.getElementById('poPriority').value,
+    startDate:document.getElementById('poStartDate').value,
+    endDate:document.getElementById('poEndDate').value,
+    assignedTo:document.getElementById('poAssign').value,
+    orderRef:document.getElementById('poOrderRef').value,
+    notes:document.getElementById('poNotes').value.trim()
+  };
+  if(id){
+    const idx=PROD_ORDERS.findIndex(p=>p.id===id);
+    if(idx!==-1)PROD_ORDERS[idx]={...PROD_ORDERS[idx],...data};
+  }else{
+    PROD_ORDERS.push({id:genPOId(),...data,status:'draft',currentStage:'nhap_lieu',actualQty:0,createdAt:new Date().toISOString().split('T')[0],createdBy:state.user.name});
+  }
+  H5C.set('production_orders',PROD_ORDERS);
+  closeModal('poModal');
+  if(typeof showToast==='function')showToast(id?'Đã cập nhật':'Đã tạo lệnh SX','success');
+  render();
+}
+
+function viewProdOrder(id){
+  const p=PROD_ORDERS.find(x=>x.id===id);if(!p)return;
+  // Quick status advance on click in kanban
+  if(p.status==='draft'){p.status='planned';}
+  else if(p.status==='planned'){p.status='in_progress';p.actualStartDate=new Date().toISOString().split('T')[0];}
+  else if(p.status==='in_progress'){openCompleteModal(id);return;}
+  H5C.set('production_orders',PROD_ORDERS);render();
+}
+
+function advanceStage(id){
+  const p=PROD_ORDERS.find(x=>x.id===id);if(!p)return;
+  const idx=STAGES.findIndex(s=>s.key===p.currentStage);
+  if(idx<STAGES.length-1){
+    p.currentStage=STAGES[idx+1].key;
+    if(p.status==='draft')p.status='planned';
+    if(p.status==='planned'&&idx>=1)p.status='in_progress';
+    H5C.set('production_orders',PROD_ORDERS);render();
+    if(typeof showToast==='function')showToast('Chuyển sang: '+STAGES[idx+1].label,'success');
+  }
+}
+
+function openCompleteModal(id){
+  const p=PROD_ORDERS.find(x=>x.id===id);if(!p)return;
+  document.getElementById('completeId').value=id;
+  document.getElementById('completeActualQty').value=p.planQty;
+  document.getElementById('completeQcNotes').value='';
+  document.getElementById('completeModal').classList.remove('hidden');
+}
+
+function confirmComplete(){
+  const id=document.getElementById('completeId').value;
+  const p=PROD_ORDERS.find(x=>x.id===id);if(!p)return;
+  p.status='completed';
+  p.actualQty=parseInt(document.getElementById('completeActualQty').value)||0;
+  p.actualEndDate=new Date().toISOString().split('T')[0];
+  p.currentStage='nhap_kho';
+  p.qcResult=document.querySelector('input[name="qcResult"]:checked')?.value||'pass';
+  p.qcNotes=document.getElementById('completeQcNotes').value.trim();
+  H5C.set('production_orders',PROD_ORDERS);
+  closeModal('completeModal');
+  if(typeof showToast==='function')showToast('Lệnh SX '+id+' hoàn thành!','success');
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// BOM CRUD
+// ════════════════════════════════════════════════════════════════
+function openBOMModal(){
+  document.getElementById('bomForm').reset();
+  document.getElementById('bomId').value='';
+  document.getElementById('bomModalTitle').textContent='Thêm công thức (BOM)';
+  const skus=H5C.get('skus')||[];
+  document.getElementById('bomSku').innerHTML='<option value="">-- Chọn SKU --</option>'+skus.map(s=>`<option value="${s.id}" data-name="${s.name}">${s.name}</option>`).join('');
+  state.bomRows=[{name:'',qty:1,unit:'kg',wastePct:0}];
+  renderBomRows();
+  document.getElementById('bomModal').classList.remove('hidden');
+}
+
+function editBOM(id){
+  const b=BOMS.find(x=>x.id===id);if(!b)return;
+  openBOMModal();
+  document.getElementById('bomId').value=b.id;
+  document.getElementById('bomModalTitle').textContent='Sửa BOM';
+  document.getElementById('bomSku').value=b.skuId||'';
+  document.getElementById('bomOutputQty').value=b.outputQty||1;
+  document.getElementById('bomOutputUnit').value=b.outputUnit||'Kg';
+  document.getElementById('bomNotes').value=b.notes||'';
+  state.bomRows=[...(b.materials||[])];
+  if(!state.bomRows.length)state.bomRows=[{name:'',qty:1,unit:'kg',wastePct:0}];
+  renderBomRows();
+}
+
+function addBomRow(){state.bomRows.push({name:'',qty:1,unit:'kg',wastePct:0});renderBomRows();}
+function removeBomRow(i){state.bomRows.splice(i,1);renderBomRows();}
+
+function renderBomRows(){
+  document.getElementById('bomMaterials').innerHTML=state.bomRows.map((r,i)=>`
+    <div class="material-row">
+      <input class="modal-input" placeholder="Tên NVL" value="${r.name}" onchange="state.bomRows[${i}].name=this.value">
+      <input class="modal-input" type="number" placeholder="SL" value="${r.qty}" min="0" step="0.1" onchange="state.bomRows[${i}].qty=parseFloat(this.value)||0">
+      <input class="modal-input" placeholder="ĐVT" value="${r.unit}" onchange="state.bomRows[${i}].unit=this.value">
+      <button type="button" style="border:none;background:none;cursor:pointer;font-size:16px;color:var(--h5c-terracotta)" onclick="removeBomRow(${i})">×</button>
+    </div>`).join('');
+}
+
+function saveBOM(e){
+  e.preventDefault();
+  const id=document.getElementById('bomId').value;
+  const skuSel=document.getElementById('bomSku');
+  const data={
+    skuId:skuSel.value,
+    skuName:skuSel.options[skuSel.selectedIndex]?.text||'',
+    outputQty:parseFloat(document.getElementById('bomOutputQty').value)||1,
+    outputUnit:document.getElementById('bomOutputUnit').value||'Kg',
+    materials:state.bomRows.filter(r=>r.name),
+    notes:document.getElementById('bomNotes').value.trim()
+  };
+  if(id){
+    const idx=BOMS.findIndex(b=>b.id===id);
+    if(idx!==-1)BOMS[idx]={...BOMS[idx],...data};
+  }else{
+    let newId;do{newId='BOM'+Date.now().toString(36).toUpperCase();}while(BOMS.find(b=>b.id===newId));
+    BOMS.push({id:newId,...data,status:'active',createdAt:new Date().toISOString().split('T')[0]});
+  }
+  H5C.set('boms',BOMS);closeModal('bomModal');
+  if(typeof showToast==='function')showToast('Đã lưu BOM','success');
+  render();
+}
+
+function deleteBOM(id){
+  if(!confirm('Xóa công thức này?'))return;
+  BOMS=BOMS.filter(b=>b.id!==id);
+  H5C.set('boms',BOMS);render();
+}
+
+function onSkuChange(){}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('loginPassword').addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
+  const session=loadSession();
+  if(session){state.user=session;showMain();}
+});
+</script>
+</body>
+</html>

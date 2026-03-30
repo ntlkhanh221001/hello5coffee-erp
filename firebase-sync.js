@@ -23,7 +23,9 @@
     'order_requests', 'pending_order',
     'pos', 'comm_config', 'suppliers', 'warehouses', 'wh_history',
     'holidays', 'birthday_template',
-    'wholesale_customers', 'dash_config'
+    'wholesale_customers', 'dash_config',
+    'customers', 'payments', 'production_orders', 'boms',
+    'cash_receipts', 'cash_payments', 'bank_accounts'
   ];
 
   const LS_PREFIX = 'h5c_v1_';
