@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Khách hàng</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<script src="core.js?v=3"></script>
+<script src="sidebar.js?v=3"></script>
+<style>
+.cust-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.cust-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:10px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-md);font-size:13px;background:var(--h5c-surface);color:var(--h5c-text);min-width:140px}
+.filter-input:focus{outline:none;border-color:var(--h5c-copper)}
+.type-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.type-badge.dai_ly{background:#E8F0E8;color:#4A7A4D}
+.type-badge.ban_buon{background:#E6EFF8;color:#4A7FB5}
+.type-badge.ban_le{background:#FFF4E6;color:#D4851A}
+.type-badge.horeca{background:#F0EBF5;color:#7B5EA7}
+.type-badge.online{background:#EBF5D0;color:#6E9B32}
+.type-badge.xuat_khau{background:#FBE8E6;color:#C44536}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.status-dot.active{background:var(--h5c-sage)}
+.status-dot.inactive{background:var(--h5c-terracotta)}
+.cust-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.cust-name-cell{display:flex;align-items:center;gap:10px}
+.cust-name-text{display:flex;flex-direction:column}
+.cust-name-text strong{font-size:13px}
+.cust-name-text small{font-size:10px;color:var(--h5c-text-secondary)}
+.action-btns{display:flex;gap:6px}
+.action-btn{width:30px;height:30px;border:none;border-radius:var(--h5c-radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--h5c-bg-subtle);color:var(--h5c-text);transition:all .2s}
+.action-btn.edit:hover{background:var(--h5c-amber);color:#fff}
+.action-btn.delete:hover{background:var(--h5c-terracotta);color:#fff}
+.action-btn.view:hover{background:var(--h5c-steel);color:#fff}
+.kpi-card.clickable{cursor:pointer;transition:all .2s}
+.kpi-card.clickable:hover{transform:translateY(-2px);box-shadow:var(--h5c-shadow-md)}
+.kpi-card.active{border-color:var(--h5c-copper);box-shadow:var(--h5c-shadow-glow)}
+.stat-sub{font-size:11px;color:var(--h5c-text-secondary);margin-top:2px}
+.tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{padding:8px 20px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
+.detail-section{margin-bottom:20px}
+.detail-title{font-size:13px;font-weight:700;color:var(--h5c-text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--h5c-border)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-item{display:flex;flex-direction:column;gap:2px}
+.detail-label{font-size:11px;color:var(--h5c-text-secondary)}
+.detail-value{font-size:13px;font-weight:600;color:var(--h5c-text)}
+.order-mini-table{width:100%;font-size:12px;border-collapse:collapse}
+.order-mini-table th{background:var(--h5c-bg-subtle);padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--h5c-text-secondary)}
+.order-mini-table td{padding:8px 10px;border-bottom:1px solid var(--h5c-border-subtle)}
+.debt-badge{display:inline-block;padding:3px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
+.debt-badge.has-debt{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.debt-badge.clear{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal-row.three{grid-template-columns:1fr 1fr 1fr}
+.modal-group{margin-bottom:16px}
+.modal-label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);margin-bottom:6px;display:block}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:600;background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+.tag .remove{cursor:pointer;font-size:12px;opacity:.6}
+.tag .remove:hover{opacity:1}
+.sort-icon{font-size:10px;opacity:.4;margin-left:4px}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--h5c-copper)}
+th.sorted .sort-icon{opacity:1;color:var(--h5c-copper)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--h5c-text-secondary)}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state p{font-size:14px}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.cust-filters{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-subtitle">Hệ thống Quản lý Nội bộ</div>
+    <div class="login-slogan">Tỉnh thức 5 giác quan · Sống sâu từng khoảnh khắc</div>
+    <div id="loginError" class="login-error">Email hoặc mật khẩu không đúng</div>
+    <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPassword" class="login-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <button id="loginBtn" class="login-btn" onclick="handleLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<div id="mainLayout" class="layout hidden">
+  <aside class="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title" id="pageTitle">Khách hàng</div></div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">TT</div>
+          <div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Customer Modal -->
+<div id="custModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:680px">
+  <div class="modal-title" id="custModalTitle">Thêm khách hàng</div>
+  <form id="custForm" onsubmit="saveCustomer(event)">
+    <input type="hidden" id="custId">
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Mã KH</label><input type="text" id="custCode" class="modal-input" placeholder="Tự động" readonly></div>
+      <div class="modal-group"><label class="modal-label">Loại KH *</label>
+        <select id="custType" class="modal-input" required>
+          <option value="dai_ly">Đại lý</option><option value="ban_buon">Bán buôn</option>
+          <option value="ban_le">Bán lẻ</option><option value="horeca">Horeca</option>
+          <option value="online">Online</option><option value="xuat_khau">Xuất khẩu</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Tên khách hàng / Công ty *</label><input type="text" id="custName" class="modal-input" required></div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Người liên hệ</label><input type="text" id="custContact" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Số điện thoại *</label><input type="tel" id="custPhone" class="modal-input" required></div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Email</label><input type="email" id="custEmail" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Mã số thuế</label><input type="text" id="custTax" class="modal-input"></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Địa chỉ</label><input type="text" id="custAddress" class="modal-input"></div>
+    <div class="modal-row three">
+      <div class="modal-group"><label class="modal-label">Tỉnh/Thành</label><input type="text" id="custCity" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Quốc gia</label><input type="text" id="custCountry" class="modal-input" value="Việt Nam"></div>
+      <div class="modal-group"><label class="modal-label">Trạng thái</label>
+        <select id="custStatus" class="modal-input"><option value="active">Hoạt động</option><option value="inactive">Ngừng HĐ</option></select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-group"><label class="modal-label">Ngân hàng</label><input type="text" id="custBankName" class="modal-input"></div>
+      <div class="modal-group"><label class="modal-label">Số tài khoản</label><input type="text" id="custBankAccount" class="modal-input"></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Nhãn/Tag</label>
+      <div style="display:flex;gap:8px"><input type="text" id="custTagInput" class="modal-input" placeholder="Nhập tag rồi Enter" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag()}"><button type="button" class="modal-btn" onclick="addTag()" style="padding:8px 16px">+</button></div>
+      <div class="tag-list" id="custTags"></div>
+    </div>
+    <div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="custNotes" class="modal-input" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn cancel" onclick="closeModal('custModal')">Hủy</button>
+      <button type="submit" class="modal-btn primary">Lưu</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- Detail Modal -->
+<div id="custDetailModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:780px;max-height:85vh;overflow-y:auto">
+  <div class="modal-title">Chi tiết khách hàng</div>
+  <div id="custDetailContent"></div>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('custDetailModal')">Đóng</button>
+    <button class="modal-btn primary" onclick="editFromDetail()">Sửa</button>
+  </div>
+</div>
+</div>
+
+<!-- Delete Confirm -->
+<div id="deleteModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:400px">
+  <div class="modal-title">Xác nhận xóa</div>
+  <p style="margin-bottom:20px">Bạn có chắc muốn xóa khách hàng này?</p>
+  <div class="modal-btns">
+    <button class="modal-btn cancel" onclick="closeModal('deleteModal')">Không</button>
+    <button class="modal-btn danger" onclick="confirmDelete()">Xóa</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// H5C SHARED STORE
+// ════════════════════════════════════════════════════════════════
+const H5C=window.H5C||{
+  _k:k=>'h5c_v1_'+k,
+  get(k){try{const v=localStorage.getItem(this._k(k));return v?JSON.parse(v):null;}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(this._k(k),JSON.stringify(v));}catch(e){}},
+  init(k,def){const v=this.get(k);if(v!==null)return v;this.set(k,def);return def;},
+  clear(k){localStorage.removeItem(this._k(k));},
+  salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
+};
+
+// ════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════════
+const TYPE_LABELS={dai_ly:'Đại lý',ban_buon:'Bán buôn',ban_le:'Bán lẻ',horeca:'Horeca',online:'Online',xuat_khau:'Xuất khẩu'};
+const STATUS_LABELS={active:'Hoạt động',inactive:'Ngừng HĐ'};
+const AVATAR_COLORS=['#4A7A4D','#4A7FB5','#D4851A','#7B5EA7','#C44536','#38261C','#2A8A7A','#8A6B2A'];
+
+const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
+const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
+const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
+const isCLevel=()=>state.user&&state.user.role==='C_LEVEL';
+
+// ════════════════════════════════════════════════════════════════
+// PERMISSION ENGINE
+// ════════════════════════════════════════════════════════════════
+const _ROLE_PERMS={
+  C_LEVEL:null,
+  MANAGER:{
+    'customers.view':true,'customers.create':true,'customers.edit':true,'customers.delete':true
+  },
+  EMPLOYEE_SALES:{
+    'customers.view':'own','customers.create':true,'customers.edit':'own'
+  },
+  EMPLOYEE_FINANCE:{
+    'customers.view':true
+  },
+  EMPLOYEE_HR:{}
+};
+function _roleDefault(role,permId){const p=_ROLE_PERMS[role];if(p===null)return true;if(!p)return false;const v=p[permId];return v===true||v==='all'||v==='own';}
+
+function _can(permId){
+  try{
+    const session=state.user;if(!session)return false;
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL';
+    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
+    if(acc.role==='C_LEVEL')return true;
+    return _roleDefault(acc.role,permId);
+  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
+}
+function _canScope(permId){
+  try{
+    const session=state.user;if(!session)return 'none';
+    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
+    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
+    if(!acc)return session.role==='C_LEVEL'?'all':'own';
+    if(!acc.permissions){if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return 'all';return 'own';}
+    const val=acc.permissions[permId];
+    if(val==='own')return 'own';if(val===true||val==='all')return 'all';return 'none';
+  }catch(e){return 'none';}
+}
+
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let CUSTOMERS=[];
+let state={
+  user:null, page:1, perPage:15, search:'', filterType:'all', filterStatus:'all',
+  sortField:'createdAt', sortDir:'desc', detailId:null, deleteId:null, tags:[]
+};
+
+// ════════════════════════════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════════════════════════════
+const SESSION_KEY='h5c_erp_user';
+function saveSession(user){localStorage.setItem(SESSION_KEY,JSON.stringify({...user,loginAt:Date.now()}));}
+function loadSession(){try{const raw=localStorage.getItem(SESSION_KEY);if(!raw)return null;const s=JSON.parse(raw);if(s.loginAt&&Date.now()-s.loginAt>8*3600000){localStorage.removeItem(SESSION_KEY);return null;}return s;}catch(e){return null;}}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+
+// ════════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════════
+function _getAccountsForLogin(){
+  const stored=H5C.get('accounts');
+  if(stored&&stored.length)return stored;
+  return[
+    {email:'admin@hello5coffee.com',pw:'Admin@123456',name:'Louis Nguyen',role:'C_LEVEL',pos:'CCO & Co-Founder',empId:'EMP001'},
+    {email:'manager@hello5coffee.com',pw:'123456',name:'Nguyễn Thị Lan',role:'MANAGER',pos:'Trưởng phòng',empId:'EMP002'},
+    {email:'sales@hello5coffee.com',pw:'123456',name:'Trần Minh Sales',role:'EMPLOYEE_SALES',pos:'NV Kinh doanh',empId:'EMP003'},
+    {email:'finance@hello5coffee.com',pw:'123456',name:'Phạm Thị Mai',role:'EMPLOYEE_FINANCE',pos:'Kế toán viên',empId:'EMP004'},
+    {email:'nv@hello5coffee.com',pw:'123456',name:'Đặng Văn Hùng',role:'EMPLOYEE_HR',pos:'NV Nhân sự',empId:'EMP005'}
+  ];
+}
+
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  const accounts=_getAccountsForLogin();
+  const acc=accounts.find(a=>(a.email||'').toLowerCase()===email&&a.pw===pw);
+  if(!acc){document.getElementById('loginError').style.display='block';return;}
+  document.getElementById('loginError').style.display='none';
+  const user={name:acc.name,email:acc.email,role:acc.role,pos:acc.pos,empId:acc.empId};
+  state.user=user;saveSession(user);showMain();
+}
+function handleLogout(){state.user=null;clearSession();document.getElementById('loginPage').style.display='';document.getElementById('mainLayout').classList.add('hidden');}
+function showMain(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=state.user.name;
+  document.getElementById('userRole').textContent=state.user.pos||state.user.role;
+  document.getElementById('userAvatar').textContent=getInitials(state.user.name);
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════════
+function loadData(){
+  const stored=H5C.get('customers');
+  if(stored&&stored.length){CUSTOMERS=stored;}
+}
+
+function genId(){let id;do{id='KH'+Date.now().toString(36).toUpperCase();}while(CUSTOMERS.find(c=>c.id===id));return id;}
+function genCode(){
+  let n=CUSTOMERS.length+1;
+  while(CUSTOMERS.find(c=>c.code==='KH'+String(n).padStart(4,'0')))n++;
+  return 'KH'+String(n).padStart(4,'0');
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════
+function render(){
+  loadData();
+  const orders=H5C.get('orders')||[];
+  const activeCount=CUSTOMERS.filter(c=>c.status==='active').length;
+  const now=new Date();const monthStart=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const newThisMonth=CUSTOMERS.filter(c=>c.createdAt&&c.createdAt.startsWith(monthStart)).length;
+
+  // Calculate revenue from orders
+  let totalRev=0;
+  const custRevMap={};
+  orders.forEach(o=>{
+    const val=o.total||(o.products||[]).reduce((s,p)=>s+(p.qty||0)*(p.unitPrice||0),0);
+    totalRev+=val;
+    const key=(o.customer||'').trim().toLowerCase();
+    if(!custRevMap[key])custRevMap[key]=0;
+    custRevMap[key]+=val;
+  });
+  const avgOrder=orders.length?totalRev/orders.length:0;
+
+  let html=`
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card clickable"><div class="kpi-label">Tổng khách hàng</div><div class="kpi-value">${CUSTOMERS.length}</div><div class="stat-sub">${activeCount} đang hoạt động</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">KH mới tháng này</div><div class="kpi-value">${newThisMonth}</div><div class="stat-sub">Tháng ${now.getMonth()+1}/${now.getFullYear()}</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">Tổng doanh thu</div><div class="kpi-value" style="color:var(--h5c-sage)">${fmtB(totalRev)}đ</div><div class="stat-sub">${orders.length} đơn hàng</div></div>
+      <div class="kpi-card clickable"><div class="kpi-label">TB/Đơn hàng</div><div class="kpi-value" style="color:var(--h5c-steel)">${fmtB(avgOrder)}đ</div><div class="stat-sub">Giá trị trung bình</div></div>
+    </div>
+    <div class="card">
+      <div class="cust-header">
+        <div class="cust-filters">
+          <input type="text" class="filter-input" placeholder="🔍 Tìm tên, SĐT, mã KH..." value="${state.search}" oninput="state.search=this.value;state.page=1;render()">
+          <select class="filter-input" onchange="state.filterType=this.value;state.page=1;render()">
+            <option value="all">Tất cả loại</option>
+            ${Object.entries(TYPE_LABELS).map(([k,v])=>`<option value="${k}"${state.filterType===k?' selected':''}>${v}</option>`).join('')}
+          </select>
+          <select class="filter-input" onchange="state.filterStatus=this.value;state.page=1;render()">
+            <option value="all">Tất cả TT</option>
+            <option value="active"${state.filterStatus==='active'?' selected':''}>Hoạt động</option>
+            <option value="inactive"${state.filterStatus==='inactive'?' selected':''}>Ngừng HĐ</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn secondary" onclick="exportCSV()">📥 Xuất Excel</button>
+          ${_can('customers.create')?'<button class="btn primary" onclick="openCreateModal()">+ Thêm KH</button>':''}
+        </div>
+      </div>
+      ${renderTable(custRevMap)}
+    </div>`;
+  document.getElementById('pageContent').innerHTML=html;
+}
+
+function renderTable(custRevMap){
+  let filtered=[...CUSTOMERS];
+  // Filter
+  if(state.search){
+    const q=state.search.toLowerCase();
+    filtered=filtered.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)||(c.code||'').toLowerCase().includes(q)||(c.contactPerson||'').toLowerCase().includes(q));
+  }
+  if(state.filterType!=='all')filtered=filtered.filter(c=>c.type===state.filterType);
+  if(state.filterStatus!=='all')filtered=filtered.filter(c=>c.status===state.filterStatus);
+
+  // Sort
+  filtered.sort((a,b)=>{
+    let va=a[state.sortField]||'',vb=b[state.sortField]||'';
+    if(typeof va==='string')va=va.toLowerCase();
+    if(typeof vb==='string')vb=vb.toLowerCase();
+    if(va<vb)return state.sortDir==='asc'?-1:1;
+    if(va>vb)return state.sortDir==='asc'?1:-1;
+    return 0;
+  });
+
+  // Paginate
+  const totalPages=Math.ceil(filtered.length/state.perPage)||1;
+  if(state.page>totalPages)state.page=totalPages;
+  const start=(state.page-1)*state.perPage;
+  const pageData=filtered.slice(start,start+state.perPage);
+
+  if(!filtered.length)return `<div class="empty-state"><div class="icon">👥</div><p>Chưa có khách hàng nào</p></div>`;
+
+  const sortIcon=(f)=>`<span class="sort-icon">${state.sortField===f?(state.sortDir==='asc'?'▲':'▼'):'⇅'}</span>`;
+  const thClass=(f)=>`sortable${state.sortField===f?' sorted':''}`;
+
+  let h=`<div class="table-container"><table class="data-table">
+    <thead><tr>
+      <th class="${thClass('code')}" onclick="toggleSort('code')">Mã ${sortIcon('code')}</th>
+      <th class="${thClass('name')}" onclick="toggleSort('name')">Khách hàng ${sortIcon('name')}</th>
+      <th>Loại</th>
+      <th>SĐT</th>
+      <th>Tỉnh/TP</th>
+      <th class="${thClass('_revenue')}" onclick="toggleSort('_revenue')">Doanh thu ${sortIcon('_revenue')}</th>
+      <th>Trạng thái</th>
+      <th class="${thClass('createdAt')}" onclick="toggleSort('createdAt')">Ngày tạo ${sortIcon('createdAt')}</th>
+      <th>Thao tác</th>
+    </tr></thead><tbody>`;
+
+  pageData.forEach(c=>{
+    const colorIdx=Math.abs((c.name||'').charCodeAt(0))%AVATAR_COLORS.length;
+    const rev=custRevMap[(c.name||'').trim().toLowerCase()]||0;
+    h+=`<tr onclick="viewCustomer('${c.id}')" style="cursor:pointer">
+      <td><span style="font-size:11px;font-weight:700;color:var(--h5c-text-secondary)">${c.code||'—'}</span></td>
+      <td><div class="cust-name-cell">
+        <div class="cust-avatar" style="background:${AVATAR_COLORS[colorIdx]}">${getInitials(c.name)}</div>
+        <div class="cust-name-text"><strong>${c.name}</strong><small>${c.contactPerson||c.email||''}</small></div>
+      </div></td>
+      <td><span class="type-badge ${c.type}">${TYPE_LABELS[c.type]||c.type}</span></td>
+      <td>${c.phone||'—'}</td>
+      <td style="font-size:12px">${c.city||'—'}</td>
+      <td style="font-weight:700;color:var(--h5c-sage)">${rev?fmt(rev)+'đ':'—'}</td>
+      <td><span class="status-dot ${c.status}"></span>${STATUS_LABELS[c.status]||c.status}</td>
+      <td style="font-size:12px">${formatDate(c.createdAt)}</td>
+      <td onclick="event.stopPropagation()"><div class="action-btns">
+        <button class="action-btn view" title="Xem" onclick="viewCustomer('${c.id}')">👁</button>
+        ${_can('customers.edit')?`<button class="action-btn edit" title="Sửa" onclick="editCustomer('${c.id}')">✏️</button>`:''}
+        ${_can('customers.delete')?`<button class="action-btn delete" title="Xóa" onclick="deleteCustomer('${c.id}')">🗑️</button>`:''}
+      </div></td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>`;
+
+  // Pagination
+  if(totalPages>1){
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:12px;color:var(--h5c-text-secondary)">
+      <span>Hiển thị ${start+1}-${Math.min(start+state.perPage,filtered.length)} / ${filtered.length} khách hàng</span>
+      <div style="display:flex;gap:4px">
+        <button class="btn small" onclick="state.page=1;render()" ${state.page===1?'disabled':''}>«</button>
+        <button class="btn small" onclick="state.page--;render()" ${state.page===1?'disabled':''}>‹</button>`;
+    for(let i=Math.max(1,state.page-2);i<=Math.min(totalPages,state.page+2);i++){
+      h+=`<button class="btn small${i===state.page?' primary':''}" onclick="state.page=${i};render()">${i}</button>`;
+    }
+    h+=`<button class="btn small" onclick="state.page++;render()" ${state.page===totalPages?'disabled':''}>›</button>
+        <button class="btn small" onclick="state.page=${totalPages};render()" ${state.page===totalPages?'disabled':''}>»</button>
+      </div></div>`;
+  }
+  return h;
+}
+
+function toggleSort(field){
+  if(state.sortField===field){state.sortDir=state.sortDir==='asc'?'desc':'asc';}
+  else{state.sortField=field;state.sortDir='asc';}
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// MODALS - CREATE / EDIT
+// ════════════════════════════════════════════════════════════════
+function openCreateModal(){
+  document.getElementById('custModalTitle').textContent='Thêm khách hàng';
+  document.getElementById('custForm').reset();
+  document.getElementById('custId').value='';
+  document.getElementById('custCode').value=genCode();
+  document.getElementById('custCountry').value='Việt Nam';
+  state.tags=[];renderTags();
+  document.getElementById('custModal').classList.remove('hidden');
+}
+
+function editCustomer(id){
+  const c=CUSTOMERS.find(x=>x.id===id);if(!c)return;
+  document.getElementById('custModalTitle').textContent='Sửa khách hàng';
+  document.getElementById('custId').value=c.id;
+  document.getElementById('custCode').value=c.code||'';
+  document.getElementById('custType').value=c.type||'ban_le';
+  document.getElementById('custName').value=c.name||'';
+  document.getElementById('custContact').value=c.contactPerson||'';
+  document.getElementById('custPhone').value=c.phone||'';
+  document.getElementById('custEmail').value=c.email||'';
+  document.getElementById('custTax').value=c.taxCode||'';
+  document.getElementById('custAddress').value=c.address||'';
+  document.getElementById('custCity').value=c.city||'';
+  document.getElementById('custCountry').value=c.country||'Việt Nam';
+  document.getElementById('custStatus').value=c.status||'active';
+  document.getElementById('custBankName').value=c.bankName||'';
+  document.getElementById('custBankAccount').value=c.bankAccount||'';
+  document.getElementById('custNotes').value=c.notes||'';
+  state.tags=[...(c.tags||[])];renderTags();
+  document.getElementById('custModal').classList.remove('hidden');
+}
+
+function saveCustomer(e){
+  e.preventDefault();
+  const id=document.getElementById('custId').value;
+  const data={
+    code:document.getElementById('custCode').value,
+    type:document.getElementById('custType').value,
+    name:document.getElementById('custName').value.trim(),
+    contactPerson:document.getElementById('custContact').value.trim(),
+    phone:document.getElementById('custPhone').value.trim(),
+    email:document.getElementById('custEmail').value.trim(),
+    taxCode:document.getElementById('custTax').value.trim(),
+    address:document.getElementById('custAddress').value.trim(),
+    city:document.getElementById('custCity').value.trim(),
+    country:document.getElementById('custCountry').value.trim(),
+    status:document.getElementById('custStatus').value,
+    bankName:document.getElementById('custBankName').value.trim(),
+    bankAccount:document.getElementById('custBankAccount').value.trim(),
+    notes:document.getElementById('custNotes').value.trim(),
+    tags:[...state.tags]
+  };
+  if(id){
+    const idx=CUSTOMERS.findIndex(c=>c.id===id);
+    if(idx!==-1)CUSTOMERS[idx]={...CUSTOMERS[idx],...data,updatedAt:new Date().toISOString().split('T')[0]};
+    if(typeof showToast==='function')showToast('Đã cập nhật khách hàng','success');
+  }else{
+    const today=new Date().toISOString().split('T')[0];
+    CUSTOMERS.unshift({id:genId(),...data,createdAt:today,createdBy:state.user.name});
+    if(typeof showToast==='function')showToast('Đã thêm khách hàng mới','success');
+  }
+  H5C.set('customers',CUSTOMERS);
+  closeModal('custModal');render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAGS
+// ════════════════════════════════════════════════════════════════
+function addTag(){
+  const input=document.getElementById('custTagInput');
+  const val=input.value.trim();
+  if(val&&!state.tags.includes(val)){state.tags.push(val);renderTags();}
+  input.value='';
+}
+function removeTag(idx){state.tags.splice(idx,1);renderTags();}
+function renderTags(){
+  document.getElementById('custTags').innerHTML=state.tags.map((t,i)=>`<span class="tag">${t}<span class="remove" onclick="removeTag(${i})">×</span></span>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// DETAIL VIEW
+// ════════════════════════════════════════════════════════════════
+function viewCustomer(id){
+  const c=CUSTOMERS.find(x=>x.id===id);if(!c)return;
+  state.detailId=id;
+  const orders=(H5C.get('orders')||[]).filter(o=>(o.customer||'').trim().toLowerCase()===(c.name||'').trim().toLowerCase());
+  const totalRev=orders.reduce((s,o)=>s+(o.total||(o.products||[]).reduce((ss,p)=>ss+(p.qty||0)*(p.unitPrice||0),0)),0);
+  const lastOrder=orders.length?orders.sort((a,b)=>b.createdAt>a.createdAt?1:-1)[0]:null;
+
+  const colorIdx=Math.abs((c.name||'').charCodeAt(0))%AVATAR_COLORS.length;
+  let html=`
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+      <div class="cust-avatar" style="width:56px;height:56px;font-size:20px;background:${AVATAR_COLORS[colorIdx]}">${getInitials(c.name)}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800">${c.name}</div>
+        <div style="font-size:13px;color:var(--h5c-text-secondary)">${c.code||''} · <span class="type-badge ${c.type}">${TYPE_LABELS[c.type]||c.type}</span> · <span class="status-dot ${c.status}"></span>${STATUS_LABELS[c.status]}</div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-title">Thông tin liên hệ</div>
+      <div class="detail-grid">
+        <div class="detail-item"><span class="detail-label">Người liên hệ</span><span class="detail-value">${c.contactPerson||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Số điện thoại</span><span class="detail-value">${c.phone||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Email</span><span class="detail-value">${c.email||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Mã số thuế</span><span class="detail-value">${c.taxCode||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Địa chỉ</span><span class="detail-value">${c.address||'—'}, ${c.city||''}</span></div>
+        <div class="detail-item"><span class="detail-label">Quốc gia</span><span class="detail-value">${c.country||'Việt Nam'}</span></div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-title">Ngân hàng</div>
+      <div class="detail-grid">
+        <div class="detail-item"><span class="detail-label">Ngân hàng</span><span class="detail-value">${c.bankName||'—'}</span></div>
+        <div class="detail-item"><span class="detail-label">Số tài khoản</span><span class="detail-value">${c.bankAccount||'—'}</span></div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-title">Tổng quan mua hàng</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+        <div class="kpi-card"><div class="kpi-label">Tổng đơn</div><div class="kpi-value">${orders.length}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Tổng doanh thu</div><div class="kpi-value" style="color:var(--h5c-sage)">${fmt(totalRev)}đ</div></div>
+        <div class="kpi-card"><div class="kpi-label">Đơn gần nhất</div><div class="kpi-value" style="font-size:16px">${lastOrder?formatDate(lastOrder.createdAt):'—'}</div></div>
+      </div>`;
+
+  if(orders.length){
+    html+=`<table class="order-mini-table"><thead><tr><th>Mã đơn</th><th>Ngày</th><th>Sản phẩm</th><th>Giá trị</th><th>Trạng thái</th></tr></thead><tbody>`;
+    orders.slice(0,10).forEach(o=>{
+      const val=o.total||(o.products||[]).reduce((s,p)=>s+(p.qty||0)*(p.unitPrice||0),0);
+      const prodName=o.products&&o.products.length?o.products[0].name:'—';
+      html+=`<tr><td style="font-weight:700">${o.id}</td><td>${formatDate(o.createdAt)}</td><td>${prodName}${o.products&&o.products.length>1?' (+' +(o.products.length-1)+')':''}</td><td style="font-weight:700;color:var(--h5c-sage)">${fmt(val)}đ</td><td>${o.status||'—'}</td></tr>`;
+    });
+    html+=`</tbody></table>`;
+    if(orders.length>10)html+=`<p style="font-size:11px;color:var(--h5c-text-secondary);margin-top:8px">... và ${orders.length-10} đơn khác</p>`;
+  }else{
+    html+=`<p style="font-size:13px;color:var(--h5c-text-secondary)">Chưa có đơn hàng nào</p>`;
+  }
+  html+=`</div>`;
+
+  if(c.tags&&c.tags.length){
+    html+=`<div class="detail-section"><div class="detail-title">Nhãn</div><div class="tag-list">${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div>`;
+  }
+  if(c.notes){
+    html+=`<div class="detail-section"><div class="detail-title">Ghi chú</div><p style="font-size:13px;color:var(--h5c-text-secondary)">${c.notes}</p></div>`;
+  }
+  html+=`<div style="font-size:11px;color:var(--h5c-text-muted);margin-top:16px">Tạo bởi ${c.createdBy||'—'} · ${formatDate(c.createdAt)}</div>`;
+
+  document.getElementById('custDetailContent').innerHTML=html;
+  document.getElementById('custDetailModal').classList.remove('hidden');
+}
+
+function editFromDetail(){
+  closeModal('custDetailModal');
+  if(state.detailId)editCustomer(state.detailId);
+}
+
+// ════════════════════════════════════════════════════════════════
+// DELETE
+// ════════════════════════════════════════════════════════════════
+function deleteCustomer(id){state.deleteId=id;document.getElementById('deleteModal').classList.remove('hidden');}
+function confirmDelete(){
+  if(state.deleteId){
+    CUSTOMERS=CUSTOMERS.filter(c=>c.id!==state.deleteId);
+    H5C.set('customers',CUSTOMERS);
+    if(typeof showToast==='function')showToast('Đã xóa khách hàng','success');
+  }
+  closeModal('deleteModal');state.deleteId=null;render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════════════════════
+function exportCSV(){
+  const header=['Mã KH','Tên','Loại','SĐT','Email','Địa chỉ','Tỉnh/TP','Quốc gia','MST','Trạng thái','Ngày tạo'];
+  const rows=CUSTOMERS.map(c=>[c.code,c.name,TYPE_LABELS[c.type]||c.type,c.phone,c.email,c.address,c.city,c.country,c.taxCode,STATUS_LABELS[c.status],c.createdAt]);
+  let csv='\uFEFF'+header.join(',')+'\n'+rows.map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='khach-hang-'+new Date().toISOString().split('T')[0]+'.csv';a.click();
+  if(typeof showToast==='function')showToast('Đã xuất file CSV','success');
+}
+
+// ════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('loginPassword').addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
+  const session=loadSession();
+  if(session){state.user=session;showMain();}
+});
+</script>
+</body>
+</html>
