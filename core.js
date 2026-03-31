@@ -413,8 +413,9 @@
   // ──────────────────────────────────────────────
   const PAGE_MAP = {
     dashboard:'dashboard.html', orders:'orders.html', leads:'leads.html',
-    expenses:'expenses.html', warehouse:'warehouse.html', users:'users.html',
-    reports:'reports.html', announcements:'announcements.html',
+    customers:'customers.html', expenses:'expenses.html', debts:'debts.html',
+    cashbook:'cashbook.html', warehouse:'warehouse.html', production:'production.html',
+    users:'users.html', reports:'reports.html', announcements:'announcements.html',
     accounting:'accounting.html', shipping:'shipping.html', payroll:'payroll.html',
     qc:'qc.html', contracts:'contracts.html',
   };
@@ -425,9 +426,10 @@
     if (PAGE_MAP[page]) {
       // Check module permission before navigating
       const PERM_MAP = {
-        orders:'orders.view', leads:'leads.view', expenses:'expenses.view',
-        warehouse:'wh.view_stock', users:'users.view', reports:'reports.view',
-        announcements:'ann.view',
+        orders:'orders.view', leads:'leads.view', customers:'customers.view',
+        expenses:'expenses.view', debts:'debts.view', cashbook:'cashbook.view',
+        warehouse:'wh.view_stock', production:'production.view',
+        users:'users.view', reports:'reports.view', announcements:'ann.view',
         accounting:'accounting.view', shipping:'shipping.view', payroll:'payroll.view',
         qc:'qc.view', contracts:'contracts.view'
       };
