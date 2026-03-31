@@ -251,6 +251,21 @@
       </div>
       <div class="modal-group"><label class="modal-label">Địa chỉ giao hàng *</label><input type="text" id="orderAddress" class="modal-input" required></div>
       <div class="modal-row three">
+        <div class="modal-group"><label class="modal-label">Phân loại</label>
+          <select id="orderTradeType" class="modal-input">
+            <option value="noi_dia">Nội địa</option>
+            <option value="xuat_khau">Xuất khẩu</option>
+          </select>
+        </div>
+        <div class="modal-group"><label class="modal-label">Mã số thuế (MST)</label><input type="text" id="orderTaxCode" class="modal-input" placeholder="VD: 0123456789"></div>
+        <div class="modal-group"><label class="modal-label">Loại tiền</label>
+          <select id="orderCurrency" class="modal-input">
+            <option value="VND">VND</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-row three">
         <div class="modal-group"><label class="modal-label">Sales phụ trách *</label>
           <select id="orderSales" class="modal-input" required onchange="onSalesChange()">
             <option value="">-- Chọn Sales --</option>
@@ -545,6 +560,21 @@
         <div class="modal-group"><label class="modal-label">Số điện thoại *</label><input type="tel" id="reqPhone" class="modal-input" required></div>
       </div>
       <div class="modal-group"><label class="modal-label">Địa chỉ giao hàng *</label><input type="text" id="reqAddress" class="modal-input" required></div>
+      <div class="modal-row three">
+        <div class="modal-group"><label class="modal-label">Phân loại</label>
+          <select id="reqTradeType" class="modal-input">
+            <option value="noi_dia">Nội địa</option>
+            <option value="xuat_khau">Xuất khẩu</option>
+          </select>
+        </div>
+        <div class="modal-group"><label class="modal-label">Mã số thuế (MST)</label><input type="text" id="reqTaxCode" class="modal-input" placeholder="VD: 0123456789"></div>
+        <div class="modal-group"><label class="modal-label">Loại tiền</label>
+          <select id="reqCurrency" class="modal-input">
+            <option value="VND">VND</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
       <div class="modal-row three">
         <div class="modal-group"><label class="modal-label">Kênh bán</label>
           <select id="reqChannel" class="modal-input">
@@ -849,6 +879,8 @@ function getWholesaleCandidates(){
     address: l.address||'',
     pipeline: l.pipeline,
     channel: l.channel||'',
+    taxCode: l.taxCode||'',
+    tradeType: l.type||'noi_dia',
     _fromLead: true
   }));
   // Thêm wholesale_customers không trùng với leads
@@ -1355,6 +1387,8 @@ function fillReqWholesaleInfo(){
   document.getElementById('reqCustomer').value=cust.name;
   document.getElementById('reqPhone').value=cust.phone;
   document.getElementById('reqAddress').value=cust.address||'';
+  if(cust.tradeType)document.getElementById('reqTradeType').value=cust.tradeType;
+  if(cust.taxCode)document.getElementById('reqTaxCode').value=cust.taxCode;
 }
 
 function addReqProductRow(existing){
@@ -1403,6 +1437,9 @@ function saveOrderRequest(e){
     customer:document.getElementById('reqCustomer').value.trim(),
     phone:document.getElementById('reqPhone').value.trim(),
     address:document.getElementById('reqAddress').value.trim(),
+    tradeType:document.getElementById('reqTradeType').value,
+    taxCode:document.getElementById('reqTaxCode').value.trim(),
+    currency:document.getElementById('reqCurrency').value,
     channel:document.getElementById('reqChannel').value,
     priority:document.getElementById('reqPriority').value,
     deadline:document.getElementById('reqDeadline').value,
@@ -1626,6 +1663,9 @@ function openEditModal(id){
   document.getElementById('orderCustomer').value=o.customer;
   document.getElementById('orderPhone').value=o.phone;
   document.getElementById('orderAddress').value=o.address;
+  document.getElementById('orderTradeType').value=o.tradeType||'noi_dia';
+  document.getElementById('orderTaxCode').value=o.taxCode||'';
+  document.getElementById('orderCurrency').value=o.currency||'VND';
   document.getElementById('orderStatus').value=o.status;
   document.getElementById('orderPayment').value=o.payment;
   document.getElementById('orderProductionDate').value=o.productionDate||'';
@@ -1767,6 +1807,8 @@ function fillWholesaleInfo(){
   document.getElementById('orderPhone').value=cust.phone;
   document.getElementById('orderAddress').value=cust.address||'';
   if(cust.channel)document.getElementById('orderChannel').value=cust.channel;
+  if(cust.tradeType)document.getElementById('orderTradeType').value=cust.tradeType;
+  if(cust.taxCode)document.getElementById('orderTaxCode').value=cust.taxCode;
 }
 
 function setStockSource(src){
@@ -2097,6 +2139,9 @@ function saveOrder(e){
     customer:document.getElementById('orderCustomer').value.trim(),
     phone:document.getElementById('orderPhone').value.trim(),
     address:document.getElementById('orderAddress').value.trim(),
+    tradeType:document.getElementById('orderTradeType').value,
+    taxCode:document.getElementById('orderTaxCode').value.trim(),
+    currency:document.getElementById('orderCurrency').value,
     sales:document.getElementById('orderSales').value,
     channel:document.getElementById('orderChannel').value,
     status:document.getElementById('orderStatus').value,
@@ -2568,6 +2613,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       document.getElementById('orderCustomer').value=po.company||'';
       document.getElementById('orderPhone').value=po.phone||'';
       document.getElementById('orderAddress').value=po.address||'';
+      if(po.tradeType)document.getElementById('orderTradeType').value=po.tradeType;
+      if(po.taxCode)document.getElementById('orderTaxCode').value=po.taxCode;
       if(po.fromLead)setCustType('buon');
       if(po.products&&po.products.length){
         document.getElementById('productRows').innerHTML='';

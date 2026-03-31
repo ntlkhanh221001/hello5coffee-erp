@@ -307,9 +307,15 @@
         </div>
       </div>
 
-      <div class="modal-group">
-        <label class="modal-label">Địa chỉ</label>
-        <input type="text" id="leadAddress" class="modal-input" placeholder="Địa chỉ doanh nghiệp">
+      <div class="modal-row">
+        <div class="modal-group">
+          <label class="modal-label">Địa chỉ</label>
+          <input type="text" id="leadAddress" class="modal-input" placeholder="Địa chỉ doanh nghiệp">
+        </div>
+        <div class="modal-group">
+          <label class="modal-label">Mã số thuế (MST)</label>
+          <input type="text" id="leadTaxCode" class="modal-input" placeholder="VD: 0123456789">
+        </div>
       </div>
 
       <div class="modal-row three">
@@ -1678,6 +1684,7 @@ function openLeadModal(leadId = null) {
     document.getElementById('leadPhone').value = lead.phone;
     document.getElementById('leadEmail').value = lead.email || '';
     document.getElementById('leadAddress').value = lead.address || '';
+    if (document.getElementById('leadTaxCode')) document.getElementById('leadTaxCode').value = lead.taxCode || '';
     document.getElementById('leadType').value = lead.type;
     document.getElementById('leadChannel').value = lead.channel;
     document.getElementById('leadCountry').value = lead.country;
@@ -1942,6 +1949,7 @@ function saveLead(e) {
     phone: document.getElementById('leadPhone').value,
     email: document.getElementById('leadEmail').value,
     address: document.getElementById('leadAddress').value,
+    taxCode: document.getElementById('leadTaxCode')?.value || '',
     type: document.getElementById('leadType').value,
     channel: document.getElementById('leadChannel').value,
     country: document.getElementById('leadCountry').value,
@@ -2140,6 +2148,8 @@ function createOrderFromLead() {
   H5C.set('pending_order', {
     company: lead.company, phone: lead.phone, address: lead.address,
     sales: lead.sales, fromLead: true, leadId: lead.id, products,
+    taxCode: lead.taxCode || '',
+    tradeType: lead.type || 'noi_dia',
     _createdAt: Date.now()
   });
   window.location.href = 'orders.html';

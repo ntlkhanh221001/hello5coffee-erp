@@ -1926,8 +1926,14 @@ function renderInOut(){
       <div class="modal-group"><label class="modal-label">Kho *</label><select id="expWh" class="modal-input" required onchange="updateAllExpLots()">${WAREHOUSES.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
       <div class="modal-group">
         <label class="modal-label">Phục vụ cho đơn hàng nào? (Đã xác nhận)</label>
-        <select id="expLinkedOrder" class="modal-input" onchange="fillExpProductsFromOrder(this.value)">
+        <select id="expLinkedOrder" class="modal-input" onchange="fillExpProductsFromOrder(this.value);_fillExpTradeType(this.value)">
           ${_buildOrderOptions('')}
+        </select>
+      </div>
+      <div class="modal-group"><label class="modal-label">Phân loại</label>
+        <select id="expTradeType" class="modal-input">
+          <option value="noi_dia">Nội địa</option>
+          <option value="xuat_khau">Xuất khẩu</option>
         </select>
       </div>
 
@@ -1957,6 +1963,13 @@ function renderInOut(){
   return h;
 }
 // ═══ Helper: build <option> list từ đơn hàng đã xác nhận ═══
+function _fillExpTradeType(orderId){
+  if(!orderId){document.getElementById('expTradeType').value='noi_dia';return;}
+  const orders=H5C.get('orders')||[];
+  const o=orders.find(x=>x.id===orderId);
+  if(o&&o.tradeType)document.getElementById('expTradeType').value=o.tradeType;
+}
+
 function _buildOrderOptions(selectedId){
   const orders=H5C.get('orders')||[];
   const linkableStatuses=['confirmed','producing','produced','shipping'];
@@ -2261,7 +2274,10 @@ function doExport(e){
   });
   
   if(hasError||!items.length)return;
-  
+
+  const tradeType=document.getElementById('expTradeType')?.value||'noi_dia';
+  const _expLinkedOrderId=document.getElementById('expLinkedOrder')?.value||'';
+
   // Execute all exports
   items.forEach(item=>{
     const lot=LOTS.find(l=>l.id===item.fromLotId);
@@ -2271,7 +2287,7 @@ function doExport(e){
       date, type:'xuat', lotNo, fromLotNo:item.fromLotNo, fromLotId:item.fromLotId,
       skuId:item.skuId, warehouseId:whId,
       qty:item.qty, price:item.price,
-      user:state.user.name, note
+      user:state.user.name, note, tradeType, orderId:_expLinkedOrderId
     });
   });
   
@@ -2304,6 +2320,7 @@ function doExport(e){
     if(_linkedOrderId) msg+='\n📋 Đơn hàng '+_linkedOrderId+' → Sản xuất xong';
     msg+='\n\nXuất phiếu xuất kho Excel?';
     if(confirm(msg)) exportPhieuXuat(_savedExpLotNo);
+    if(confirm('Xuất mẫu bán hàng chuẩn Misa?')) exportMisaFromEX(_savedExpLotNo);
   },100);
 }
 
@@ -2360,7 +2377,8 @@ function renderHistory(){
   list.forEach(l=>{
     const sku=SKUS.find(s=>s.id===l.skuId),wh=WAREHOUSES.find(w=>w.id===l.warehouseId);
     const isFirst=!seenLotNos.has(l.lotNo);seenLotNos.add(l.lotNo);
-    const actionBtns=isFirst?`<div class="action-btns"><button class="action-btn" title="Xuất phiếu Excel" style="background:#E3F2FD;color:#1565C0" onclick="${l.type==='nhap'?`exportPhieuNhap('${l.lotNo}')`:`exportPhieuXuat('${l.lotNo}')`}">📄</button><button class="action-btn" title="Sửa phiếu" onclick="editLotHistory('${l.lotNo}')">✏️</button><button class="action-btn" title="Xóa phiếu" onclick="deleteLotHistory('${l.lotNo}','${l.type}')">🗑️</button></div>`:'';
+    const misaBtn=isFirst&&l.type==='xuat'?`<button class="action-btn" title="Xuất Misa" style="background:#E8F5E9;color:#2E7D32" onclick="exportMisaFromEX('${l.lotNo}')">M</button>`:'';
+    const actionBtns=isFirst?`<div class="action-btns"><button class="action-btn" title="Xuất phiếu Excel" style="background:#E3F2FD;color:#1565C0" onclick="${l.type==='nhap'?`exportPhieuNhap('${l.lotNo}')`:`exportPhieuXuat('${l.lotNo}')`}">📄</button>${misaBtn}<button class="action-btn" title="Sửa phiếu" onclick="editLotHistory('${l.lotNo}')">✏️</button><button class="action-btn" title="Xóa phiếu" onclick="deleteLotHistory('${l.lotNo}','${l.type}')">🗑️</button></div>`:'';
     h+=`<tr><td>${formatDate(l.date)}</td><td><span class="action-badge ${l.type}">${l.type==='nhap'?'Nhập':'Xuất'}</span></td><td><strong>${l.lotNo}</strong></td><td>${sku?sku.name:'—'}</td><td><span class="wh-badge">${wh?wh.code:'—'}</span></td><td>${l.type==='nhap'?'+':'-'}${l.qty}</td><td>${fmt(l.price)}đ</td><td>${fmt((l.qty||0)*(l.price||0))}đ</td><td>${l.user||'—'}</td><td>${l.note||'—'}</td><td>${actionBtns}</td></tr>`;
   });
   h+='</tbody></table></div>';
@@ -2689,6 +2707,7 @@ function renderPO(){
       <td style="font-size:11px;font-weight:700;color:${payColor[po.payStatus||'unpaid']}">${PAY[po.payStatus||'unpaid']}</td>
       <td><div class="action-btns">
         <button class="action-btn" title="Xuất Excel" onclick="exportPO('${po.id}')" style="background:#E3F2FD;color:#1565C0">📄</button>
+        <button class="action-btn" title="Xuất Misa" onclick="exportMisaFromPOR('${po.id}')" style="background:#E8F5E9;color:#2E7D32;font-weight:800;font-size:10px">M</button>
         <button class="action-btn" title="Sửa" onclick="openPOModal('${po.id}')">✏️</button>
         <button class="action-btn" title="Cập nhật trạng thái" onclick="advancePOStatus('${po.id}')" style="background:#E8F5E9;color:#2E7D32">▶</button>
         <button class="action-btn" title="Xóa" onclick="deletePO('${po.id}')">🗑️</button>
@@ -2743,6 +2762,10 @@ function openPOModal(id){
       </div>
       <div><label class="modal-label">TT thanh toán NCC</label><select id="poPayStatus" class="modal-input"><option value="unpaid" ${(!po||po.payStatus==='unpaid')?'selected':''}>Chưa TT</option><option value="partial" ${po&&po.payStatus==='partial'?'selected':''}>Một phần</option><option value="paid" ${po&&po.payStatus==='paid'?'selected':''}>Đã TT</option></select></div>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div><label class="modal-label">Phân loại</label><select id="poTradeType" class="modal-input"><option value="noi_dia" ${po&&po.tradeType==='noi_dia'?'selected':(!po?'selected':'')}>Nội địa</option><option value="xuat_khau" ${po&&po.tradeType==='xuat_khau'?'selected':''}>Xuất khẩu</option></select></div>
+      <div></div>
+    </div>
     <div style="font-size:11px;font-weight:800;color:var(--brown-m);text-transform:uppercase;margin-bottom:8px">Sản phẩm đặt</div>
     <div id="poProductRows"></div>
     <button type="button" style="width:100%;padding:7px;border:1px dashed var(--cream-b);border-radius:6px;background:transparent;color:var(--brown-m);font-size:11px;cursor:pointer;margin-bottom:12px" onclick="addPOProductRow()">+ Thêm sản phẩm</button>
@@ -2793,6 +2816,7 @@ function fillPOProductsFromOrder(orderId){
   const orders=H5C.get('orders')||[];
   const order=orders.find(o=>o.id===orderId);
   if(!order||!order.products||!order.products.length)return;
+  if(order.tradeType){const el=document.getElementById('poTradeType');if(el)el.value=order.tradeType;}
   _poProducts=order.products.map(p=>{
     const skuId=p.productId||p.skuId||'';
     const sku=SKUS.find(s=>s.id===skuId);
@@ -2815,6 +2839,7 @@ function savePO(){
     status:document.getElementById('poStatus').value,
     linkedOrderId,
     payStatus:document.getElementById('poPayStatus').value,
+    tradeType:document.getElementById('poTradeType')?.value||'noi_dia',
     products:[..._poProducts],
     note:document.getElementById('poNote').value
   };
@@ -3452,6 +3477,150 @@ document.addEventListener('DOMContentLoaded',()=>{
   const saved=loadSession();
   if(saved){state.user=saved;showMain();}
 });
+
+// ══════════════════════════════════════════════════════════════
+// XUẤT MẪU BÁN HÀNG CHUẨN MISA (57 cột)
+// ══════════════════════════════════════════════════════════════
+function exportMisaFromEX(lotNo){
+  const records=HISTORY.filter(h=>h.lotNo===lotNo&&h.type==='xuat');
+  if(!records.length){alert('Không tìm thấy phiếu xuất '+lotNo+'!');return;}
+  const rec0=records[0];
+  const allOrders=H5C.get('orders')||[];
+  const linkedOrder=rec0.orderId?allOrders.find(o=>o.id===rec0.orderId):null;
+  // Cũng tìm qua maXuat
+  const orderByMaXuat=!linkedOrder?allOrders.find(o=>o.maXuat===lotNo):linkedOrder;
+  const order=linkedOrder||orderByMaXuat;
+  _exportMisaSheet({
+    docNo:lotNo,
+    date:rec0.date||'',
+    tradeType:rec0.tradeType||(order?order.tradeType:'')||'noi_dia',
+    order:order,
+    items:records.map(r=>{
+      const sku=SKUS.find(s=>s.id===r.skuId);
+      return{code:sku?sku.code:r.skuId,name:sku?sku.name:'',unit:sku?sku.unit:'',qty:r.qty,price:r.price||0};
+    }),
+    source:'EX'
+  });
+}
+
+function exportMisaFromPOR(poId){
+  const po=POS.find(p=>p.id===poId);
+  if(!po){alert('Không tìm thấy PO!');return;}
+  const allOrders=H5C.get('orders')||[];
+  const order=po.linkedOrderId?allOrders.find(o=>o.id===po.linkedOrderId):null;
+  _exportMisaSheet({
+    docNo:po.code||po.id,
+    date:po.orderDate||'',
+    tradeType:po.tradeType||(order?order.tradeType:'')||'noi_dia',
+    order:order,
+    items:po.products.map(p=>{
+      const sku=SKUS.find(s=>s.id===p.skuId);
+      return{code:sku?sku.code:p.skuId,name:sku?sku.name:'',unit:sku?sku.unit:'',qty:p.qty,price:p.unitPrice||0};
+    }),
+    source:'POR'
+  });
+}
+
+function _exportMisaSheet(cfg){
+  const order=cfg.order;
+  const custName=order?order.customer||'':'';
+  const custAddr=order?order.address||'':'';
+  const custCode=order?(order.custType==='le'?'KH0000':(order.custCode||'KH0000')):'KH0000';
+  const taxCode=order?order.taxCode||'':'';
+  const currency=order?order.currency||'VND':'VND';
+  const tradeType=cfg.tradeType||'noi_dia';
+  const hinhThuc=tradeType==='xuat_khau'?'Bán hàng xuất khẩu':'Bán hàng hóa trong nước';
+  const dienGiai='Bán hàng cho '+custName;
+  const lyDoXuat='Xuất kho bán hàng cho '+custName;
+
+  // Header row (57 cột)
+  const headers=[
+    'Hình thức bán hàng','Phương thức thanh toán','Kiêm phiếu xuất kho','Lập kèm hóa đơn',
+    'Đã lập hóa đơn','Ngày hạch toán (*)','Ngày chứng từ (*)','Số chứng từ (*)','Số phiếu xuất',
+    'Mẫu số HĐ','Ký hiệu HĐ','Số hóa đơn','Ngày hóa đơn',
+    'Mã khách hàng','Tên khách hàng','Địa chỉ','Mã số thuế','Đơn vị giao đại lý',
+    'Người nộp','Nộp vào TK','Tên ngân hàng','Diễn giải/Lý do nộp',
+    'Lý do xuất','Loại tiền','Tỷ giá',
+    'Mã hàng (*)','Tên hàng','Là dòng ghi chú','Hàng khuyến mại','Chiết khấu thương mại',
+    'TK Tiền/Chi phí/Nợ (*)','TK Doanh thu/Có (*)','ĐVT','Số lượng','Đơn giá','Thành tiền',
+    'Thành tiền quy đổi','Tỷ lệ CK (%)','Tiền chiết khấu','Tiền chiết khấu quy đổi','TK chiết khấu',
+    'Giá tính thuế XK','% thuế xuất khẩu','Tiền thuế xuất khẩu','TK thuế xuất khẩu',
+    '% thuế GTGT','% thuế suất KHAC','Tiền thuế GTGT','Tiền thuế GTGT quy đổi','TK thuế GTGT',
+    'HH không TH trên tờ khai thuế GTGT',
+    'Mã kho','TK giá vốn','TK Kho','Đơn giá vốn','Tiền vốn','Hàng hóa giữ hộ/bán hộ'
+  ];
+
+  const rows=[headers];
+
+  cfg.items.forEach((item,i)=>{
+    const thanhTien=item.qty*item.price;
+    const vatRate=0.08;
+    const tienThue=Math.round(thanhTien*vatRate);
+    const row=[
+      i===0?hinhThuc:'',                   // Hình thức bán hàng
+      i===0?'Chưa thu tiền':'',            // Phương thức thanh toán
+      i===0?'Có':'',                        // Kiêm phiếu xuất kho
+      i===0?'Không':'',                     // Lập kèm hóa đơn
+      i===0?'Chưa lập':'',                 // Đã lập hóa đơn
+      i===0?cfg.date:'',                    // Ngày hạch toán
+      i===0?cfg.date:'',                    // Ngày chứng từ
+      i===0?cfg.docNo:'',                   // Số chứng từ
+      '',                                    // Số phiếu xuất
+      '','','','',                           // Mẫu số HĐ, Ký hiệu HĐ, Số hóa đơn, Ngày hóa đơn
+      i===0?custCode:'',                    // Mã khách hàng
+      i===0?custName:'',                    // Tên khách hàng
+      i===0?custAddr:'',                    // Địa chỉ
+      i===0?taxCode:'',                     // Mã số thuế
+      '',                                    // Đơn vị giao đại lý
+      '','','',                              // Người nộp, Nộp vào TK, Tên ngân hàng
+      i===0?dienGiai:'',                    // Diễn giải/Lý do nộp
+      i===0?lyDoXuat:'',                    // Lý do xuất
+      i===0?currency:'',                    // Loại tiền
+      '',                                    // Tỷ giá
+      item.code,                             // Mã hàng
+      item.name,                             // Tên hàng
+      'Không',                               // Là dòng ghi chú
+      'Không',                               // Hàng khuyến mại
+      '',                                    // Chiết khấu thương mại
+      '131',                                 // TK Tiền/Chi phí/Nợ
+      '5111',                                // TK Doanh thu/Có
+      item.unit,                             // ĐVT
+      item.qty,                              // Số lượng
+      item.price,                            // Đơn giá
+      thanhTien,                             // Thành tiền
+      '',                                    // Thành tiền quy đổi
+      '','','','',                           // Tỷ lệ CK, Tiền CK, Tiền CK quy đổi, TK chiết khấu
+      '','','','',                           // Giá tính thuế XK, % thuế XK, Tiền thuế XK, TK thuế XK
+      '8%',                                  // % thuế GTGT
+      '',                                    // % thuế suất KHAC
+      tienThue,                              // Tiền thuế GTGT
+      '',                                    // Tiền thuế GTGT quy đổi
+      '33311',                               // TK thuế GTGT
+      'Không',                               // HH không TH trên tờ khai thuế GTGT
+      'HA DONG',                             // Mã kho
+      '632',                                 // TK giá vốn
+      '156',                                 // TK Kho
+      '',                                    // Đơn giá vốn
+      '',                                    // Tiền vốn
+      ''                                     // Hàng hóa giữ hộ/bán hộ
+    ];
+    rows.push(row);
+  });
+
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+
+  // Set column widths
+  ws['!cols']=headers.map((_,i)=>{
+    if(i<=4)return{wch:22};
+    if(i===14||i===15||i===21||i===22)return{wch:30};
+    if(i===26)return{wch:25};
+    return{wch:18};
+  });
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Ban hang');
+  XLSX.writeFile(wb,'Misa_BanHang_'+cfg.docNo+'_'+cfg.date+'.xlsx');
+}
 </script>
 <script src="firebase-sync.js?v=3"></script>
 </body>

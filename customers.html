@@ -301,6 +301,43 @@ function showMain(){
 function loadData(){
   const stored=H5C.get('customers');
   if(stored&&stored.length){CUSTOMERS=stored;}
+  syncLeadsToCustomers();
+}
+
+function syncLeadsToCustomers(){
+  const leads=H5C.get('leads')||[];
+  const qualified=leads.filter(l=>l.pipeline==='chot_don'||l.pipeline==='quay_lai');
+  let changed=false;
+  qualified.forEach(l=>{
+    const exists=CUSTOMERS.find(c=>c.name&&l.company&&c.name.trim().toLowerCase()===l.company.trim().toLowerCase());
+    if(exists){
+      // Cập nhật MST nếu lead có mà customer chưa có
+      if(l.taxCode&&!exists.taxCode){exists.taxCode=l.taxCode;changed=true;}
+      return;
+    }
+    const today=new Date().toISOString().split('T')[0];
+    const typeMap={noi_dia:'ban_buon',xuat_khau:'xuat_khau'};
+    CUSTOMERS.unshift({
+      id:genId(),
+      code:genCode(),
+      type:typeMap[l.type]||'ban_buon',
+      name:l.company,
+      contactPerson:l.representative||'',
+      phone:l.phone||'',
+      email:l.email||'',
+      taxCode:l.taxCode||'',
+      address:l.address||'',
+      city:'',
+      country:l.countryLabel||l.country||'Việt Nam',
+      status:'active',
+      bankName:'',bankAccount:'',notes:'',tags:[],
+      createdAt:today,
+      createdBy:'Hệ thống (từ Lead)',
+      fromLeadId:l.id
+    });
+    changed=true;
+  });
+  if(changed)H5C.set('customers',CUSTOMERS);
 }
 
 function genId(){let id;do{id='KH'+Date.now().toString(36).toUpperCase();}while(CUSTOMERS.find(c=>c.id===id));return id;}
