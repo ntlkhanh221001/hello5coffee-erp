@@ -658,50 +658,7 @@ const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.get
 const getInitials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
 const isCLevel=()=>state.user&&state.user.role==='C_LEVEL';
 
-// === Granular Permission Engine v2 ===
-const _PERM_VIEW_MAP={dashboard:'dash.view',orders:'orders.view',leads:'leads.view',expenses:'expenses.view',warehouse:'wh.view_stock',users:'users.view',reports:'reports.view',announcements:'ann.view'};
-function _can(permId){
-  try{
-    const session=state.user; if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc) return session.role==='C_LEVEL';
-    if(acc.permissions){
-      const val=acc.permissions[permId];
-      return val===true||val==='all'||val==='own';
-    }
-    if(acc.role==='C_LEVEL') return true;
-    return _roleDefault(acc.role,permId);
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
-function _canScope(permId){
-  try{
-    const session=state.user; if(!session)return 'none';
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc) return session.role==='C_LEVEL'?'all':'own';
-    if(!acc.permissions){
-      if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
-      return 'own';
-    }
-    const val=acc.permissions[permId];
-    if(val==='own') return 'own';
-    if(val===true||val==='all') return 'all';
-    return 'none';
-  }catch(e){return 'none';}
-}
-function _roleDefault(role,pid){
-  const S=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
-  const F=['dash.view','dash.kpi_finance','expenses.view','expenses.view_detail','expenses.view_charts','expenses.create','expenses.edit','expenses.mark_paid','reports.view','reports.generate','reports.compare','ann.view'];
-  const H=['dash.view','users.view','users.view_salary','users.view_team','users.create','users.edit','users.attendance','users.kpi','ann.view','ann.create','ann.edit'];
-  const M_DENY=['users.manage_accounts','users.manage_permissions','orders.commission_config','wh.commission_config'];
-  if(role==='EMPLOYEE_SALES') return S.includes(pid);
-  if(role==='EMPLOYEE_FINANCE') return F.includes(pid);
-  if(role==='EMPLOYEE_HR') return H.includes(pid);
-  if(role==='MANAGER') return !M_DENY.includes(pid);
-  return false;
-}
-// === End Permission Engine ===
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 function getExpiryDate(mfg,m){if(!mfg||!m)return null;const d=new Date(mfg);d.setMonth(d.getMonth()+m);return d;}
 function getElapsedPct(mfg,m){if(!mfg||!m)return 0;const now=new Date(),mf=new Date(mfg),exp=getExpiryDate(mfg,m);return Math.min(200,Math.max(0,Math.round(((now-mf)/(exp-mf))*100)));}
@@ -882,6 +839,19 @@ function render(){
     </div>`;
   }
 
+  // Cảnh báo đơn hàng chờ xuất kho
+  const _pendingStockOrders=(H5C.get('orders')||[]).filter(o=>o._stockReserved&&!o._stockExported&&o.status!=='cancelled');
+  if(_pendingStockOrders.length){
+    h+=`<div class="alert-banner" style="border-left:4px solid var(--h5c-amber);background:var(--h5c-amber-light);margin-bottom:16px">
+      <div class="icon">📦</div>
+      <div class="text"><strong>${_pendingStockOrders.length}</strong> đơn hàng đã xác nhận đang chờ xuất kho:
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${_pendingStockOrders.map(o=>
+          `<span style="background:var(--h5c-surface);border:1px solid var(--h5c-border);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="switchTab('inout')" title="${o.customer} — ${(o.products||[]).map(p=>p.name+'('+p.qty+')').join(', ')}">${o.id} — ${o.customer}</span>`
+        ).join('')}</div>
+      </div>
+    </div>`;
+  }
+
   if(state.tab==='stock')h+=renderStock();
   else if(state.tab==='inout')h+=renderInOutWrapper();
   else if(state.tab==='lots')h+=renderLots();
@@ -935,10 +905,12 @@ function renderStockOverview(){
   
   skuList.forEach(sku=>{
     const total=getTotalStock(sku.id);
-    let st='ok',stxt='OK';if(total===0){st='out';stxt='Hết';}else if(total<=sku.minStock){st='low';stxt='Thấp';}
+    const reserved=LOTS.filter(l=>l.type==='nhap'&&l.skuId===sku.id&&(l.reservedQty||0)>0).reduce((a,l)=>a+(l.reservedQty||0),0);
+    const available=total-reserved;
+    let st='ok',stxt='OK';if(total===0){st='out';stxt='Hết';}else if(available<=0){st='low';stxt='Giữ hết';}else if(total<=sku.minStock){st='low';stxt='Thấp';}
     h+=`<tr><td><strong>${sku.code}</strong></td><td>${sku.name}</td><td><span class="type-badge ${sku.type}">${TYPE_LABELS[sku.type]}</span></td><td>${UNIT_LABELS[sku.unit]||sku.unit}</td>`;
     WAREHOUSES.forEach(wh=>{const qty=getStockByLots(sku.id,wh.id);h+=`<td style="text-align:center">${qty||'—'}</td>`;});
-    h+=`<td style="text-align:center"><strong>${total}</strong></td><td><span class="stock-badge ${st}">${stxt}</span></td></tr>`;
+    h+=`<td style="text-align:center"><strong>${total}</strong>${reserved?`<div style="font-size:9px;color:var(--h5c-amber);font-weight:700">Giữ: ${reserved} · Khả dụng: ${available}</div>`:''}</td><td><span class="stock-badge ${st}">${stxt}</span></td></tr>`;
     
     // Opening balance sub-row
     const obLots=LOTS.filter(l=>l.lotNo==='DU_DAU_KY'&&l.skuId===sku.id&&l.qtyRemain>0);
@@ -966,7 +938,8 @@ function renderWarehouseDetail(whId){
   lots.forEach(l=>{
     const sku=SKUS.find(s=>s.id===l.skuId),exp=getExpiryDate(l.mfgDate,l.bestBeforeMonths),pct=getElapsedPct(l.mfgDate,l.bestBeforeMonths);
     let st='ok',stxt='OK';if(l.bestBeforeMonths){if(pct>=100){st='out';stxt='Hết hạn';}else if(pct>=66){st='low';stxt='Sắp hạn';}}
-    h+=`<tr><td><strong>${l.lotNo}</strong></td><td>${sku?sku.code:'—'}</td><td>${sku?sku.name:'—'}</td><td>${formatDate(l.date)}</td><td>${l.qty}</td><td><strong>${l.qtyRemain}</strong></td><td>${fmt(l.price)}đ</td><td>${l.location||'—'}</td><td>${formatDate(l.mfgDate)}</td><td>${formatDate(exp)}</td><td><span class="stock-badge ${st}">${stxt}</span></td></tr>`;
+    const resv=l.reservedQty||0;
+    h+=`<tr><td><strong>${l.lotNo}</strong></td><td>${sku?sku.code:'—'}</td><td>${sku?sku.name:'—'}</td><td>${formatDate(l.date)}</td><td>${l.qty}</td><td><strong>${l.qtyRemain}</strong>${resv?`<div style="font-size:9px;color:var(--h5c-amber)">Giữ: ${resv}</div>`:''}</td><td>${fmt(l.price)}đ</td><td>${l.location||'—'}</td><td>${formatDate(l.mfgDate)}</td><td>${formatDate(exp)}</td><td><span class="stock-badge ${st}">${stxt}</span></td></tr>`;
   });
   if(!lots.length)h+='<tr><td colspan="11"><div class="empty-state">Kho chưa có hàng</div></td></tr>';
   h+='</tbody></table></div>';
@@ -2307,6 +2280,18 @@ function doExport(e){
         const prod=_ord.products.find(function(p){return (p.productId||p.skuId)===item.skuId;});
         if(prod)prod.costPerUnit=item.price;
       });
+      _ord._stockExported=true;
+      delete _ord._stockReserved;
+      delete _ord._stockReservedAt;
+      // Clear reservedQty from lots for this order
+      LOTS.forEach(function(lot){
+        if(lot._reservedOrders&&lot._reservedOrders.length){
+          var released=lot._reservedOrders.filter(function(r){return r.orderId===_linkedOrderId;});
+          released.forEach(function(r){lot.reservedQty=Math.max(0,(lot.reservedQty||0)-r.qty);});
+          lot._reservedOrders=lot._reservedOrders.filter(function(r){return r.orderId!==_linkedOrderId;});
+        }
+      });
+      H5C.set('lots',LOTS);
       if(!_ord.statusLog)_ord.statusLog=[];
       _ord.statusLog.push({status:'produced',at:new Date().toISOString().split('T')[0],by:state.user.name,note:'Phiếu xuất '+lotNo});
       H5C.set('orders',_orders);

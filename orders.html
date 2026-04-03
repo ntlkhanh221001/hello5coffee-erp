@@ -466,6 +466,7 @@
     <div class="modal-btns">
       <button class="modal-btn cancel" onclick="closeModal('detailModal')">Đóng</button>
       <button class="modal-btn" id="detailProgressBtn" style="background:var(--h5c-sage-light);color:var(--h5c-sage);flex:1;font-weight:700;border:none;padding:11px;border-radius:9px;cursor:pointer" onclick="progressFromDetail()">Cập nhật tiến độ</button>
+      <button class="modal-btn" id="detailReturnBtn" style="background:var(--h5c-terracotta-light);color:var(--h5c-terracotta);font-weight:700;border:none;padding:11px;border-radius:9px;cursor:pointer;display:none" onclick="returnFromDetail()">↩️ Trả hàng</button>
       <button class="modal-btn primary" id="detailEditBtn" onclick="editFromDetail()">Chỉnh sửa</button>
     </div>
   </div>
@@ -534,6 +535,26 @@
     <div class="modal-btns">
       <button class="modal-btn cancel" onclick="closeModal('restoreModal')">Không</button>
       <button class="modal-btn primary" onclick="submitRestoreRequest()">Gửi yêu cầu khôi phục</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RETURN MODAL ═══ -->
+<div id="returnModal" class="modal-overlay hidden">
+  <div class="modal large">
+    <div class="modal-title">Trả hàng — <span id="returnOrderId" style="color:var(--h5c-terracotta)"></span></div>
+    <div id="returnProductRows" style="margin-bottom:12px"></div>
+    <div class="modal-group"><label class="modal-label">Lý do trả hàng *</label><textarea id="returnReason" class="modal-input" rows="2" placeholder="Nhập lý do trả hàng..." required></textarea></div>
+    <div class="modal-row two">
+      <div class="modal-group"><label class="modal-label">Hoàn tiền</label><select id="returnRefundMethod" class="modal-input"><option value="tien_mat">Tiền mặt</option><option value="ngan_hang">Chuyển khoản</option><option value="khong">Không hoàn tiền</option></select></div>
+      <div class="modal-group"><label class="modal-label">Nhập lại kho</label><select id="returnWarehouse" class="modal-input"><option value="">Không nhập kho</option></select></div>
+    </div>
+    <div style="background:var(--h5c-terracotta-light);border-radius:8px;padding:10px;font-size:11px;color:var(--h5c-terracotta);margin-bottom:10px">
+      Trả hàng sẽ tự động tạo phiếu chi hoàn tiền (nếu chọn) và nhập lại tồn kho (nếu chọn kho).
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('returnModal')">Hủy</button>
+      <button class="modal-btn danger" onclick="submitReturn()">Xác nhận trả hàng</button>
     </div>
   </div>
 </div>
@@ -686,8 +707,8 @@ const NAV_ITEMS=[
   {id:'announcements',icon:'📢',label:'Thông báo'},
 ];
 const STATUS_STEPS=[{key:'confirmed',icon:'✅',label:'Mới XN'},{key:'producing',icon:'⚙️',label:'SX'},{key:'produced',icon:'📦',label:'SX Xong'},{key:'shipping',icon:'🚚',label:'Vận chuyển'},{key:'completed',icon:'🎉',label:'Xong'}];
-const STATUS_LABELS={confirmed:'Mới xác nhận',producing:'Đang sản xuất',produced:'SX Xong',shipping:'Đang vận chuyển',completed:'Hoàn thành',cancelled:'Đã hủy'};
-const STATUS_ICONS={confirmed:'✅',producing:'⚙️',produced:'📦',shipping:'🚚',completed:'🎉',cancelled:'❌'};
+const STATUS_LABELS={confirmed:'Mới xác nhận',producing:'Đang sản xuất',produced:'SX Xong',shipping:'Đang vận chuyển',completed:'Hoàn thành',returned:'Đã trả hàng',cancelled:'Đã hủy'};
+const STATUS_ICONS={confirmed:'✅',producing:'⚙️',produced:'📦',shipping:'🚚',completed:'🎉',returned:'↩️',cancelled:'❌'};
 const CHANNEL_LABELS={website:'🌐 Website',shopee:'🛍 Shopee',lazada:'🛒 Lazada',dai_ly:'🏪 Đại lý',truc_tiep:'🤝 Trực tiếp',zalo:'💬 Zalo',facebook:'📘 Facebook',tiktok:'🎵 TikTok'};
 const PAY_LABELS={unpaid:'Chưa TT',partial:'Một phần',paid:'Đã TT'};
 
@@ -711,56 +732,7 @@ const isCLevel=()=>state.user&&(state.user.role==='C_LEVEL');
 const isManager=()=>state.user&&(state.user.role==='C_LEVEL'||state.user.role==='MANAGER');
 const closeModal=id=>document.getElementById(id).classList.add('hidden');
 
-// ═══ Granular Permission Engine (reads h5c_v1_accounts) ═══
-const _VIEW_MAP={dashboard:'dash.view',orders:'orders.view',leads:'leads.view',expenses:'expenses.view',warehouse:'wh.view_stock',users:'users.view',reports:'reports.view',announcements:'ann.view'};
-function _can(permId){
-  try{
-    const session=state.user; if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc) return session.role==='C_LEVEL';
-    let perms;
-    if(acc.permissions){ perms=acc.permissions; }
-    else{
-      // Built-in role defaults (matching users.html BUILTIN_TEMPLATES)
-      const DEFAULTS={C_LEVEL:null,MANAGER:'manager',EMPLOYEE_SALES:'sales',EMPLOYEE_FINANCE:'finance',EMPLOYEE_HR:'hr'};
-      if(DEFAULTS[acc.role]===null) return true; // C_LEVEL gets everything
-      return _roleDefault(acc.role,permId);
-    }
-    const val=perms[permId];
-    return val===true||val==='all'||val==='own';
-  }catch(e){return isCLevel();}
-}
-function _canScope(permId){
-  try{
-    const session=state.user; if(!session)return 'none';
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc) return session.role==='C_LEVEL'?'all':'own';
-    if(!acc.permissions){
-      if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
-      return 'own';
-    }
-    const val=acc.permissions[permId];
-    if(val==='own') return 'own';
-    if(val===true||val==='all') return 'all';
-    return 'none';
-  }catch(e){return 'none';}
-}
-function _roleDefault(role,permId){
-  const SALES_PERMS=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
-  const FINANCE_PERMS=['dash.view','dash.kpi_finance','expenses.view','expenses.view_detail','expenses.view_charts','expenses.create','expenses.edit','expenses.mark_paid','reports.view','reports.generate','reports.compare','ann.view'];
-  const HR_PERMS=['dash.view','users.view','users.view_salary','users.view_team','users.create','users.edit','users.attendance','users.kpi','ann.view','ann.create','ann.edit'];
-  if(role==='EMPLOYEE_SALES') return SALES_PERMS.includes(permId);
-  if(role==='EMPLOYEE_FINANCE') return FINANCE_PERMS.includes(permId);
-  if(role==='EMPLOYEE_HR') return HR_PERMS.includes(permId);
-  if(role==='MANAGER') {
-    const DENY=['users.manage_accounts','users.manage_permissions','orders.commission_config','wh.commission_config'];
-    return !DENY.includes(permId);
-  }
-  return false;
-}
-// Compat wrappers (used in cancel/restore flows)
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 function canApproveCancel(){return _can('orders.approve_cancel');}
 function canApproveRestore(){return _can('orders.approve_restore');}
 
@@ -907,14 +879,14 @@ function render(){
 function pendingEditCount(){return ORDERS.filter(o=>o.pendingEdit).length;}
 
 function buildPage(){
-  const all=ORDERS.filter(o=>o.status!=='cancelled');
+  const all=ORDERS.filter(o=>o.status!=='cancelled'&&o.status!=='returned');
   const totalRev=all.reduce((s,o)=>{const f=calcOrderFinancials(o);return s+f.totalRevenue;},0);
   const completed=ORDERS.filter(o=>o.status==='completed').length;
   const pending=ORDERS.filter(o=>['confirmed','producing','produced','shipping'].includes(o.status)).length;
   const pendingApproval=pendingEditCount();
   const pendingCancels=ORDERS.filter(o=>o.pendingCancel).length;
   const pendingRestores=ORDERS.filter(o=>o.pendingRestore).length;
-  const cancelledCount=ORDERS.filter(o=>o.status==='cancelled').length;
+  const cancelledCount=ORDERS.filter(o=>o.status==='cancelled'||o.status==='returned').length;
   const _reqScope=_canScope('orders.view');
   const _scopedReqs=(_reqScope==='own'&&state.user)?ORDER_REQUESTS.filter(r=>r.requestedBy===state.user.name):ORDER_REQUESTS;
   const pendingRequests=_scopedReqs.filter(r=>r.status==='pending').length;
@@ -1023,8 +995,8 @@ function getFiltered(){
   return ORDERS.filter(o=>{
     // Scope: only own orders if permission is 'own'
     if(scope==='own'&&o.sales!==state.user.name)return false;
-    // Cancelled orders go to separate tab — exclude from main list
-    if(o.status==='cancelled'&&!o.pendingCancel)return false;
+    // Cancelled/returned orders go to separate tab — exclude from main list
+    if((o.status==='cancelled'||o.status==='returned')&&!o.pendingCancel)return false;
     // Orders pending cancel still show in main list with badge
     if(state.filterStatus==='pending'){if(!['confirmed','producing','produced','shipping'].includes(o.status))return false;}
     else if(state.filterStatus!=='all'&&o.status!==state.filterStatus)return false;
@@ -1139,25 +1111,27 @@ function renderApprovalTab(){
 // ════════════════════════════════════════════════════════════════
 function renderCancelledTab(){
   const scope=_canScope('orders.view');
-  const cancelled=ORDERS.filter(o=>o.status==='cancelled'&&(scope==='all'||o.sales===state.user.name));
-  if(!cancelled.length)return`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)">Không có đơn hàng nào đã hủy</div>`;
+  const cancelled=ORDERS.filter(o=>(o.status==='cancelled'||o.status==='returned')&&(scope==='all'||o.sales===state.user.name));
+  if(!cancelled.length)return`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)">Không có đơn hàng nào đã hủy/trả hàng</div>`;
 
-  let h=`<div style="font-size:12px;color:var(--h5c-text-secondary);margin-bottom:14px">${cancelled.length} đơn đã hủy</div>`;
+  let h=`<div style="font-size:12px;color:var(--h5c-text-secondary);margin-bottom:14px">${cancelled.length} đơn đã hủy/trả hàng</div>`;
   cancelled.forEach(o=>{
     const fin=calcOrderFinancials(o);
     const hasPendingRestore=!!o.pendingRestore;
-    h+=`<div class="cancel-card ${hasPendingRestore?'pending-restore':'cancelled'}">
+    const isReturned=o.status==='returned';
+    h+=`<div class="cancel-card ${hasPendingRestore?'pending-restore':'cancelled'}" style="${isReturned?'border-left:3px solid var(--h5c-terracotta)':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
-          <div style="font-size:14px;font-weight:900;color:var(--h5c-text)">${o.id} — ${o.customer}</div>
+          <div style="font-size:14px;font-weight:900;color:var(--h5c-text)">${o.id} — ${o.customer} ${isReturned?'<span style="font-size:11px;color:var(--h5c-terracotta);font-weight:700">↩️ Trả hàng</span>':''}</div>
           <div style="font-size:11px;color:var(--h5c-text-secondary);margin-top:3px">
-            Hủy bởi: ${o.cancelledBy||'—'} · ${fmtDate(o.cancelledAt)} · Lý do: <em>${o.cancelReason||'Không có'}</em>
+            ${isReturned?'Trả hàng: '+fmtDate(o._returnedAt)+' · Lý do: <em>'+(o._returnReason||'Không có')+'</em>':'Hủy bởi: '+(o.cancelledBy||'—')+' · '+fmtDate(o.cancelledAt)+' · Lý do: <em>'+(o.cancelReason||'Không có')+'</em>'}
           </div>
+          ${isReturned&&o._returnItems?`<div style="font-size:10px;color:var(--h5c-terracotta);margin-top:3px">SP trả: ${o._returnItems.map(it=>it.name+' x'+it.returnQty).join(', ')}</div>`:''}
           ${hasPendingRestore?`<div style="font-size:11px;color:var(--h5c-steel);margin-top:4px;font-weight:700">Đang chờ duyệt khôi phục (bởi ${o.pendingRestore.requestedBy})</div>`:''}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           ${hasPendingRestore?`<span class="cancel-status-badge pending_restore">Chờ duyệt khôi phục</span>`:`
-            ${_can('orders.request_restore')?`<button class="btn-add" style="padding:6px 12px;font-size:11px;background:var(--h5c-steel);color:#fff" onclick="event.stopPropagation();openRestoreModal('${o.id}')">Yêu cầu khôi phục</button>`:''}
+            ${_can('orders.request_restore')&&!isReturned?`<button class="btn-add" style="padding:6px 12px;font-size:11px;background:var(--h5c-steel);color:#fff" onclick="event.stopPropagation();openRestoreModal('${o.id}')">Yêu cầu khôi phục</button>`:''}
           `}
         </div>
       </div>
@@ -1519,6 +1493,49 @@ function openProgressModal(id){
   document.getElementById('prgDeliveryDate').value=o.deliveryDate||'';
   document.getElementById('prgNote').value='';
   document.getElementById('progressModal').classList.remove('hidden');
+
+  // P2-3: Check missing linked data for orders that already passed certain stages
+  _checkMissingLinkedData(o);
+}
+
+function _checkMissingLinkedData(order){
+  const missing=[];
+  const prodOrders=H5C.get('production_orders')||[];
+  const shipments=H5C.get('shipments')||[];
+  const entries=H5C.get('journal_entries')||[];
+  const receipts=H5C.get('cash_receipts')||[];
+  const stepIdx=STATUS_STEPS.findIndex(s=>s.key===order.status);
+  const producingIdx=STATUS_STEPS.findIndex(s=>s.key==='producing');
+  const shippingIdx=STATUS_STEPS.findIndex(s=>s.key==='shipping');
+  const completedIdx=STATUS_STEPS.findIndex(s=>s.key==='completed');
+
+  // If past "producing" but no LSX
+  if(stepIdx>=producingIdx&&!prodOrders.find(p=>p._orderRef===order.id||p.orderRef===order.id))
+    missing.push({label:'Lệnh sản xuất (LSX)',action:'production'});
+  // If past "shipping" but no shipment
+  if(stepIdx>=shippingIdx&&!shipments.find(s=>s._orderRef===order.id||s.orderId===order.id))
+    missing.push({label:'Đơn giao hàng (GH)',action:'shipment'});
+  // If "completed" but no journal entry
+  if(order.status==='completed'&&!entries.find(je=>je._orderRef===order.id))
+    missing.push({label:'Bút toán doanh thu (JE)',action:'journal'});
+  // If paid but no cash receipt
+  if(order.payment==='paid'&&!receipts.find(r=>r._orderRef===order.id))
+    missing.push({label:'Phiếu thu (PT)',action:'receipt'});
+
+  if(!missing.length)return;
+
+  const msgList=missing.map(m=>m.label).join(', ');
+  setTimeout(()=>{
+    if(confirm('Đơn '+order.id+' thiếu dữ liệu liên kết:\n• '+missing.map(m=>m.label).join('\n• ')+'\n\nTạo bổ sung tự động?')){
+      missing.forEach(m=>{
+        if(m.action==='production')_autoCreateProductionOrder({...order,status:'producing'});
+        if(m.action==='shipment')_autoCreateShipment({...order,status:'shipping'});
+        if(m.action==='journal')_autoCreateJournalEntry({...order,status:'completed'});
+        if(m.action==='receipt')_autoCreateCashReceipt(order);
+      });
+      showToast('Đã tạo bổ sung: '+msgList,'success');
+    }
+  },300);
 }
 
 function selectProgressStatus(key){
@@ -1593,6 +1610,161 @@ function _autoCreateExpenseFromPO(order){
   H5C.set('expenses',expenses);
 }
 
+function _autoCreateJournalEntry(order){
+  if(order.status!=='completed')return;
+  const entries=H5C.get('journal_entries')||[];
+  // Duplicate check
+  if(entries.find(je=>je._orderRef===order.id))return;
+  const amount=order.total||0;
+  if(amount<=0)return;
+  const today=new Date().toISOString().split('T')[0];
+  let newId;do{newId='JE'+Date.now().toString(36).toUpperCase();}while(entries.find(je=>je.id===newId));
+  const lines=[
+    {account:'131',lineDesc:'Phải thu KH — '+order.id,debit:amount,credit:0},
+    {account:'511',lineDesc:'Doanh thu bán hàng — '+order.id,debit:0,credit:amount}
+  ];
+  entries.push({
+    id:newId,
+    date:today,
+    reference:order.id,
+    desc:'Ghi nhận doanh thu đơn hàng '+order.id+(order.customer?' — '+order.customer:''),
+    status:'draft',
+    lines,
+    _orderRef:order.id,
+    createdBy:'Hệ thống',
+    createdAt:new Date().toISOString()
+  });
+  H5C.set('journal_entries',entries);
+  showToast('Đã tạo bút toán '+newId+' (doanh thu '+new Intl.NumberFormat('vi-VN').format(amount)+'đ) cho đơn '+order.id,'success');
+}
+
+function _autoCreateCashReceipt(order){
+  if(order.payment!=='paid')return;
+  const receipts=H5C.get('cash_receipts')||[];
+  // Duplicate check
+  if(receipts.find(r=>r._orderRef===order.id))return;
+  const today=new Date().toISOString().split('T')[0];
+  const ptId='PT'+Date.now().toString(36).toUpperCase();
+  const amount=order.total||0;
+  if(amount<=0)return;
+  receipts.push({
+    id:ptId,
+    date:today,
+    amount:amount,
+    category:'ban_hang',
+    method:'tien_mat',
+    party:order.customer||'',
+    reference:order.id,
+    desc:'Thu tiền đơn hàng '+order.id+(order.customer?' — '+order.customer:''),
+    note:'Tự động tạo khi đơn '+order.id+' thanh toán đủ',
+    status:'confirmed',
+    _orderRef:order.id,
+    createdBy:state.user.name,
+    createdAt:new Date().toISOString()
+  });
+  H5C.set('cash_receipts',receipts);
+  showToast('Đã tạo phiếu thu '+ptId+' ('+new Intl.NumberFormat('vi-VN').format(amount)+'đ) cho đơn '+order.id,'success');
+}
+
+function _autoFlagStockReserve(order){
+  if(order.status!=='confirmed')return;
+  if(order._stockExported)return; // đã xuất kho rồi
+  order._stockReserved=true;
+  order._stockReservedAt=new Date().toISOString().split('T')[0];
+
+  // Reserve actual qty on lots (FIFO)
+  if(order.stockSource==='ton_kho'){
+    const lots=H5C.get('lots')||[];
+    (order.products||[]).forEach(prod=>{
+      let remain=prod.qty;
+      lots.filter(l=>l.type==='nhap'&&l.skuId===(prod.productId||prod.skuId)&&(l.qtyRemain-(l.reservedQty||0))>0)
+        .sort((a,b)=>new Date(a.date)-new Date(b.date)) // FIFO
+        .forEach(lot=>{
+          if(remain<=0)return;
+          const available=lot.qtyRemain-(lot.reservedQty||0);
+          const toReserve=Math.min(remain,available);
+          lot.reservedQty=(lot.reservedQty||0)+toReserve;
+          if(!lot._reservedOrders)lot._reservedOrders=[];
+          lot._reservedOrders.push({orderId:order.id,qty:toReserve});
+          remain-=toReserve;
+        });
+    });
+    H5C.set('lots',lots);
+  }
+
+  H5C.set('orders',ORDERS);
+}
+
+function _autoCreateShipment(order){
+  if(order.status!=='shipping')return;
+  const shipments=H5C.get('shipments')||[];
+  // Check duplicate
+  if(shipments.find(s=>s._orderRef===order.id))return;
+  const today=new Date().toISOString().split('T')[0];
+  const shipId='GH'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();
+  const prodSummary=(order.products||[]).map(p=>p.name+'('+p.qty+')').join(', ');
+  shipments.unshift({
+    id:shipId,
+    code:shipId,
+    orderId:order.id,
+    orderCode:order.id,
+    customerName:order.customer||'',
+    phone:order.phone||'',
+    address:order.address||'',
+    city:'',
+    method:'giao_hang',
+    partnerId:'',
+    partnerName:'',
+    weight:0,
+    shippingFee:order.costShipping||0,
+    codAmount:order.payment==='unpaid'?(order.total||0):0,
+    trackingCode:'',
+    estimatedDate:order.deliveryDate||'',
+    notes:'Tự động từ đơn '+order.id+'. SP: '+prodSummary,
+    status:'cho_lay',
+    _orderRef:order.id,
+    createdAt:today,
+    createdBy:state.user.name
+  });
+  H5C.set('shipments',shipments);
+  showToast('Đã tạo đơn giao hàng '+shipId+' cho đơn '+order.id,'success');
+}
+
+function _autoCreateProductionOrder(order){
+  if(order.status!=='producing')return;
+  const prodOrders=H5C.get('production_orders')||[];
+  // Check duplicate: đã tạo LSX cho order này chưa
+  if(prodOrders.find(p=>p._orderRef===order.id))return;
+  const today=new Date().toISOString().split('T')[0];
+  // Tạo 1 LSX cho mỗi sản phẩm trong đơn hàng
+  (order.products||[]).forEach(prod=>{
+    let n=prodOrders.length+1;
+    while(prodOrders.find(p=>p.id==='LSX'+String(n).padStart(3,'0')))n++;
+    const lsxId='LSX'+String(n).padStart(3,'0');
+    prodOrders.push({
+      id:lsxId,
+      skuId:prod.productId||'',
+      skuName:prod.name||'',
+      planQty:prod.qty||0,
+      unit:prod.unit||'kg',
+      status:'planned',
+      priority:'normal',
+      currentStage:'nhap_lieu',
+      actualQty:0,
+      assignedTo:'',
+      startDate:order.productionDate||today,
+      endDate:'',
+      orderRef:order.id,
+      _orderRef:order.id,
+      notes:'Tự động tạo từ đơn hàng '+order.id+' — '+order.customer,
+      createdAt:today,
+      createdBy:state.user.name
+    });
+  });
+  H5C.set('production_orders',prodOrders);
+  showToast('Đã tạo '+(order.products||[]).length+' lệnh SX cho đơn '+order.id,'success');
+}
+
 function saveProgress(){
   const o=ORDERS.find(x=>x.id===state.progressId);
   if(!o||!state.selectedProgressStatus)return;
@@ -1603,8 +1775,16 @@ function saveProgress(){
   o.shipDate=document.getElementById('prgShipDate').value||o.shipDate;
   o.deliveryDate=document.getElementById('prgDeliveryDate').value||o.deliveryDate;
   if(note){o.statusLog=o.statusLog||[];o.statusLog.push({status:newStatus,note,by:state.user.name,at:new Date().toISOString().split('T')[0]});}
+  if(newStatus==='completed'&&o.payment!=='paid'){
+    showToast('⚠️ Đơn '+o.id+' hoàn thành nhưng chưa thanh toán đủ! Kiểm tra công nợ.','warning',5000);
+  }
   H5C.set('orders',ORDERS);
+  if(newStatus==='confirmed')_autoFlagStockReserve(o);
+  if(newStatus==='producing')_autoCreateProductionOrder(o);
+  if(newStatus==='shipping')_autoCreateShipment(o);
   if(newStatus==='completed')_autoCreateExpenseFromPO(o);
+  if(newStatus==='completed')_autoCreateJournalEntry(o);
+  if(newStatus==='cancelled')_autoCancelCascade(o);
   closeModal('progressModal');render();
 }
 
@@ -2217,9 +2397,18 @@ function saveOrder(e){
   }
 
   H5C.set('orders',ORDERS);
+  if(orderData.status==='confirmed'){
+    const saved=editMode==='new'?ORDERS[0]:ORDERS.find(o=>o.id===editId);
+    if(saved)_autoFlagStockReserve(saved);
+  }
   if(orderData.status==='completed'){
     const saved=ORDERS.find(o=>o.id===editId)||ORDERS[0];
     if(saved)_autoCreateExpenseFromPO(saved);
+    if(saved)_autoCreateJournalEntry(saved);
+  }
+  if(orderData.payment==='paid'){
+    const saved=editMode==='new'?ORDERS[0]:ORDERS.find(o=>o.id===editId);
+    if(saved)_autoCreateCashReceipt(saved);
   }
   closeModal('orderModal');render();
 }
@@ -2235,12 +2424,13 @@ function openDetail(id){
   const{comm,scheme}=calcCommission(fin.totalRevenue,fin.totalCogs,o.sales);
   const stepIdx=STATUS_STEPS.findIndex(s=>s.key===o.status);
   let timeline='';
-  if(o.status!=='cancelled'){
+  if(o.status!=='cancelled'&&o.status!=='returned'){
     timeline='<div class="status-timeline">'+STATUS_STEPS.map((s,i)=>{
       const done=i<stepIdx,cur=i===stepIdx;
       return`<div class="timeline-step${done?' done':''}"><div class="timeline-dot${done?' done':cur?' current':''}"> ${done?'✓':s.icon}</div><div class="timeline-label${cur?' current':''}">${s.label}</div></div>`;
     }).join('')+'</div>';
-  }else{timeline=`<div style="margin-bottom:14px"><span class="status-badge cancelled">Đã hủy</span></div>`;}
+  }else if(o.status==='returned'){timeline=`<div style="margin-bottom:14px"><span class="status-badge" style="background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)">↩️ Đã trả hàng</span></div>`;}
+  else{timeline=`<div style="margin-bottom:14px"><span class="status-badge cancelled">Đã hủy</span></div>`;}
 
   const prods=o.products.map(p=>{
     const gp=(p.unitPrice-p.costPerUnit)*p.qty;
@@ -2301,9 +2491,14 @@ function openDetail(id){
       ${o.statusLog.map(l=>`<div style="font-size:11px;color:var(--h5c-text);margin-bottom:3px">${fmtDate(l.at)} → ${STATUS_LABELS[l.status]||l.status}: ${l.note} <span style="color:var(--h5c-text-secondary)">(${l.by})</span></div>`).join('')}
     </div>`:''}`;
 
+  // Show "Trả hàng" button only for completed orders
+  const _returnBtn=document.getElementById('detailReturnBtn');
+  if(_returnBtn)_returnBtn.style.display=(o.status==='completed'&&_can('orders.update_progress'))?'':'none';
+
   document.getElementById('detailModal').classList.remove('hidden');
 }
 
+function returnFromDetail(){closeModal('detailModal');openReturnModal(state.detailId);}
 function editFromDetail(){closeModal('detailModal');openEditModal(state.detailId);}
 
 // ════════════════════════════════════════════════════════════════
@@ -2435,6 +2630,168 @@ function saveCommSchemes(){
 }
 
 // ════════════════════════════════════════════════════════════════
+// RETURN / REFUND FLOW
+// ════════════════════════════════════════════════════════════════
+function openReturnModal(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o||o.status!=='completed')return;
+  document.getElementById('returnOrderId').textContent=id;
+  document.getElementById('returnReason').value='';
+  // Build product rows with qty to return
+  let ph='';
+  (o.products||[]).forEach((p,i)=>{
+    ph+=`<div style="display:grid;grid-template-columns:1fr 80px 80px;gap:8px;align-items:center;margin-bottom:6px">
+      <div style="font-size:12px">${p.name} <span style="color:var(--h5c-text-secondary);font-size:10px">(đã mua: ${p.qty})</span></div>
+      <input type="number" id="retQty_${i}" class="modal-input" value="${p.qty}" min="0" max="${p.qty}" style="text-align:center;font-size:12px">
+      <div style="font-size:11px;color:var(--h5c-text-secondary)">${fmt(p.unitPrice)}đ/sp</div>
+    </div>`;
+  });
+  document.getElementById('returnProductRows').innerHTML=ph;
+  // Populate warehouse dropdown
+  const warehouses=H5C.get('warehouses')||[];
+  const whSel=document.getElementById('returnWarehouse');
+  whSel.innerHTML='<option value="">Không nhập kho</option>'+warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
+  document.getElementById('returnModal').classList.remove('hidden');
+}
+
+function submitReturn(){
+  const id=document.getElementById('returnOrderId').textContent;
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o)return;
+  const reason=document.getElementById('returnReason').value.trim();
+  if(!reason){alert('Vui lòng nhập lý do trả hàng!');return;}
+
+  // Collect return quantities
+  const returnItems=[];
+  let totalRefund=0;
+  (o.products||[]).forEach((p,i)=>{
+    const retQty=parseInt(document.getElementById('retQty_'+i)?.value)||0;
+    if(retQty>0){
+      returnItems.push({...p,returnQty:retQty});
+      totalRefund+=retQty*p.unitPrice;
+    }
+  });
+  if(!returnItems.length){alert('Vui lòng nhập số lượng trả!');return;}
+
+  const refundMethod=document.getElementById('returnRefundMethod').value;
+  const whId=document.getElementById('returnWarehouse').value;
+  const today=new Date().toISOString().split('T')[0];
+
+  // 1. Create phiếu chi (cash refund) if applicable
+  if(refundMethod!=='khong'&&totalRefund>0){
+    const payments=H5C.get('cash_payments')||[];
+    if(!payments.find(p=>p._orderRef===o.id&&p._returnRef)){
+      const pcId='PC'+Date.now().toString(36).toUpperCase();
+      payments.push({
+        id:pcId,date:today,amount:totalRefund,
+        category:'hoan_tien',method:refundMethod,
+        party:o.customer||'',reference:o.id,
+        desc:'Hoàn tiền trả hàng đơn '+o.id+(o.customer?' — '+o.customer:''),
+        note:'Tự động tạo khi trả hàng. Lý do: '+reason,
+        status:'draft',_orderRef:o.id,_returnRef:true,
+        createdBy:state.user.name,createdAt:new Date().toISOString()
+      });
+      H5C.set('cash_payments',payments);
+      showToast('Đã tạo phiếu chi '+pcId+' ('+fmt(totalRefund)+'đ) hoàn tiền','info');
+    }
+  }
+
+  // 2. Import returned goods to warehouse
+  if(whId){
+    const lots=H5C.get('lots')||[];
+    const history=H5C.get('wh_history')||[];
+    const lotNo='RET-'+today.replace(/-/g,'')+'-'+Date.now().toString(36).slice(-3).toUpperCase();
+    returnItems.forEach(item=>{
+      const lotId='LOT'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();
+      lots.push({
+        id:lotId,lotNo,date:today,type:'nhap',
+        skuId:item.productId||'',warehouseId:whId,giaoTrucTiep:false,
+        qty:item.returnQty,qtyRemain:item.returnQty,price:item.costPerUnit||0,
+        mfgDate:null,bestBeforeMonths:null,supplierId:null,location:null,
+        payStatus:'paid',paidAmount:null,dueDate:null,
+        user:state.user.name,note:'Trả hàng từ đơn '+o.id+'. Lý do: '+reason
+      });
+      history.push({
+        id:'H'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(),
+        date:today,type:'nhap',lotNo,skuId:item.productId||'',
+        warehouseId:whId,qty:item.returnQty,price:item.costPerUnit||0,
+        user:state.user.name,note:'Trả hàng từ đơn '+o.id
+      });
+    });
+    H5C.set('lots',lots);H5C.set('wh_history',history);
+    showToast('Đã nhập kho '+returnItems.length+' SP trả hàng','info');
+  }
+
+  // 3. Update order status
+  o.status='returned';
+  o._returnedAt=today;
+  o._returnReason=reason;
+  o._returnItems=returnItems.map(it=>({productId:it.productId,name:it.name,returnQty:it.returnQty}));
+  o.statusLog=o.statusLog||[];
+  o.statusLog.push({status:'returned',note:'Trả hàng: '+reason,by:state.user.name,at:today});
+  H5C.set('orders',ORDERS);
+
+  // 4. Cancel related shipments/expenses if still pending
+  _autoCancelCascade(o);
+
+  closeModal('returnModal');render();
+  showToast('Đơn '+o.id+' đã chuyển sang Đã trả hàng','success');
+}
+
+function _autoCancelCascade(order){
+  let msgs=[];
+  // 1. Hủy lệnh SX liên quan
+  const prodOrders=H5C.get('production_orders')||[];
+  let prodChanged=false;
+  prodOrders.forEach(p=>{
+    if((p._orderRef===order.id||p.orderRef===order.id)&&p.status!=='completed'){
+      p.status='draft';
+      p.notes=(p.notes||'')+' [HỦY do đơn '+order.id+' bị hủy]';
+      prodChanged=true;
+    }
+  });
+  if(prodChanged){H5C.set('production_orders',prodOrders);msgs.push('LSX');}
+
+  // 2. Hủy shipment liên quan
+  const shipments=H5C.get('shipments')||[];
+  let shipChanged=false;
+  shipments.forEach(s=>{
+    if((s._orderRef===order.id||s.orderId===order.id)&&s.status==='cho_lay'){
+      s.status='hoan';
+      s.notes=(s.notes||'')+' [HỦY do đơn '+order.id+' bị hủy]';
+      shipChanged=true;
+    }
+  });
+  if(shipChanged){H5C.set('shipments',shipments);msgs.push('Giao hàng');}
+
+  // 3. Xóa expense tự tạo (chưa thanh toán)
+  const expenses=H5C.get('expenses')||[];
+  const beforeLen=expenses.length;
+  const kept=expenses.filter(e=>!(e._orderRef===order.id&&e.payment==='chua_thanh_toan'));
+  if(kept.length<beforeLen){H5C.set('expenses',kept);msgs.push('Chi phí');}
+
+  // 4. Clear stock flag + release reservedQty on lots
+  delete order._stockReserved;
+  delete order._stockReservedAt;
+  const _lots=H5C.get('lots')||[];
+  let _lotsChanged=false;
+  _lots.forEach(lot=>{
+    if(lot._reservedOrders&&lot._reservedOrders.length){
+      const before=lot._reservedOrders.length;
+      const released=lot._reservedOrders.filter(r=>r.orderId===order.id);
+      if(released.length){
+        released.forEach(r=>{lot.reservedQty=Math.max(0,(lot.reservedQty||0)-r.qty);});
+        lot._reservedOrders=lot._reservedOrders.filter(r=>r.orderId!==order.id);
+        _lotsChanged=true;
+      }
+    }
+  });
+  if(_lotsChanged)H5C.set('lots',_lots);
+
+  if(msgs.length)showToast('Đã hủy liên kết: '+msgs.join(', '),'info');
+}
+
+// ════════════════════════════════════════════════════════════════
 // CANCEL / RESTORE REQUEST SYSTEM
 // ════════════════════════════════════════════════════════════════
 function openCancelModal(id){state.cancelId=id;document.getElementById('cancelOrderId').textContent=id;document.getElementById('cancelReason').value='';document.getElementById('cancelModal').classList.remove('hidden');}
@@ -2450,6 +2807,7 @@ function submitCancelRequest(){
       ORDERS[idx].cancelledAt=new Date().toISOString().split('T')[0];
       ORDERS[idx].cancelledBy=state.user.name;
       ORDERS[idx].cancelReason=reason;
+      _autoCancelCascade(ORDERS[idx]);
     }else{
       ORDERS[idx].pendingCancel={reason,requestedBy:state.user.name,requestedAt:new Date().toISOString().split('T')[0]};
     }
@@ -2486,6 +2844,7 @@ function approveCancelRequest(id){
     ORDERS[idx].cancelledBy=state.user.name+' (duyệt YC từ '+ORDERS[idx].pendingCancel.requestedBy+')';
     ORDERS[idx].cancelReason=ORDERS[idx].pendingCancel.reason;
     delete ORDERS[idx].pendingCancel;
+    _autoCancelCascade(ORDERS[idx]);
   }
   H5C.set('orders',ORDERS);render();
 }

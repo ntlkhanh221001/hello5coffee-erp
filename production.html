@@ -207,17 +207,7 @@ const STAGES=[
   {key:'nhap_kho',label:'Nhập kho',icon:'🏭'}
 ];
 
-function _can(permId){
-  try{
-    const session=state.user;if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc)return session.role==='C_LEVEL';
-    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
-    if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return true;
-    return false;
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 let PROD_ORDERS=[];
 let BOMS=[];

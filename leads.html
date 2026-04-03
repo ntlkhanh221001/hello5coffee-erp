@@ -756,50 +756,7 @@ function _toVND(val,currency){if(!state.usdRate)return currency==='VND'?(val||0)
 function _toUSD(val,currency){if(!state.usdRate)return currency==='USD'?(val||0):0;return currency==='VND'?(val||0)/state.usdRate:(val||0);}
 const fmtUSD=(n)=>'$'+new Intl.NumberFormat('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n||0));
 
-// === Granular Permission Engine v2 ===
-const _PERM_VIEW_MAP={dashboard:'dash.view',orders:'orders.view',leads:'leads.view',expenses:'expenses.view',warehouse:'wh.view_stock',users:'users.view',reports:'reports.view',announcements:'ann.view'};
-function _can(permId){
-  try{
-    const session=state.user; if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc) return session.role==='C_LEVEL';
-    if(acc.permissions){
-      const val=acc.permissions[permId];
-      return val===true||val==='all'||val==='own';
-    }
-    if(acc.role==='C_LEVEL') return true;
-    return _roleDefault(acc.role,permId);
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
-function _canScope(permId){
-  try{
-    const session=state.user; if(!session)return 'none';
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc) return session.role==='C_LEVEL'?'all':'own';
-    if(!acc.permissions){
-      if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
-      return 'own';
-    }
-    const val=acc.permissions[permId];
-    if(val==='own') return 'own';
-    if(val===true||val==='all') return 'all';
-    return 'none';
-  }catch(e){return 'none';}
-}
-function _roleDefault(role,pid){
-  const S=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
-  const F=['dash.view','dash.kpi_finance','expenses.view','expenses.view_detail','expenses.view_charts','expenses.create','expenses.edit','expenses.mark_paid','reports.view','reports.generate','reports.compare','ann.view'];
-  const H=['dash.view','users.view','users.view_salary','users.view_team','users.create','users.edit','users.attendance','users.kpi','ann.view','ann.create','ann.edit'];
-  const M_DENY=['users.manage_accounts','users.manage_permissions','orders.commission_config','wh.commission_config'];
-  if(role==='EMPLOYEE_SALES') return S.includes(pid);
-  if(role==='EMPLOYEE_FINANCE') return F.includes(pid);
-  if(role==='EMPLOYEE_HR') return H.includes(pid);
-  if(role==='MANAGER') return !M_DENY.includes(pid);
-  return false;
-}
-// === End Permission Engine ===
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 // ══════════════════════════════════════════════════════════════
 // UTILITIES

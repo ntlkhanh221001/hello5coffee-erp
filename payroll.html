@@ -209,22 +209,7 @@ function _getAccountsForLogin(){
   ];
 }
 
-function _can(permId){
-  try{
-    const session=state.user;if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    const role=acc?acc.role:session.role;
-    if(acc&&acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
-    const rolePerms={
-      C_LEVEL:['payroll.view','payroll.attendance','payroll.calculate','payroll.confirm','payroll.config'],
-      MANAGER:['payroll.view','payroll.attendance','payroll.calculate'],
-      EMPLOYEE_HR:['payroll.view','payroll.attendance','payroll.calculate','payroll.confirm','payroll.config'],
-      EMPLOYEE_FINANCE:['payroll.view']
-    };
-    return (rolePerms[role]||[]).includes(permId);
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 function handleLogin(){
   const email=document.getElementById('loginEmail').value.trim().toLowerCase();

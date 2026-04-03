@@ -202,50 +202,7 @@ const PREV_DATA={
 
 let state={user:null,activeModule:null,selectedMetrics:[],dateFrom:(function(){const d=new Date();d.setMonth(0);d.setDate(1);return d.toISOString().split('T')[0]})(),dateTo:new Date().toISOString().split('T')[0],compare:false,compareDateFrom:(function(){const d=new Date();d.setMonth(d.getMonth()-1);d.setDate(1);return d.toISOString().split('T')[0]})(),compareDateTo:(function(){const d=new Date();d.setDate(0);return d.toISOString().split('T')[0]})(),reportGenerated:false};
 
-// === Granular Permission Engine v2 ===
-const _PERM_VIEW_MAP={dashboard:'dash.view',orders:'orders.view',leads:'leads.view',expenses:'expenses.view',warehouse:'wh.view_stock',users:'users.view',reports:'reports.view',announcements:'ann.view'};
-function _can(permId){
-  try{
-    const session=state.user; if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc) return session.role==='C_LEVEL';
-    if(acc.permissions){
-      const val=acc.permissions[permId];
-      return val===true||val==='all'||val==='own';
-    }
-    if(acc.role==='C_LEVEL') return true;
-    return _roleDefault(acc.role,permId);
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
-function _canScope(permId){
-  try{
-    const session=state.user; if(!session)return 'none';
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc) return session.role==='C_LEVEL'?'all':'own';
-    if(!acc.permissions){
-      if(acc.role==='C_LEVEL'||acc.role==='MANAGER') return 'all';
-      return 'own';
-    }
-    const val=acc.permissions[permId];
-    if(val==='own') return 'own';
-    if(val===true||val==='all') return 'all';
-    return 'none';
-  }catch(e){return 'none';}
-}
-function _roleDefault(role,pid){
-  const S=['dash.view','dash.top_sales','orders.view','orders.view_detail','orders.view_commission','orders.view_history','orders.create','orders.edit','orders.update_progress','orders.request_cancel','orders.submit_request','leads.view','leads.view_detail','leads.view_stats','leads.create','leads.edit','leads.contact_log','leads.convert_order','ann.view'];
-  const F=['dash.view','dash.kpi_finance','expenses.view','expenses.view_detail','expenses.view_charts','expenses.create','expenses.edit','expenses.mark_paid','reports.view','reports.generate','reports.compare','ann.view'];
-  const H=['dash.view','users.view','users.view_salary','users.view_team','users.create','users.edit','users.attendance','users.kpi','ann.view','ann.create','ann.edit'];
-  const M_DENY=['users.manage_accounts','users.manage_permissions','orders.commission_config','wh.commission_config'];
-  if(role==='EMPLOYEE_SALES') return S.includes(pid);
-  if(role==='EMPLOYEE_FINANCE') return F.includes(pid);
-  if(role==='EMPLOYEE_HR') return H.includes(pid);
-  if(role==='MANAGER') return !M_DENY.includes(pid);
-  return false;
-}
-// === End Permission Engine ===
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 let charts={};
 
 const PALETTE = ['#8FC643','#38261C','#4A7A4D','#C44536','#4A7FB5','#7B5EA7','#D4851A','#2A8A7A','#C47A8A'];
@@ -338,8 +295,9 @@ function getReportData(module, dateFrom, dateTo) {
     const topProducts = Object.values(prodMap).sort((a,b)=>b.revenue-a.revenue).slice(0,5);
     const custMap = {};
     orders.forEach(o => {
-      if(!custMap[o.customer]) custMap[o.customer]={name:o.customer,value:0};
-      custMap[o.customer].value += _calcTotal(o);
+      const custKey=o.custCode||o.phone||o.customer;
+      if(!custMap[custKey]) custMap[custKey]={name:o.customer,value:0};
+      custMap[custKey].value += _calcTotal(o);
     });
     const topCustomers = Object.values(custMap).sort((a,b)=>b.value-a.value).slice(0,5);
     return { total:orders.length, revenue:rev, avg:orders.length?Math.round(rev/orders.length):0,

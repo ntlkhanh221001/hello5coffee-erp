@@ -274,49 +274,7 @@ const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.
 const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 
-// ════════════════════════════════════════════════════════════════
-// PERMISSION ENGINE
-// ════════════════════════════════════════════════════════════════
-const _ROLE_PERMS={
-  C_LEVEL:null,
-  MANAGER:{
-    'shipping.view':true,'shipping.create':true,'shipping.edit':true,
-    'shipping.update_status':true,'shipping.delete':true
-  },
-  EMPLOYEE_SALES:{
-    'shipping.view':true,'shipping.create':true,'shipping.edit':'own','shipping.update_status':true
-  },
-  EMPLOYEE_FINANCE:{
-    'shipping.view':true
-  },
-  EMPLOYEE_HR:{
-    'shipping.view':true
-  }
-};
-function _roleDefault(role,permId){const p=_ROLE_PERMS[role];if(p===null)return true;if(!p)return false;const v=p[permId];return v===true||v==='all'||v==='own';}
-
-function _can(permId){
-  try{
-    const session=state.user;if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc)return session.role==='C_LEVEL';
-    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
-    if(acc.role==='C_LEVEL')return true;
-    return _roleDefault(acc.role,permId);
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
-function _canScope(permId){
-  try{
-    const session=state.user;if(!session)return 'none';
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc)return session.role==='C_LEVEL'?'all':'own';
-    if(!acc.permissions){if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return 'all';return 'own';}
-    const val=acc.permissions[permId];
-    if(val==='own')return 'own';if(val===true||val==='all')return 'all';return 'none';
-  }catch(e){return 'none';}
-}
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 // ════════════════════════════════════════════════════════════════
 // STATE
@@ -808,6 +766,22 @@ function confirmStatusUpdate(){
   if(newStatus==='da_giao')SHIPMENTS[idx].deliveredDate=delivDate;
   if(note)SHIPMENTS[idx].notes=(SHIPMENTS[idx].notes?SHIPMENTS[idx].notes+'\n':'')+note;
   H5C.set('shipments',SHIPMENTS);
+  // P1-3: Khi da_giao → tự update order status → completed
+  if(newStatus==='da_giao'){
+    const ship=SHIPMENTS[idx];
+    const orderRef=ship._orderRef||ship.orderId||'';
+    if(orderRef){
+      const orders=H5C.get('orders')||[];
+      const ord=orders.find(o=>o.id===orderRef);
+      if(ord&&ord.status==='shipping'){
+        ord.status='completed';
+        ord.statusLog=ord.statusLog||[];
+        ord.statusLog.push({status:'completed',note:'Tự động hoàn thành — đơn giao '+ship.id+' đã giao',by:'Hệ thống',at:new Date().toISOString().split('T')[0]});
+        H5C.set('orders',orders);
+        if(typeof showToast==='function')showToast('Đơn hàng '+orderRef+' đã tự động chuyển sang Hoàn thành','success');
+      }
+    }
+  }
   closeModal('statusModal');
   if(typeof showToast==='function')showToast('Đã cập nhật trạng thái','success');
   render();

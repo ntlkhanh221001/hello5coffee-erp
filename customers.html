@@ -202,46 +202,7 @@ const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.get
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 const isCLevel=()=>state.user&&state.user.role==='C_LEVEL';
 
-// ════════════════════════════════════════════════════════════════
-// PERMISSION ENGINE
-// ════════════════════════════════════════════════════════════════
-const _ROLE_PERMS={
-  C_LEVEL:null,
-  MANAGER:{
-    'customers.view':true,'customers.create':true,'customers.edit':true,'customers.delete':true
-  },
-  EMPLOYEE_SALES:{
-    'customers.view':'own','customers.create':true,'customers.edit':'own'
-  },
-  EMPLOYEE_FINANCE:{
-    'customers.view':true
-  },
-  EMPLOYEE_HR:{}
-};
-function _roleDefault(role,permId){const p=_ROLE_PERMS[role];if(p===null)return true;if(!p)return false;const v=p[permId];return v===true||v==='all'||v==='own';}
-
-function _can(permId){
-  try{
-    const session=state.user;if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc)return session.role==='C_LEVEL';
-    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
-    if(acc.role==='C_LEVEL')return true;
-    return _roleDefault(acc.role,permId);
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
-function _canScope(permId){
-  try{
-    const session=state.user;if(!session)return 'none';
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc)return session.role==='C_LEVEL'?'all':'own';
-    if(!acc.permissions){if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return 'all';return 'own';}
-    const val=acc.permissions[permId];
-    if(val==='own')return 'own';if(val===true||val==='all')return 'all';return 'none';
-  }catch(e){return 'none';}
-}
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 // ════════════════════════════════════════════════════════════════
 // STATE
@@ -579,7 +540,12 @@ function renderTags(){
 function viewCustomer(id){
   const c=CUSTOMERS.find(x=>x.id===id);if(!c)return;
   state.detailId=id;
-  const orders=(H5C.get('orders')||[]).filter(o=>(o.customer||'').trim().toLowerCase()===(c.name||'').trim().toLowerCase());
+  const orders=(H5C.get('orders')||[]).filter(o=>{
+    // Match by custCode first, then phone, then name (fallback)
+    if(c.code&&o.custCode&&o.custCode===c.code) return true;
+    if(c.phone&&o.phone&&o.phone.replace(/\s/g,'')===c.phone.replace(/\s/g,'')) return true;
+    return (o.customer||'').trim().toLowerCase()===(c.name||'').trim().toLowerCase();
+  });
   const totalRev=orders.reduce((s,o)=>s+(o.total||(o.products||[]).reduce((ss,p)=>ss+(p.qty||0)*(p.unitPrice||0),0)),0);
   const lastOrder=orders.length?orders.sort((a,b)=>b.createdAt>a.createdAt?1:-1)[0]:null;
 

@@ -169,17 +169,7 @@ const CAT_CHI={mua_hang:'Mua hàng/NVL',tra_no:'Trả nợ NCC',luong:'Lương',
 const METHOD_LABELS={tien_mat:'Tiền mặt',ngan_hang:'Chuyển khoản',the:'Thẻ'};
 const STATUS_LABELS={draft:'Nháp',confirmed:'Đã xác nhận',cancelled:'Đã hủy'};
 
-function _can(permId){
-  try{
-    const session=state.user;if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc)return session.role==='C_LEVEL';
-    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
-    if(acc.role==='C_LEVEL'||acc.role==='MANAGER'||acc.role==='EMPLOYEE_FINANCE')return true;
-    return false;
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 let RECEIPTS=[],PAYMENTS_OUT=[],BANKS=[];
 let state={user:null,tab:'ledger',search:'',filterType:'all',filterMethod:'all',dateFrom:'',dateTo:'',charts:{}};

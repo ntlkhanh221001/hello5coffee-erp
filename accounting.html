@@ -238,51 +238,7 @@ const DEFAULT_ACCOUNTS=[
   {code:'642',name:'Chi phí quản lý',type:'expense',parent:'',openingBalance:0,note:''}
 ];
 
-// ════════════════════════════════════════════════════════════════
-// PERMISSIONS
-// ════════════════════════════════════════════════════════════════
-const _ROLE_PERMS={
-  C_LEVEL:null,
-  MANAGER:{
-    'accounting.view':true,'accounting.create':false,'accounting.edit':false,
-    'accounting.post':false,'accounting.delete':false
-  },
-  EMPLOYEE_FINANCE:{
-    'accounting.view':true,'accounting.create':true,'accounting.edit':true,
-    'accounting.post':true,'accounting.delete':true
-  },
-  EMPLOYEE_SALES:{'accounting.view':false},
-  EMPLOYEE_HR:{'accounting.view':false}
-};
-function _roleDefault(role,permId){
-  const p=_ROLE_PERMS[role];
-  if(p===null)return true;
-  if(!p)return false;
-  const v=p[permId];
-  return v===true||v==='all'||v==='own';
-}
-function _can(permId){
-  try{
-    const session=state.user;if(!session)return false;
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc)return session.role==='C_LEVEL';
-    if(acc.permissions){const val=acc.permissions[permId];return val===true||val==='all'||val==='own';}
-    if(acc.role==='C_LEVEL')return true;
-    return _roleDefault(acc.role,permId);
-  }catch(e){return state.user&&state.user.role==='C_LEVEL';}
-}
-function _canScope(permId){
-  try{
-    const session=state.user;if(!session)return 'none';
-    const accounts=JSON.parse(localStorage.getItem('h5c_v1_accounts')||'[]');
-    const acc=accounts.find(a=>(a.email||'').toLowerCase()===(session.email||'').toLowerCase());
-    if(!acc)return session.role==='C_LEVEL'?'all':'own';
-    if(!acc.permissions){if(acc.role==='C_LEVEL'||acc.role==='MANAGER')return 'all';return 'own';}
-    const val=acc.permissions[permId];
-    if(val==='own')return 'own';if(val===true||val==='all')return 'all';return 'none';
-  }catch(e){return 'none';}
-}
+// ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 // ════════════════════════════════════════════════════════════════
 // STATE
