@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .cb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -26,6 +27,8 @@
 .type-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
 .type-badge.thu{background:var(--h5c-sage-light);color:var(--h5c-sage)}
 .type-badge.chi{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.auto-badge{display:inline-block;padding:3px 8px;border-radius:var(--h5c-radius-full);font-size:9px;font-weight:700;background:#E3F2FD;color:#1565C0;margin-left:6px}
+.manual-badge{display:inline-block;padding:3px 8px;border-radius:var(--h5c-radius-full);font-size:9px;font-weight:700;background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary);margin-left:6px}
 .status-badge{display:inline-block;padding:4px 10px;border-radius:var(--h5c-radius-full);font-size:11px;font-weight:700}
 .status-badge.draft{background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
 .status-badge.confirmed{background:var(--h5c-sage-light);color:var(--h5c-sage)}
@@ -36,15 +39,6 @@
 .action-btn.edit:hover{background:var(--h5c-amber);color:#fff}
 .action-btn.confirm:hover{background:var(--h5c-sage);color:#fff}
 .action-btn.delete:hover{background:var(--h5c-terracotta);color:#fff}
-/* Ledger */
-.ledger-day{margin-bottom:24px}
-.ledger-day-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-sm);margin-bottom:8px;font-size:13px;font-weight:700}
-.ledger-day-header .subtotal{font-size:12px;font-weight:600}
-.ledger-row{display:grid;grid-template-columns:100px 1fr 100px 120px 120px 120px;gap:8px;padding:10px 16px;border-bottom:1px solid var(--h5c-border-subtle);font-size:12px;align-items:center}
-.ledger-row:hover{background:var(--h5c-bg)}
-.ledger-row .amount-in{color:var(--h5c-sage);font-weight:700}
-.ledger-row .amount-out{color:var(--h5c-terracotta);font-weight:700}
-.ledger-row .balance{font-weight:800;color:var(--h5c-text)}
 .chart-container{position:relative;height:280px}
 .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .modal-row.three{grid-template-columns:1fr 1fr 1fr}
@@ -57,8 +51,11 @@
 .bank-card .balance{text-align:right}
 .bank-card .balance .amount{font-size:18px;font-weight:800;color:var(--h5c-sage)}
 .bank-card .balance .label{font-size:10px;color:var(--h5c-text-secondary)}
+.ledger-info{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-sm);margin-bottom:16px;font-size:12px;color:var(--h5c-text-secondary);font-weight:600}
+.ledger-info .icon{font-size:16px}
 @media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
-@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.ledger-row{grid-template-columns:80px 1fr 80px 100px}}
+@media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -156,23 +153,20 @@ const H5C=window.H5C||{
   salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
 };
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 
 Chart.defaults.font.family='Be Vietnam Pro';
 Chart.defaults.color='#6B5B4E';
 
-const CAT_THU={ban_hang:'Bán hàng',thu_no:'Thu nợ',lai:'Lãi/Đầu tư',khac_thu:'Thu khác'};
-const CAT_CHI={mua_hang:'Mua hàng/NVL',tra_no:'Trả nợ NCC',luong:'Lương',van_hanh:'Vận hành',marketing:'Marketing',khac_chi:'Chi khác'};
+const CAT_THU={ban_hang:'Bán hàng',thu_no:'Thu nợ',dau_tu:'Đầu tư',lai_ngan_hang:'Lãi ngân hàng',khac_thu:'Thu khác'};
+const CAT_CHI={mua_hang:'Mua hàng/NVL',tra_no:'Trả nợ NCC',luong:'Lương',van_hanh:'Vận hành',marketing:'Marketing',hoan_tien:'Hoàn tiền',khac_chi:'Chi khác'};
 const METHOD_LABELS={tien_mat:'Tiền mặt',ngan_hang:'Chuyển khoản',the:'Thẻ'};
 const STATUS_LABELS={draft:'Nháp',confirmed:'Đã xác nhận',cancelled:'Đã hủy'};
 
 // ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
 let RECEIPTS=[],PAYMENTS_OUT=[],BANKS=[];
-let state={user:null,tab:'ledger',search:'',filterType:'all',filterMethod:'all',dateFrom:'',dateTo:'',charts:{}};
+let state={user:null,tab:'ledger',search:'',filterType:'all',filterMethod:'all',dateFrom:'',dateTo:'',ledgerPeriod:'month',charts:{}};
 
 const SESSION_KEY='h5c_erp_user';
 function saveSession(user){localStorage.setItem(SESSION_KEY,JSON.stringify({...user,loginAt:Date.now()}));}
@@ -206,16 +200,83 @@ function showMain(){
   render();
 }
 
+// ════════════════════════════════════════════════════════════════
+// DATA LOADING — auto-pull from orders & expenses
+// ════════════════════════════════════════════════════════════════
 function loadData(){
+  // Manual receipts/payments stored in localStorage
   RECEIPTS=H5C.get('cash_receipts')||[];
   PAYMENTS_OUT=H5C.get('cash_payments')||[];
   BANKS=H5C.get('bank_accounts')||[];
 }
 
+function getAutoReceipts(){
+  // Pull from orders with payment=paid → auto phiếu thu
+  const orders=H5C.get('orders')||[];
+  return orders.filter(o=>o.payment==='paid'&&o.status!=='cancelled').map(o=>({
+    id:'PT-AUTO-'+o.id,
+    date:o.statusLog&&o.statusLog.length?o.statusLog[o.statusLog.length-1].at:(o.createdAt||o.date||''),
+    amount:o.paidAmount||o.total||0,
+    category:'ban_hang',
+    method:'ngan_hang',
+    party:o.customer||'',
+    reference:o.id,
+    desc:'Thu tiền đơn hàng '+o.id+(o.customer?' — '+o.customer:''),
+    note:'Tự động từ đơn hàng',
+    status:'confirmed',
+    createdBy:'Hệ thống',
+    _auto:true,
+    _orderRef:o.id
+  }));
+}
+
+function getAutoPayments(){
+  // Pull from expenses: đã duyệt + đã thanh toán
+  const expenses=H5C.get('expenses')||[];
+  return expenses.filter(e=>e.status==='da_duyet'&&e.payment==='da_thanh_toan').map(e=>({
+    id:'PC-AUTO-'+e.id,
+    date:e.date||'',
+    amount:e.amount||0,
+    category:_mapExpenseCatToCashCat(e.category),
+    method:'ngan_hang',
+    party:e.dept||'',
+    reference:e.id,
+    desc:'Chi phí: '+e.desc,
+    note:'Tự động từ chi phí đã duyệt',
+    status:'confirmed',
+    createdBy:'Hệ thống',
+    _auto:true,
+    _expenseRef:e.id
+  }));
+}
+
+function _mapExpenseCatToCashCat(cat){
+  const map={luong:'luong',nguyen_lieu:'mua_hang',van_hanh:'van_hanh',marketing:'marketing',logistics:'van_hanh',khac:'khac_chi'};
+  return map[cat]||'khac_chi';
+}
+
+function getAllReceipts(){
+  const manual=RECEIPTS.filter(r=>!r._auto);
+  const auto=getAutoReceipts();
+  // Deduplicate: don't show auto if manual already has same _orderRef
+  const manualRefs=new Set(manual.filter(r=>r._orderRef).map(r=>r._orderRef));
+  const filteredAuto=auto.filter(a=>!manualRefs.has(a._orderRef));
+  return [...manual,...filteredAuto].sort((a,b)=>a.date>b.date?-1:1);
+}
+
+function getAllPaymentsOut(){
+  const manual=PAYMENTS_OUT.filter(p=>!p._auto);
+  const auto=getAutoPayments();
+  // Deduplicate: don't show auto if manual already has same _expenseRef
+  const manualRefs=new Set(manual.filter(p=>p._expenseRef).map(p=>p._expenseRef));
+  const filteredAuto=auto.filter(a=>!manualRefs.has(a._expenseRef));
+  return [...manual,...filteredAuto].sort((a,b)=>a.date>b.date?-1:1);
+}
+
 function getAllEntries(){
   const all=[];
-  RECEIPTS.forEach(r=>all.push({...r,dir:'thu'}));
-  PAYMENTS_OUT.forEach(p=>all.push({...p,dir:'chi'}));
+  getAllReceipts().forEach(r=>all.push({...r,dir:'thu'}));
+  getAllPaymentsOut().forEach(p=>all.push({...p,dir:'chi'}));
   return all.sort((a,b)=>a.date>b.date?1:a.date<b.date?-1:0);
 }
 
@@ -225,32 +286,35 @@ function getAllEntries(){
 function render(){
   loadData();
   const now=new Date();const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  const allEntries=getAllEntries();
+  const allEntries=getAllEntries().filter(e=>e.status!=='cancelled');
   const monthEntries=allEntries.filter(e=>(e.date||'').startsWith(monthKey));
   const totalThu=monthEntries.filter(e=>e.dir==='thu').reduce((s,e)=>s+(e.amount||0),0);
   const totalChi=monthEntries.filter(e=>e.dir==='chi').reduce((s,e)=>s+(e.amount||0),0);
-  const cashBalance=allEntries.filter(e=>e.method==='tien_mat'&&e.status!=='cancelled').reduce((s,e)=>s+(e.dir==='thu'?1:-1)*(e.amount||0),0);
-  const bankBalance=BANKS.reduce((s,b)=>s+(b.currentBalance||0),0)+allEntries.filter(e=>e.method==='ngan_hang'&&e.status!=='cancelled').reduce((s,e)=>s+(e.dir==='thu'?1:-1)*(e.amount||0),0);
+  const totalBalance=allEntries.reduce((s,e)=>s+(e.dir==='thu'?1:-1)*(e.amount||0),0);
+  const bankBalance=BANKS.reduce((s,b)=>s+(b.currentBalance||0),0);
+
+  const allR=getAllReceipts().filter(e=>e.status!=='cancelled');
+  const allP=getAllPaymentsOut().filter(e=>e.status!=='cancelled');
 
   let html=`
     <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
       <div class="kpi-card"><div class="kpi-label">Thu tháng này</div><div class="kpi-value" style="color:var(--h5c-sage)">+${fmtB(totalThu)}đ</div><div class="stat-sub">${monthEntries.filter(e=>e.dir==='thu').length} phiếu thu</div></div>
-      <div class="kpi-card"><div class="kpi-label">Chi tháng này</div><div class="kpi-value" style="color:var(--h5c-terracotta)">−${fmtB(totalChi)}đ</div><div class="stat-sub">${monthEntries.filter(e=>e.dir==='chi').length} phiếu chi</div></div>
-      <div class="kpi-card highlight"><div class="kpi-label">Quỹ tiền mặt</div><div class="kpi-value">${fmtB(cashBalance)}đ</div><div class="stat-sub">Tổng lũy kế</div></div>
+      <div class="kpi-card"><div class="kpi-label">Chi tháng này</div><div class="kpi-value" style="color:var(--h5c-terracotta)">-${fmtB(totalChi)}đ</div><div class="stat-sub">${monthEntries.filter(e=>e.dir==='chi').length} phiếu chi</div></div>
+      <div class="kpi-card highlight"><div class="kpi-label">Tổng quỹ</div><div class="kpi-value">${fmtB(totalBalance)}đ</div><div class="stat-sub">Lũy kế thu - chi</div></div>
       <div class="kpi-card highlight"><div class="kpi-label">Số dư NH</div><div class="kpi-value">${fmtB(bankBalance)}đ</div><div class="stat-sub">${BANKS.length} tài khoản</div></div>
     </div>
 
     <div class="tab-bar">
       <button class="tab-btn${state.tab==='ledger'?' active':''}" onclick="state.tab='ledger';render()">Sổ quỹ</button>
-      <button class="tab-btn${state.tab==='thu'?' active':''}" onclick="state.tab='thu';render()">Phiếu thu <span class="count">${RECEIPTS.length}</span></button>
-      <button class="tab-btn${state.tab==='chi'?' active':''}" onclick="state.tab='chi';render()">Phiếu chi <span class="count">${PAYMENTS_OUT.length}</span></button>
+      <button class="tab-btn${state.tab==='thu'?' active':''}" onclick="state.tab='thu';render()">Phiếu thu <span class="count">${allR.length}</span></button>
+      <button class="tab-btn${state.tab==='chi'?' active':''}" onclick="state.tab='chi';render()">Phiếu chi <span class="count">${allP.length}</span></button>
       <button class="tab-btn${state.tab==='bank'?' active':''}" onclick="state.tab='bank';render()">Tài khoản NH <span class="count">${BANKS.length}</span></button>
       <button class="tab-btn${state.tab==='charts'?' active':''}" onclick="state.tab='charts';render();setTimeout(renderCharts,100)">Biểu đồ</button>
     </div>`;
 
-  if(state.tab==='ledger')html+=renderLedger(allEntries);
-  else if(state.tab==='thu')html+=renderEntryTable('thu',RECEIPTS);
-  else if(state.tab==='chi')html+=renderEntryTable('chi',PAYMENTS_OUT);
+  if(state.tab==='ledger')html+=renderLedger();
+  else if(state.tab==='thu')html+=renderEntryTable('thu');
+  else if(state.tab==='chi')html+=renderEntryTable('chi');
   else if(state.tab==='bank')html+=renderBanks();
   else html+=renderChartsHTML();
 
@@ -258,21 +322,56 @@ function render(){
   if(state.tab==='charts')setTimeout(renderCharts,50);
 }
 
-function renderLedger(allEntries){
-  let filtered=allEntries.filter(e=>e.status!=='cancelled');
-  if(state.filterType!=='all')filtered=filtered.filter(e=>e.dir===state.filterType);
-  if(state.filterMethod!=='all')filtered=filtered.filter(e=>e.method===state.filterMethod);
-  if(state.dateFrom)filtered=filtered.filter(e=>e.date>=state.dateFrom);
-  if(state.dateTo)filtered=filtered.filter(e=>e.date<=state.dateTo);
+// ════════════════════════════════════════════════════════════════
+// TAB: SỔ QUỸ (read-only, auto from thu - chi)
+// ════════════════════════════════════════════════════════════════
+function _getLedgerDateRange(){
+  const now=new Date();
+  let from='',to='';
+  if(state.dateFrom&&state.dateTo){from=state.dateFrom;to=state.dateTo;}
+  else if(state.ledgerPeriod==='month'){from=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';const last=new Date(now.getFullYear(),now.getMonth()+1,0);to=last.toISOString().split('T')[0];}
+  else if(state.ledgerPeriod==='quarter'){const q=Math.floor(now.getMonth()/3);const m1=q*3+1;from=now.getFullYear()+'-'+String(m1).padStart(2,'0')+'-01';const endM=m1+2;const last=new Date(now.getFullYear(),endM,0);to=last.toISOString().split('T')[0];}
+  else if(state.ledgerPeriod==='year'){from=now.getFullYear()+'-01-01';to=now.getFullYear()+'-12-31';}
+  return{from,to};
+}
 
-  // Group by date
-  const groups={};
-  filtered.forEach(e=>{const d=e.date||'unknown';if(!groups[d])groups[d]=[];groups[d].push(e);});
-  const sortedDates=Object.keys(groups).sort().reverse();
+function renderLedger(){
+  const allEntries=getAllEntries().filter(e=>e.status!=='cancelled');
+  const{from,to}=_getLedgerDateRange();
+
+  // Calculate opening balance from ALL entries BEFORE the period start
+  let openingBalance=0;
+  if(from){
+    allEntries.forEach(e=>{
+      if(e.date<from)openingBalance+=e.dir==='thu'?(e.amount||0):-(e.amount||0);
+    });
+  }
+
+  // Entries within the period
+  let periodEntries=allEntries;
+  if(from)periodEntries=periodEntries.filter(e=>e.date>=from);
+  if(to)periodEntries=periodEntries.filter(e=>e.date<=to);
+
+  // Filter by type/method if set
+  if(state.filterType!=='all')periodEntries=periodEntries.filter(e=>e.dir===state.filterType);
+  if(state.filterMethod!=='all')periodEntries=periodEntries.filter(e=>e.method===state.filterMethod);
+
+  const periodThu=periodEntries.filter(e=>e.dir==='thu').reduce((s,e)=>s+(e.amount||0),0);
+  const periodChi=periodEntries.filter(e=>e.dir==='chi').reduce((s,e)=>s+(e.amount||0),0);
 
   let h=`<div class="card">
+    <div class="ledger-info"><span class="icon">📋</span> Sổ quỹ tổng hợp — tự động tính từ phiếu thu & phiếu chi. Dữ liệu chỉ đọc.</div>
     <div class="cb-header">
       <div class="cb-filters">
+        <select class="filter-input" onchange="state.ledgerPeriod=this.value;state.dateFrom='';state.dateTo='';render()">
+          <option value="month"${state.ledgerPeriod==='month'?' selected':''}>Tháng này</option>
+          <option value="quarter"${state.ledgerPeriod==='quarter'?' selected':''}>Quý này</option>
+          <option value="year"${state.ledgerPeriod==='year'?' selected':''}>Năm nay</option>
+          <option value="custom"${state.ledgerPeriod==='custom'?' selected':''}>Tùy chọn</option>
+        </select>
+        ${state.ledgerPeriod==='custom'?`
+        <input type="date" class="filter-input" value="${state.dateFrom}" onchange="state.dateFrom=this.value;render()" title="Từ ngày">
+        <input type="date" class="filter-input" value="${state.dateTo}" onchange="state.dateTo=this.value;render()" title="Đến ngày">`:''}
         <select class="filter-input" onchange="state.filterType=this.value;render()">
           <option value="all">Tất cả</option><option value="thu"${state.filterType==='thu'?' selected':''}>Thu</option><option value="chi"${state.filterType==='chi'?' selected':''}>Chi</option>
         </select>
@@ -280,96 +379,46 @@ function renderLedger(allEntries){
           <option value="all">Mọi PT</option>
           ${Object.entries(METHOD_LABELS).map(([k,v])=>`<option value="${k}"${state.filterMethod===k?' selected':''}>${v}</option>`).join('')}
         </select>
-        <input type="date" class="filter-input" value="${state.dateFrom}" onchange="state.dateFrom=this.value;render()" title="Từ ngày">
-        <input type="date" class="filter-input" value="${state.dateTo}" onchange="state.dateTo=this.value;render()" title="Đến ngày">
       </div>
-      <div style="display:flex;gap:8px">
-        ${_can('cashbook.create')?'<button class="btn primary" onclick="openEntryModal(\'thu\')">+ Phiếu thu</button><button class="btn secondary" onclick="openEntryModal(\'chi\')">+ Phiếu chi</button>':''}
+    </div>
+
+    <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="padding:10px 16px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-sm);font-size:12px;font-weight:700">
+        Số dư đầu kỳ: <span style="color:var(--h5c-text);font-weight:800">${fmt(openingBalance)}đ</span>
+      </div>
+      <div style="padding:10px 16px;background:var(--h5c-sage-light);border-radius:var(--h5c-radius-sm);font-size:12px;font-weight:700;color:var(--h5c-sage)">
+        Tổng thu: +${fmt(periodThu)}đ
+      </div>
+      <div style="padding:10px 16px;background:var(--h5c-terracotta-light);border-radius:var(--h5c-radius-sm);font-size:12px;font-weight:700;color:var(--h5c-terracotta)">
+        Tổng chi: -${fmt(periodChi)}đ
+      </div>
+      <div style="padding:10px 16px;background:var(--h5c-copper-light);border-radius:var(--h5c-radius-sm);font-size:12px;font-weight:700;color:var(--h5c-copper-dark)">
+        Số dư cuối kỳ: ${fmt(openingBalance+periodThu-periodChi)}đ
       </div>
     </div>`;
 
-  if(!sortedDates.length){
-    h+=`<div style="text-align:center;padding:50px;color:var(--h5c-text-secondary)"><div style="font-size:48px;margin-bottom:12px">📒</div><p>Sổ quỹ trống</p></div>`;
-  }else{
-    let runningBalance=0;
-    // Calculate initial balance from entries before the filtered range
-    const allSorted=[...allEntries].filter(e=>e.status!=='cancelled').sort((a,b)=>a.date>b.date?1:-1);
-    allSorted.forEach(e=>{
-      if(state.dateFrom&&e.date<state.dateFrom){
-        runningBalance+=e.dir==='thu'?(e.amount||0):-(e.amount||0);
-      }
-    });
-
-    const chronoDates=[...sortedDates].reverse();
-    const balanceMap={};
-    chronoDates.forEach(d=>{
-      balanceMap[d]=[];
-      groups[d].forEach(e=>{
-        runningBalance+=e.dir==='thu'?(e.amount||0):-(e.amount||0);
-        balanceMap[d].push(runningBalance);
-      });
-    });
-
-    sortedDates.forEach(d=>{
-      const dayEntries=groups[d];
-      const dayThu=dayEntries.filter(e=>e.dir==='thu').reduce((s,e)=>s+(e.amount||0),0);
-      const dayChi=dayEntries.filter(e=>e.dir==='chi').reduce((s,e)=>s+(e.amount||0),0);
-      h+=`<div class="ledger-day">
-        <div class="ledger-day-header">
-          <span>${formatDate(d)}</span>
-          <div class="subtotal">
-            <span style="color:var(--h5c-sage)">+${fmt(dayThu)}</span>
-            <span style="margin:0 8px;color:var(--h5c-border-strong)">|</span>
-            <span style="color:var(--h5c-terracotta)">−${fmt(dayChi)}</span>
-          </div>
-        </div>`;
-      const bals=balanceMap[d]||[];
-      dayEntries.forEach((e,i)=>{
-        const bal=bals[i]||0;
-        h+=`<div class="ledger-row">
-          <span>${e.id||'—'}</span>
-          <span style="font-weight:600">${e.desc||e.description||'—'}</span>
-          <span class="method-badge">${METHOD_LABELS[e.method]||'—'}</span>
-          <span class="${e.dir==='thu'?'amount-in':'amount-out'}">${e.dir==='thu'?'+':'−'}${fmt(e.amount)}</span>
-          <span class="balance">${fmt(bal)}đ</span>
-        </div>`;
-      });
-      h+=`</div>`;
-    });
-  }
-  h+=`</div>`;
-  return h;
-}
-
-function renderEntryTable(dir,entries){
-  const catLabels=dir==='thu'?CAT_THU:CAT_CHI;
-  let filtered=[...entries].sort((a,b)=>b.date>a.date?1:-1);
-  let h=`<div class="card"><div class="cb-header">
-    <h3 style="margin:0;font-size:16px">${dir==='thu'?'Phiếu thu':'Phiếu chi'}</h3>
-    ${_can('cashbook.create')?`<button class="btn primary" onclick="openEntryModal('${dir}')">+ Tạo ${dir==='thu'?'phiếu thu':'phiếu chi'}</button>`:''}
-  </div>`;
-  if(!filtered.length){
-    h+=`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)"><p>Chưa có phiếu nào</p></div>`;
+  if(!periodEntries.length){
+    h+=`<div style="text-align:center;padding:50px;color:var(--h5c-text-secondary)"><div style="font-size:48px;margin-bottom:12px">📒</div><p>Không có giao dịch trong kỳ này</p></div>`;
   }else{
     h+=`<div class="table-container"><table class="data-table"><thead><tr>
-      <th>Mã</th><th>Ngày</th><th>Diễn giải</th><th>Danh mục</th><th>Số tiền</th><th>PT</th><th>Trạng thái</th><th>Người tạo</th>
-      ${_can('cashbook.confirm')?'<th>Thao tác</th>':''}
+      <th>Ngày</th><th>Mã chứng từ</th><th>Diễn giải</th><th>PT</th><th style="text-align:right">Thu</th><th style="text-align:right">Chi</th><th style="text-align:right">Số dư lũy kế</th><th>Nguồn</th>
     </tr></thead><tbody>`;
-    filtered.forEach(e=>{
+
+    // Sort chronologically for running balance
+    const sorted=[...periodEntries].sort((a,b)=>a.date>b.date?1:a.date<b.date?-1:0);
+    let running=openingBalance;
+    sorted.forEach(e=>{
+      const amt=e.amount||0;
+      if(e.dir==='thu')running+=amt;else running-=amt;
       h+=`<tr>
-        <td><strong style="font-size:11px">${e.id}</strong></td>
-        <td style="font-size:12px">${formatDate(e.date)}</td>
-        <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.desc||e.description||'—'}</td>
-        <td style="font-size:11px">${catLabels[e.category]||e.category||'—'}</td>
-        <td style="font-weight:800;color:${dir==='thu'?'var(--h5c-sage)':'var(--h5c-terracotta)'}">${fmt(e.amount)}đ</td>
+        <td style="font-size:12px;white-space:nowrap">${formatDate(e.date)}</td>
+        <td><strong style="font-size:11px">${e.id||'—'}</strong></td>
+        <td style="font-size:12px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.desc||'—'}</td>
         <td><span class="method-badge">${METHOD_LABELS[e.method]||'—'}</span></td>
-        <td><span class="status-badge ${e.status||'draft'}">${STATUS_LABELS[e.status||'draft']}</span></td>
-        <td style="font-size:12px">${e.createdBy||'—'}</td>
-        ${_can('cashbook.confirm')?`<td><div class="action-btns">
-          ${e.status==='draft'?`<button class="action-btn confirm" title="Xác nhận" onclick="confirmEntry('${dir}','${e.id}')">✅</button>`:''}
-          <button class="action-btn edit" title="Sửa" onclick="editEntry('${dir}','${e.id}')">✏️</button>
-          <button class="action-btn delete" title="Hủy" onclick="cancelEntry('${dir}','${e.id}')">❌</button>
-        </div></td>`:''}
+        <td style="text-align:right;font-weight:700;color:var(--h5c-sage)">${e.dir==='thu'?'+'+fmt(amt)+'đ':''}</td>
+        <td style="text-align:right;font-weight:700;color:var(--h5c-terracotta)">${e.dir==='chi'?'-'+fmt(amt)+'đ':''}</td>
+        <td style="text-align:right;font-weight:800">${fmt(running)}đ</td>
+        <td>${e._auto?'<span class="auto-badge">Tự động</span>':'<span class="manual-badge">Thủ công</span>'}</td>
       </tr>`;
     });
     h+=`</tbody></table></div>`;
@@ -378,10 +427,58 @@ function renderEntryTable(dir,entries){
   return h;
 }
 
+// ════════════════════════════════════════════════════════════════
+// TAB: PHIẾU THU / PHIẾU CHI
+// ════════════════════════════════════════════════════════════════
+function renderEntryTable(dir){
+  const entries=dir==='thu'?getAllReceipts():getAllPaymentsOut();
+  const catLabels=dir==='thu'?CAT_THU:CAT_CHI;
+  const filtered=entries.filter(e=>e.status!=='cancelled');
+
+  let h=`<div class="card"><div class="cb-header">
+    <h3 style="margin:0;font-size:16px">${dir==='thu'?'Phiếu thu':'Phiếu chi'}</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      ${dir==='thu'?'<div style="font-size:11px;color:var(--h5c-text-secondary)">Phiếu thu tự động từ đơn hàng đã thanh toán</div>':'<div style="font-size:11px;color:var(--h5c-text-secondary)">Phiếu chi tự động từ chi phí đã duyệt & thanh toán</div>'}
+      ${_can('cashbook.create')?`<button class="btn-add" onclick="openEntryModal('${dir}')">+ Tạo ${dir==='thu'?'phiếu thu':'phiếu chi'}</button>`:''}
+    </div>
+  </div>`;
+  if(!filtered.length){
+    h+=`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)"><p>Chưa có phiếu nào</p></div>`;
+  }else{
+    h+=`<div class="table-container"><table class="data-table"><thead><tr>
+      <th>Mã</th><th>Ngày</th><th>Diễn giải</th><th>Danh mục</th><th>Số tiền</th><th>PT</th><th>Nguồn</th><th>Đối tượng</th><th>Người tạo</th><th>Thao tác</th>
+    </tr></thead><tbody>`;
+    filtered.forEach(e=>{
+      const isAuto=!!e._auto;
+      const canAct=!isAuto&&_can('cashbook.create');
+      h+=`<tr>
+        <td><strong style="font-size:11px">${e.id}</strong></td>
+        <td style="font-size:12px">${formatDate(e.date)}</td>
+        <td style="font-size:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.desc||'—'}</td>
+        <td style="font-size:11px">${catLabels[e.category]||e.category||'—'}</td>
+        <td style="font-weight:800;color:${dir==='thu'?'var(--h5c-sage)':'var(--h5c-terracotta)'}">${fmt(e.amount)}đ</td>
+        <td><span class="method-badge">${METHOD_LABELS[e.method]||'—'}</span></td>
+        <td>${isAuto?'<span class="auto-badge">Tự động</span>':'<span class="manual-badge">Thủ công</span>'}</td>
+        <td style="font-size:12px">${e.party||'—'}</td>
+        <td style="font-size:12px">${e.createdBy||'—'}</td>
+        <td><div class="action-btns">
+          ${canAct?`<button class="action-btn edit" title="Sửa" onclick="editEntry('${dir}','${e.id}')">✏️</button><button class="action-btn delete" title="Xóa" onclick="deleteEntry('${dir}','${e.id}')">🗑️</button>`:(isAuto?'<span style="font-size:10px;color:var(--h5c-text-secondary)">—</span>':'')}
+        </div></td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB: TK NGÂN HÀNG
+// ════════════════════════════════════════════════════════════════
 function renderBanks(){
   let h=`<div class="card"><div class="cb-header">
     <h3 style="margin:0;font-size:16px">Tài khoản ngân hàng</h3>
-    ${_can('cashbook.create')?'<button class="btn primary" onclick="openBankModal()">+ Thêm TK</button>':''}
+    ${_can('cashbook.create')?'<button class="btn-add" onclick="openBankModal()">+ Thêm TK</button>':''}
   </div>`;
   if(!BANKS.length){
     h+=`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)"><div style="font-size:40px;margin-bottom:12px">🏦</div><p>Chưa có tài khoản ngân hàng nào</p></div>`;
@@ -401,10 +498,13 @@ function renderBanks(){
   return h;
 }
 
+// ════════════════════════════════════════════════════════════════
+// TAB: BIỂU ĐỒ
+// ════════════════════════════════════════════════════════════════
 function renderChartsHTML(){
-  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+  return`<div class="charts-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
     <div class="card"><h3 style="font-size:14px;margin-bottom:16px">Thu vs Chi theo tháng</h3><div class="chart-container"><canvas id="monthChart"></canvas></div></div>
-    <div class="card"><h3 style="font-size:14px;margin-bottom:16px">Cơ cấu chi</h3><div class="chart-container"><canvas id="catChart"></canvas></div></div>
+    <div class="card"><h3 style="font-size:14px;margin-bottom:16px">Top 5 danh mục chi</h3><div class="chart-container"><canvas id="catChart"></canvas></div></div>
     <div class="card" style="grid-column:1/-1"><h3 style="font-size:14px;margin-bottom:16px">Dòng tiền lũy kế</h3><div class="chart-container"><canvas id="flowChart"></canvas></div></div>
   </div>`;
 }
@@ -414,42 +514,74 @@ function renderCharts(){
   state.charts={};
   const all=getAllEntries().filter(e=>e.status!=='cancelled');
   const now=new Date();
-  const months=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
 
+  // ── Month chart: 12 months + closing balance line ──
+  const months=[];for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
   const mEl=document.getElementById('monthChart');
   if(mEl){
     const thuData=months.map(m=>all.filter(e=>e.dir==='thu'&&(e.date||'').startsWith(m)).reduce((s,e)=>s+(e.amount||0),0));
     const chiData=months.map(m=>all.filter(e=>e.dir==='chi'&&(e.date||'').startsWith(m)).reduce((s,e)=>s+(e.amount||0),0));
+    const balanceData=[];let runBal=0;
+    // Calculate cumulative balance before the 12-month window
+    const firstMonth=months[0];
+    all.filter(e=>(e.date||'')<firstMonth).forEach(e=>{runBal+=e.dir==='thu'?(e.amount||0):-(e.amount||0);});
+    months.forEach((m,i)=>{runBal+=thuData[i]-chiData[i];balanceData.push(runBal);});
     state.charts.month=new Chart(mEl,{type:'bar',data:{
       labels:months.map(m=>{const[y,mm]=m.split('-');return mm+'/'+y;}),
-      datasets:[{label:'Thu',data:thuData,backgroundColor:'#4A7A4D',borderRadius:4},{label:'Chi',data:chiData,backgroundColor:'#C44536',borderRadius:4}]
-    },options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{callback:v=>fmtB(v)}}}}});
+      datasets:[
+        {label:'Tổng thu',data:thuData,backgroundColor:'#4A7A4D',borderRadius:4,order:2},
+        {label:'Tổng chi',data:chiData,backgroundColor:'#C44536',borderRadius:4,order:2},
+        {label:'Số dư cuối tháng',data:balanceData,type:'line',borderColor:'#B87333',backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:'#B87333',tension:.3,order:1,yAxisID:'y'}
+      ]
+    },options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{callback:v=>fmtB(v)}}},plugins:{tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw)}}}}});
   }
 
+  // ── Cat chart: top 5 + Khác doughnut ──
   const cEl=document.getElementById('catChart');
   if(cEl){
     const catMap={};
     all.filter(e=>e.dir==='chi').forEach(e=>{const c=CAT_CHI[e.category]||e.category||'Khác';catMap[c]=(catMap[c]||0)+(e.amount||0);});
+    const sorted=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+    const top5=sorted.slice(0,5);
+    const rest=sorted.slice(5).reduce((s,e)=>s+e[1],0);
+    if(rest>0)top5.push(['Khác',rest]);
+    const catLabels=top5.map(e=>e[0]),catValues=top5.map(e=>e[1]);
+    const totalChi=catValues.reduce((s,v)=>s+v,0);
     state.charts.cat=new Chart(cEl,{type:'doughnut',data:{
-      labels:Object.keys(catMap),datasets:[{data:Object.values(catMap),backgroundColor:['#C44536','#D4851A','#4A7FB5','#7B5EA7','#38261C','#2A8A7A']}]
-    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11}}}}}});
+      labels:catLabels,datasets:[{data:catValues,backgroundColor:['#C44536','#D4851A','#4A7FB5','#7B5EA7','#2A8A7A','#38261C']}]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>{const v=ctx.raw;const pct=totalChi?((v/totalChi)*100).toFixed(1):'0';return ctx.label+': '+fmt(v)+' ('+pct+'%)'}}}}}});
   }
 
+  // ── Flow chart: current month daily with opening balance ──
   const fEl=document.getElementById('flowChart');
   if(fEl){
-    let cumulative=0;
-    const sorted=[...all].sort((a,b)=>a.date>b.date?1:-1);
-    const byDate={};sorted.forEach(e=>{cumulative+=e.dir==='thu'?(e.amount||0):-(e.amount||0);byDate[e.date]=cumulative;});
-    const dates=Object.keys(byDate);
+    const curMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    // Opening balance: sum of all entries before current month
+    let opening=0;
+    all.forEach(e=>{if((e.date||'')<curMonth){opening+=e.dir==='thu'?(e.amount||0):-(e.amount||0);}});
+    // Build daily data for current month
+    const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+    const dailyLabels=[];const dailyData=[];let cumBal=opening;
+    for(let d=1;d<=daysInMonth;d++){
+      const dayStr=curMonth+'-'+String(d).padStart(2,'0');
+      dailyLabels.push(d);
+      const dayEntries=all.filter(e=>(e.date||'')===dayStr);
+      dayEntries.forEach(e=>{cumBal+=e.dir==='thu'?(e.amount||0):-(e.amount||0);});
+      dailyData.push(cumBal);
+    }
+    // Highlight lowest balance day
+    const minVal=Math.min(...dailyData);
+    const pointColors=dailyData.map(v=>v===minVal?'#C44536':'#8FC643');
+    const pointRadii=dailyData.map(v=>v===minVal?6:2);
     state.charts.flow=new Chart(fEl,{type:'line',data:{
-      labels:dates.map(d=>formatDate(d)),
-      datasets:[{label:'Số dư lũy kế',data:dates.map(d=>byDate[d]),borderColor:'#8FC643',backgroundColor:'#8FC64320',fill:true,tension:.3,pointRadius:2}]
-    },options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{callback:v=>fmtB(v)}}}}});
+      labels:dailyLabels,
+      datasets:[{label:'Số dư lũy kế',data:dailyData,borderColor:'#8FC643',backgroundColor:'#8FC64320',fill:true,tension:.3,pointRadius:pointRadii,pointBackgroundColor:pointColors}]
+    },options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'Ngày trong tháng '+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear()}},y:{ticks:{callback:v=>fmtB(v)}}},plugins:{tooltip:{callbacks:{label:ctx=>'Số dư: '+fmt(ctx.raw)}}}}});
   }
 }
 
 // ════════════════════════════════════════════════════════════════
-// ENTRY CRUD
+// ENTRY CRUD (manual only)
 // ════════════════════════════════════════════════════════════════
 function openEntryModal(dir){
   document.getElementById('entryForm').reset();
@@ -464,7 +596,7 @@ function openEntryModal(dir){
 
 function editEntry(dir,id){
   const list=dir==='thu'?RECEIPTS:PAYMENTS_OUT;
-  const e=list.find(x=>x.id===id);if(!e)return;
+  const e=list.find(x=>x.id===id);if(!e||e._auto)return;
   openEntryModal(dir);
   document.getElementById('entryId').value=e.id;
   document.getElementById('entryDate').value=e.date||'';
@@ -483,7 +615,7 @@ function saveEntry(ev){
   const id=document.getElementById('entryId').value;
   const data={
     date:document.getElementById('entryDate').value,
-    amount:parseInt(document.getElementById('entryAmount').value)||0,
+    amount:parseFloat(document.getElementById('entryAmount').value)||0,
     category:document.getElementById('entryCategory').value,
     method:document.getElementById('entryMethod').value,
     party:document.getElementById('entryParty').value.trim(),
@@ -499,29 +631,25 @@ function saveEntry(ev){
   }else{
     const prefix=dir==='thu'?'PT':'PC';
     let newId;do{newId=prefix+Date.now().toString(36).toUpperCase();}while(list.find(e=>e.id===newId));
-    list.push({id:newId,...data,status:'draft',createdBy:state.user.name,createdAt:new Date().toISOString()});
+    list.push({id:newId,...data,status:'confirmed',createdBy:state.user.name,createdAt:new Date().toISOString()});
   }
   H5C.set(storeKey,list);
   closeModal('entryModal');
-  if(typeof showToast==='function')showToast(id?'Đã cập nhật':'Đã tạo '+( dir==='thu'?'phiếu thu':'phiếu chi'),'success');
+  if(typeof showToast==='function')showToast(id?'Đã cập nhật':'Đã tạo '+(dir==='thu'?'phiếu thu':'phiếu chi'),'success');
   render();
 }
 
-function confirmEntry(dir,id){
+function deleteEntry(dir,id){
+  if(!confirm('Xóa phiếu này?'))return;
   const list=dir==='thu'?RECEIPTS:PAYMENTS_OUT;
-  const e=list.find(x=>x.id===id);if(!e)return;
-  e.status='confirmed';e.approvedBy=state.user.name;e.approvedAt=new Date().toISOString();
-  H5C.set(dir==='thu'?'cash_receipts':'cash_payments',list);
-  if(typeof showToast==='function')showToast('Đã xác nhận','success');
+  const e=list.find(x=>x.id===id);
+  if(!e||e._auto)return; // Cannot delete auto entries
+  const storeKey=dir==='thu'?'cash_receipts':'cash_payments';
+  if(dir==='thu')RECEIPTS=RECEIPTS.filter(r=>r.id!==id);
+  else PAYMENTS_OUT=PAYMENTS_OUT.filter(p=>p.id!==id);
+  H5C.set(storeKey,dir==='thu'?RECEIPTS:PAYMENTS_OUT);
+  if(typeof showToast==='function')showToast('Đã xóa phiếu','success');
   render();
-}
-
-function cancelEntry(dir,id){
-  if(!confirm('Hủy phiếu này?'))return;
-  const list=dir==='thu'?RECEIPTS:PAYMENTS_OUT;
-  const e=list.find(x=>x.id===id);if(!e)return;
-  e.status='cancelled';
-  H5C.set(dir==='thu'?'cash_receipts':'cash_payments',list);render();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -552,7 +680,7 @@ function saveBank(e){
     accountNumber:document.getElementById('bankNumber').value.trim(),
     accountName:document.getElementById('bankHolder').value.trim(),
     branch:document.getElementById('bankBranch').value.trim(),
-    currentBalance:parseInt(document.getElementById('bankBalance').value)||0
+    currentBalance:parseFloat(document.getElementById('bankBalance').value)||0
   };
   if(id){const idx=BANKS.findIndex(b=>b.id===id);if(idx!==-1)BANKS[idx]={...BANKS[idx],...data};}
   else{let newId;do{newId='BK'+Date.now().toString(36).toUpperCase();}while(BANKS.find(b=>b.id===newId));BANKS.push({id:newId,...data});}
@@ -576,5 +704,6 @@ document.addEventListener('DOMContentLoaded',function(){
   if(session){state.user=session;showMain();}
 });
 </script>
+<script src="firebase-sync.js?v=3"></script>
 </body>
 </html>

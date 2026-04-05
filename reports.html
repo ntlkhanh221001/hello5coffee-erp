@@ -68,6 +68,7 @@
 @media(max-width:900px){.builder-wrap{grid-template-columns:1fr}.builder-sidebar{max-height:none}.charts-grid{grid-template-columns:1fr}}
 </style>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 </head>
 <body>
@@ -212,7 +213,6 @@ const PREV_COLOR='#9C8B7E';
 Chart.defaults.font.family = 'Be Vietnam Pro';
 Chart.defaults.color = '#6B5B4E';
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(n||0);
 const getInitials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
 function fmtSmart(n,format){
   if(format==='pct') return (n||0)+'%';
@@ -262,7 +262,7 @@ const CHANNEL_LABELS={facebook:'Facebook',instagram:'Instagram',linkedin:'Linked
 const ORDER_STATUS_LABELS={confirmed:'Mới xác nhận',producing:'Đang SX',produced:'SX xong',shipping:'Đang giao',completed:'Hoàn thành',cancelled:'Đã hủy'};
 const EXPENSE_CAT_LABELS={luong:'Lương',nguyen_lieu:'Nguyên liệu',van_hanh:'Vận hành',marketing:'Marketing',logistics:'Logistics',khac:'Khác'};
 const EXPENSE_TYPE_LABELS={dinh_phi:'Định phí',bien_phi:'Biến phí'};
-const COUNTRY_LABELS={vietnam:'Việt Nam',japan:'Nhật Bản',korea:'Hàn Quốc',china:'Trung Quốc',taiwan:'Đài Loan',singapore:'Singapore',thailand:'Thái Lan',malaysia:'Malaysia',usa:'Mỹ',uk:'Anh',france:'Pháp',germany:'Đức',australia:'Úc',uae:'UAE',other:'Khác'};
+const COUNTRY_LABELS={vietnam:'Việt Nam','Việt Nam':'Việt Nam',japan:'Nhật Bản','Nhật Bản':'Nhật Bản',korea:'Hàn Quốc','Hàn Quốc':'Hàn Quốc',china:'Trung Quốc','Trung Quốc':'Trung Quốc',taiwan:'Đài Loan','Đài Loan':'Đài Loan',singapore:'Singapore','Singapore':'Singapore',thailand:'Thái Lan','Thái Lan':'Thái Lan',malaysia:'Malaysia','Malaysia':'Malaysia',usa:'Mỹ','Mỹ':'Mỹ',uk:'Anh','Anh':'Anh',france:'Pháp','Pháp':'Pháp',germany:'Đức','Đức':'Đức',australia:'Úc','Úc':'Úc',uae:'UAE','UAE':'UAE',other:'Khác',khac:'Khác'};
 // Module → permission map (cho scope filter)
 const MODULE_PERM={orders:'orders.view',leads:'leads.view',expenses:'expenses.view',warehouse:'wh.view_stock',users:'users.view'};
 
@@ -641,10 +641,25 @@ function renderReport(){
     h+='</tbody></table></div>';
   }
 
-  // ── Monthly trend chart (if orders module selected and has revenue or total) ──
-  if (neededModules.includes('orders') && (metrics.includes('order_revenue') || metrics.includes('order_total'))) {
+  // ── Monthly trend charts ──
+  const hasTrendSection = (neededModules.includes('orders') && (metrics.includes('order_revenue') || metrics.includes('order_total')))
+    || (neededModules.includes('expenses') && metrics.includes('expense_total'))
+    || (neededModules.includes('warehouse') && (metrics.includes('wh_import') || metrics.includes('wh_export')))
+    || (neededModules.includes('leads') && metrics.includes('lead_total'));
+  if (hasTrendSection) {
     h+='<div class="report-section-label">Xu hướng theo thời gian</div>';
+  }
+  if (neededModules.includes('orders') && (metrics.includes('order_revenue') || metrics.includes('order_total'))) {
     h+='<div class="chart-container"><div class="chart-title">Xu hướng đơn hàng theo tháng</div><div class="chart-wrap" style="height:260px"><canvas id="chart_trend_orders"></canvas></div></div>';
+  }
+  if (neededModules.includes('expenses') && metrics.includes('expense_total')) {
+    h+='<div class="chart-container"><div class="chart-title">Xu hướng chi phí theo tháng</div><div class="chart-wrap" style="height:260px"><canvas id="chart_trend_expenses"></canvas></div></div>';
+  }
+  if (neededModules.includes('warehouse') && (metrics.includes('wh_import') || metrics.includes('wh_export'))) {
+    h+='<div class="chart-container"><div class="chart-title">Xu hướng nhập/xuất kho theo tháng</div><div class="chart-wrap" style="height:260px"><canvas id="chart_trend_warehouse"></canvas></div></div>';
+  }
+  if (neededModules.includes('leads') && metrics.includes('lead_total')) {
+    h+='<div class="chart-container"><div class="chart-title">Xu hướng lead mới theo tháng</div><div class="chart-wrap" style="height:260px"><canvas id="chart_trend_leads"></canvas></div></div>';
   }
 
   h+='</div>';
@@ -783,23 +798,167 @@ function renderReport(){
       trendCtx.parentElement.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:160px;color:var(--h5c-text-muted);font-size:12px;flex-direction:column;gap:10px"><span style="font-size:32px">📭</span><span>Không có dữ liệu trong kỳ này</span></div>';
     }
   }
+
+  // ── Trend: Expenses ──
+  const trendExpCtx = document.getElementById('chart_trend_expenses');
+  if (trendExpCtx) {
+    const tFrom = state.dateFrom ? new Date(state.dateFrom) : new Date('2000-01-01');
+    const tTo   = state.dateTo   ? new Date(state.dateTo)   : new Date('2099-12-31');
+    const exps = (H5C.get('expenses')||[]).filter(e => {
+      if(e.status==='tu_choi') return false;
+      const dt = e.date||''; if(!dt) return false;
+      const d = new Date(dt); return d>=tFrom && d<=tTo;
+    });
+    const mm = {};
+    exps.forEach(e => { const k=(e.date||'').slice(0,7); if(!k)return; if(!mm[k])mm[k]={count:0,amount:0}; mm[k].count++; mm[k].amount+=(e.amount||0); });
+    const sk = Object.keys(mm).sort();
+    if (sk.length>=1) {
+      charts['chart_trend_expenses'] = new Chart(trendExpCtx, {
+        type:'line',
+        data:{
+          labels:sk.map(k=>{const[y,m]=k.split('-');return m+'/'+y.slice(2);}),
+          datasets:[
+            {label:'Chi phí (triệu)',data:sk.map(k=>(mm[k].amount/1e6)),borderColor:'#C44536',backgroundColor:'rgba(196,69,54,.12)',fill:true,tension:.35,borderWidth:2.5,pointBackgroundColor:'#C44536',pointRadius:4},
+            {label:'Số phiếu',data:sk.map(k=>mm[k].count),borderColor:'#7B5EA7',backgroundColor:'transparent',borderWidth:2,tension:.35,pointBackgroundColor:'#7B5EA7',pointRadius:4,yAxisID:'y1'}
+          ]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:10}}},tooltip:{callbacks:{label:ctx=>{if(ctx.datasetIndex===0)return'Chi phí: '+fmtSmart(ctx.raw*1e6,'money');return'Số phiếu: '+fmt(ctx.raw);}}}},
+          scales:{
+            y:{beginAtZero:true,position:'left',title:{display:true,text:'Triệu VNĐ',font:{size:10}},grid:{color:'var(--h5c-border)'},ticks:{font:{size:10}}},
+            y1:{beginAtZero:true,position:'right',title:{display:true,text:'Số phiếu',font:{size:10}},grid:{drawOnChartArea:false},ticks:{font:{size:10}}},
+            x:{grid:{display:false},ticks:{font:{size:9}}}
+          }
+        }
+      });
+    } else {
+      trendExpCtx.parentElement.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:160px;color:var(--h5c-text-muted);font-size:12px;flex-direction:column;gap:10px"><span style="font-size:32px">📭</span><span>Không có dữ liệu trong kỳ này</span></div>';
+    }
+  }
+
+  // ── Trend: Warehouse (nhập/xuất) ──
+  const trendWhCtx = document.getElementById('chart_trend_warehouse');
+  if (trendWhCtx) {
+    const tFrom = state.dateFrom ? new Date(state.dateFrom) : new Date('2000-01-01');
+    const tTo   = state.dateTo   ? new Date(state.dateTo)   : new Date('2099-12-31');
+    const lots = (H5C.get('lots')||[]).filter(l => {
+      const dt = l.date||''; if(!dt) return false;
+      const d = new Date(dt); return d>=tFrom && d<=tTo;
+    });
+    const mm = {};
+    lots.forEach(l => { const k=(l.date||'').slice(0,7); if(!k)return; if(!mm[k])mm[k]={nhap:0,xuat:0}; const q=l.qty||0; if(l.type==='xuat')mm[k].xuat+=q; else mm[k].nhap+=q; });
+    const sk = Object.keys(mm).sort();
+    if (sk.length>=1) {
+      charts['chart_trend_warehouse'] = new Chart(trendWhCtx, {
+        type:'line',
+        data:{
+          labels:sk.map(k=>{const[y,m]=k.split('-');return m+'/'+y.slice(2);}),
+          datasets:[
+            {label:'Nhập kho',data:sk.map(k=>mm[k].nhap),borderColor:'#4A7A4D',backgroundColor:'rgba(74,122,77,.12)',fill:true,tension:.35,borderWidth:2.5,pointBackgroundColor:'#4A7A4D',pointRadius:4},
+            {label:'Xuất kho',data:sk.map(k=>mm[k].xuat),borderColor:'#D4851A',backgroundColor:'rgba(212,133,26,.12)',fill:true,tension:.35,borderWidth:2.5,pointBackgroundColor:'#D4851A',pointRadius:4}
+          ]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:10}}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw)}}},
+          scales:{
+            y:{beginAtZero:true,title:{display:true,text:'Số lượng',font:{size:10}},grid:{color:'var(--h5c-border)'},ticks:{font:{size:10}}},
+            x:{grid:{display:false},ticks:{font:{size:9}}}
+          }
+        }
+      });
+    } else {
+      trendWhCtx.parentElement.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:160px;color:var(--h5c-text-muted);font-size:12px;flex-direction:column;gap:10px"><span style="font-size:32px">📭</span><span>Không có dữ liệu trong kỳ này</span></div>';
+    }
+  }
+
+  // ── Trend: Leads ──
+  const trendLeadCtx = document.getElementById('chart_trend_leads');
+  if (trendLeadCtx) {
+    const tFrom = state.dateFrom ? new Date(state.dateFrom) : new Date('2000-01-01');
+    const tTo   = state.dateTo   ? new Date(state.dateTo)   : new Date('2099-12-31');
+    const leads = (H5C.get('leads')||[]).filter(l => {
+      const dt = l.startDate||l.createdAt||''; if(!dt) return false;
+      const d = new Date(dt); return d>=tFrom && d<=tTo;
+    });
+    const mm = {};
+    leads.forEach(l => { const dt=l.startDate||l.createdAt||''; const k=dt.slice(0,7); if(!k)return; if(!mm[k])mm[k]=0; mm[k]++; });
+    const sk = Object.keys(mm).sort();
+    if (sk.length>=1) {
+      charts['chart_trend_leads'] = new Chart(trendLeadCtx, {
+        type:'line',
+        data:{
+          labels:sk.map(k=>{const[y,m]=k.split('-');return m+'/'+y.slice(2);}),
+          datasets:[
+            {label:'Lead mới',data:sk.map(k=>mm[k]),borderColor:'#4A7FB5',backgroundColor:'rgba(74,127,181,.12)',fill:true,tension:.35,borderWidth:2.5,pointBackgroundColor:'#4A7FB5',pointRadius:4}
+          ]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:10}}},tooltip:{callbacks:{label:ctx=>'Lead mới: '+fmt(ctx.raw)}}},
+          scales:{
+            y:{beginAtZero:true,title:{display:true,text:'Số lead',font:{size:10}},grid:{color:'var(--h5c-border)'},ticks:{font:{size:10},stepSize:1}},
+            x:{grid:{display:false},ticks:{font:{size:9}}}
+          }
+        }
+      });
+    } else {
+      trendLeadCtx.parentElement.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:160px;color:var(--h5c-text-muted);font-size:12px;flex-direction:column;gap:10px"><span style="font-size:32px">📭</span><span>Không có dữ liệu trong kỳ này</span></div>';
+    }
+  }
 }
 
 function exportReport(){
-  // Simple CSV export of the report area stats
-  const boxes = document.querySelectorAll('.stat-box');
-  if (!boxes.length) { alert('Không có dữ liệu để xuất!'); return; }
-  let csv = 'Chỉ số,Giá trị\n';
-  boxes.forEach(box => {
-    const label = box.querySelector('.stat-box-label')?.textContent || '';
-    const value = box.querySelector('.stat-box-value')?.textContent || '';
-    csv += '"'+label+'","'+value+'"\n';
+  const area = document.getElementById('reportArea');
+  if (!area) { showToast('Không có dữ liệu để xuất','warning'); return; }
+
+  let csvParts = [];
+
+  // 1. Export stat boxes
+  const boxes = area.querySelectorAll('.stat-box');
+  if (boxes.length) {
+    csvParts.push('Chỉ số,Giá trị');
+    boxes.forEach(box => {
+      const label = (box.querySelector('.stat-box-label')?.textContent || '').replace(/"/g,'""');
+      const value = (box.querySelector('.stat-box-value')?.textContent || '').replace(/"/g,'""');
+      const prev = box.querySelector('.stat-box-prev')?.textContent || '';
+      const change = box.querySelector('.stat-box-compare')?.textContent || '';
+      let row = '"'+label+'","'+value+'"';
+      if (prev || change) row += ',"'+(prev.replace(/"/g,'""'))+'","'+(change.replace(/"/g,'""'))+'"';
+      csvParts.push(row);
+    });
+    csvParts.push('');
+  }
+
+  // 2. Export all data tables
+  const tables = area.querySelectorAll('table.data-table');
+  tables.forEach(table => {
+    const title = table.closest('div')?.querySelector('.chart-title')?.textContent || '';
+    if (title) csvParts.push('"'+title.replace(/"/g,'""')+'"');
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(tr => {
+      const cells = tr.querySelectorAll('th, td');
+      const vals = [];
+      cells.forEach(c => vals.push('"'+(c.textContent||'').trim().replace(/"/g,'""')+'"'));
+      csvParts.push(vals.join(','));
+    });
+    csvParts.push('');
   });
+
+  if (csvParts.length === 0) { showToast('Không có dữ liệu để xuất','warning'); return; }
+
+  const moduleName = state.activeModule || 'tong-hop';
+  const today = new Date().toISOString().split('T')[0];
+  const fileName = 'bao-cao-'+moduleName+'-'+today+'.csv';
+  const csv = csvParts.join('\n');
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'bao_cao_'+state.dateFrom+'_'+state.dateTo+'.csv';
-  a.click(); URL.revokeObjectURL(url);
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Đã xuất CSV: '+fileName,'success');
 }
 
 document.addEventListener('DOMContentLoaded',()=>{document.getElementById('loginPassword').addEventListener('keypress',e=>{if(e.key==='Enter')handleLogin();});});

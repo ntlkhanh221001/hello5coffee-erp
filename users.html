@@ -96,12 +96,11 @@
 .status-badge.probation{background:#FFF4E6;color:#D4851A}
 .status-badge.handover{background:#E6EFF8;color:#4A7FB5}
 .attend-badge{display:inline-block;padding:3px 8px;border-radius:99px;font-size:9px;font-weight:700}
-.attend-badge.checked_in{background:#E8F0E8;color:#4A7A4D}
+.attend-badge.present{background:#E8F0E8;color:#4A7A4D}
 .attend-badge.late{background:#FFF4E6;color:#D4851A}
 .attend-badge.absent{background:#FBE8E6;color:#C44536}
-.attend-badge.off{background:#ECEFF1;color:#607D8B}
-.attend-badge.business{background:#E6EFF8;color:#4A7FB5}
-.attend-badge.outside{background:#F3E5F5;color:#7B1FA2}
+.attend-badge.leave{background:#ECEFF1;color:#607D8B}
+.attend-badge.holiday{background:#E6EFF8;color:#4A7FB5}
 .kpi-bar{height:8px;background:#E0E0E0;border-radius:4px;overflow:hidden}
 .kpi-bar-fill{height:100%;border-radius:4px}
 .action-btns{display:flex;gap:4px}
@@ -121,6 +120,7 @@
 @media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}.modal-row{grid-template-columns:1fr}}
 </style>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 </head>
 <body>
@@ -200,6 +200,7 @@
       </div>
       <div class="modal-row three">
         <div class="modal-group"><label class="modal-label">Mức lương</label><input type="text" id="empSalary" class="modal-input" placeholder="0" oninput="_fmtSalaryInput(this)" inputmode="numeric"></div>
+        <div class="modal-group"><label class="modal-label">Số người phụ thuộc</label><input type="number" id="empDependents" class="modal-input" min="0" max="20" value="0" placeholder="0"><small style="color:var(--h5c-text-muted)">Dùng để tính giảm trừ thuế TNCN (4.4 triệu/người)</small></div>
         <div class="modal-group"><label class="modal-label">Quản lý bởi</label><select id="empManagedBy" class="modal-input"><option value="">-- Không có / Tự quản lý --</option></select></div>
         <div class="modal-group"><label class="modal-label">Cơ chế hoa hồng nhóm</label><select id="empCommType" class="modal-input"><option value="individual">Cá nhân (Individual)</option><option value="team">Nhóm (Team override)</option><option value="profit_share">Lợi nhuận công ty</option></select></div>
       </div>
@@ -228,7 +229,7 @@
     <div class="modal-title">Cập nhật chấm công</div>
     <div id="attendEmpName" style="font-size:13px;font-weight:700;margin-bottom:12px"></div>
     <div class="modal-row three">
-      <div class="modal-group"><label class="modal-label">Trạng thái</label><select id="attendStatus" class="modal-input"><option value="checked_in">Đã check-in</option><option value="late">Đi muộn</option><option value="outside">Ra ngoài có việc</option><option value="off">Xin nghỉ</option><option value="business">Đi công tác</option><option value="absent">Vắng mặt</option></select></div>
+      <div class="modal-group"><label class="modal-label">Trạng thái</label><select id="attendStatus" class="modal-input"><option value="present">Có mặt</option><option value="late">Đi muộn</option><option value="absent">Vắng mặt</option><option value="leave">Nghỉ phép</option><option value="holiday">Ngày lễ</option></select></div>
       <div class="modal-group"><label class="modal-label">Check-in</label><input type="time" id="attendCheckIn" class="modal-input"></div>
       <div class="modal-group"><label class="modal-label">Check-out</label><input type="time" id="attendCheckOut" class="modal-input"></div>
     </div>
@@ -607,10 +608,8 @@ let KPI=[];
 const NAV_ITEMS=[{id:'dashboard',icon:'📊',label:'Tổng quan'},{id:'orders',icon:'📦',label:'Đơn hàng'},{id:'leads',icon:'🎯',label:'Lead/CRM'},{id:'expenses',icon:'💰',label:'Chi phí'},{id:'warehouse',icon:'🏭',label:'Kho hàng'},{id:'users',icon:'👥',label:'Nhân viên'},{id:'tasks',icon:'✅',label:'Công việc'},{id:'projects',icon:'📋',label:'Dự án'},{id:'reports',icon:'📈',label:'Báo cáo'},{id:'announcements',icon:'📢',label:'Thông báo'}];
 const DEPT_LABELS={kinh_doanh:'Kinh doanh',san_xuat:'Sản xuất',marketing:'Marketing',hr:'HR',ke_toan:'Kế toán',ban_gd:'Ban GĐ',it:'IT'};
 const STATUS_LABELS={active:'Chính thức',probation:'Thử việc',handover:'Đang bàn giao',inactive:'Nghỉ việc'};
-const ATTEND_LABELS={checked_in:'Đã check-in',late:'Đi muộn',outside:'Ra ngoài',off:'Xin nghỉ',business:'Công tác',absent:'Vắng mặt'};
+const ATTEND_LABELS={present:'Có mặt',late:'Đi muộn',absent:'Vắng mặt',leave:'Nghỉ phép',holiday:'Ngày lễ'};
 let state={user:null,tab:'employees',deleteId:null,currentEmpId:null,selectedDate:new Date().toISOString().split('T')[0],kpiMonth:new Date().toISOString().slice(0,7),attendMode:'day',attendFrom:(function(){const d=new Date();d.setDate(1);return d.toISOString().split('T')[0]})(),attendTo:new Date().toISOString().split('T')[0]};
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(n||0);
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
 function calcDuration(s){if(!s)return'—';const m=Math.floor((new Date()-new Date(s))/(1000*60*60*24*30));return m>=12?Math.floor(m/12)+' năm '+(m%12)+' tháng':m+' tháng';}
 function _formatBirthday(bd){
@@ -660,7 +659,7 @@ function closeModal(id){document.getElementById(id).classList.add('hidden');}
 
 function render(){
   const _e=H5C.get('employees');if(_e)EMPLOYEES=_e;
-  const _a=H5C.get('attendance');if(_a)ATTENDANCE=_a;
+  const _a=H5C.get('timesheets');if(_a)ATTENDANCE=_a;
   const _k=H5C.get('kpi');if(_k)KPI=_k;
 const c=document.getElementById('pageContent');let h='<div class="fade">';
 h+='<div class="tab-bar">';
@@ -702,9 +701,9 @@ const pctActive=total?Math.round(active/total*100):0;
 const pctHand=total?Math.round(handover/total*100):0;
 
 const todayAtt=ATTENDANCE.filter(a=>a.date===state.selectedDate);
-const checkedIn=todayAtt.filter(a=>['checked_in','late','outside'].includes(a.status)).length;
-const offToday=todayAtt.filter(a=>a.status==='off').length;
-const businessToday=todayAtt.filter(a=>a.status==='business').length;
+const checkedIn=todayAtt.filter(a=>['present','late'].includes(a.status)).length;
+const leaveToday=todayAtt.filter(a=>a.status==='leave').length;
+const holidayToday=todayAtt.filter(a=>a.status==='holiday').length;
 
 const kpiList=KPI.filter(k=>k.month===state.kpiMonth);
 const avgAllKPI=kpiList.length?Math.round(kpiList.map(k=>(k.scores[0]+k.scores[1]+k.scores[2])/3).reduce((a,b)=>a+b,0)/kpiList.length):0;
@@ -714,9 +713,9 @@ h+='<div class="stat-card highlight"><div class="stat-icon">👥</div><div class
 h+='<div class="stat-card success"><div class="stat-icon">✅</div><div class="stat-label">Chính thức</div><div class="stat-value">'+active+'</div><div class="stat-sub">'+pctActive+'%</div></div>';
 h+='<div class="stat-card warning"><div class="stat-icon">🆕</div><div class="stat-label">Thử việc</div><div class="stat-value">'+probation+'</div><div class="stat-sub">'+pctProb+'%</div></div>';
 h+='<div class="stat-card info"><div class="stat-icon">🔄</div><div class="stat-label">Đang bàn giao</div><div class="stat-value">'+handover+'</div><div class="stat-sub">'+pctHand+'%</div></div>';
-h+='<div class="stat-card"><div class="stat-icon">📥</div><div class="stat-label">Check-in hôm nay</div><div class="stat-value">'+checkedIn+'</div></div>';
-h+='<div class="stat-card"><div class="stat-icon">🏖️</div><div class="stat-label">Xin nghỉ</div><div class="stat-value">'+offToday+'</div></div>';
-h+='<div class="stat-card"><div class="stat-icon">✈️</div><div class="stat-label">Công tác</div><div class="stat-value">'+businessToday+'</div></div>';
+h+='<div class="stat-card"><div class="stat-icon">📥</div><div class="stat-label">Có mặt hôm nay</div><div class="stat-value">'+checkedIn+'</div></div>';
+h+='<div class="stat-card"><div class="stat-icon">🏖️</div><div class="stat-label">Nghỉ phép</div><div class="stat-value">'+leaveToday+'</div></div>';
+h+='<div class="stat-card"><div class="stat-icon">🎌</div><div class="stat-label">Ngày lễ</div><div class="stat-value">'+holidayToday+'</div></div>';
 h+='<div class="stat-card"><div class="stat-icon">📊</div><div class="stat-label">KPI TB</div><div class="stat-value">'+avgAllKPI+'%</div></div>';
 h+='</div>';
 return h;
@@ -726,19 +725,18 @@ return h;
 function renderAttendanceStats(){
 const working=EMPLOYEES.filter(e=>e.status!=='inactive');
 const todayAtt=ATTENDANCE.filter(a=>a.date===state.selectedDate);
-const available=todayAtt.filter(a=>['checked_in','late','outside'].includes(a.status)).length;
-const offToday=todayAtt.filter(a=>a.status==='off').length;
-const businessToday=todayAtt.filter(a=>a.status==='business').length;
+const available=todayAtt.filter(a=>['present','late'].includes(a.status)).length;
+const leaveToday=todayAtt.filter(a=>a.status==='leave').length;
+const holidayToday=todayAtt.filter(a=>a.status==='holiday').length;
 const late=todayAtt.filter(a=>a.status==='late').length;
-const absent=working.length-available-offToday-businessToday;
+const absent=working.length-available-leaveToday-holidayToday;
 
 let h='<div class="stats-row">';
-h+='<div class="stat-card highlight"><div class="stat-icon">✅</div><div class="stat-label">Available</div><div class="stat-value">'+available+'</div><div class="stat-sub">Check-in + Muộn + Ra ngoài</div></div>';
-h+='<div class="stat-card success"><div class="stat-icon">📥</div><div class="stat-label">Đã check-in</div><div class="stat-value">'+todayAtt.filter(a=>a.status==='checked_in').length+'</div></div>';
+h+='<div class="stat-card highlight"><div class="stat-icon">✅</div><div class="stat-label">Có mặt</div><div class="stat-value">'+available+'</div><div class="stat-sub">Có mặt + Đi muộn</div></div>';
+h+='<div class="stat-card success"><div class="stat-icon">📥</div><div class="stat-label">Đúng giờ</div><div class="stat-value">'+todayAtt.filter(a=>a.status==='present').length+'</div></div>';
 h+='<div class="stat-card warning"><div class="stat-icon">⏰</div><div class="stat-label">Đi muộn</div><div class="stat-value">'+late+'</div></div>';
-h+='<div class="stat-card"><div class="stat-icon">🚶</div><div class="stat-label">Ra ngoài</div><div class="stat-value">'+todayAtt.filter(a=>a.status==='outside').length+'</div></div>';
-h+='<div class="stat-card info"><div class="stat-icon">🏖️</div><div class="stat-label">Xin nghỉ</div><div class="stat-value">'+offToday+'</div></div>';
-h+='<div class="stat-card info"><div class="stat-icon">✈️</div><div class="stat-label">Công tác</div><div class="stat-value">'+businessToday+'</div></div>';
+h+='<div class="stat-card info"><div class="stat-icon">🏖️</div><div class="stat-label">Nghỉ phép</div><div class="stat-value">'+leaveToday+'</div></div>';
+h+='<div class="stat-card info"><div class="stat-icon">🎌</div><div class="stat-label">Ngày lễ</div><div class="stat-value">'+holidayToday+'</div></div>';
 h+='<div class="stat-card danger"><div class="stat-icon">❌</div><div class="stat-label">Vắng mặt</div><div class="stat-value">'+Math.max(0,absent)+'</div></div>';
 h+='</div>';
 return h;
@@ -803,8 +801,8 @@ if(state.attendMode==='day'){
   // === SINGLE DAY VIEW (original) ===
   h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã</th><th>Họ tên</th><th>Phòng ban</th><th>Trạng thái</th><th>Check-in</th><th>Check-out</th><th>Ghi chú</th><th></th></tr></thead><tbody>';
   working.forEach(e=>{
-    let att=ATTENDANCE.find(a=>a.empId===e.id&&a.date===state.selectedDate)||{status:'absent',checkIn:null,checkOut:null,note:''};
-    h+='<tr><td><strong>'+e.code+'</strong></td><td>'+e.name+'</td><td><span class="dept-badge '+e.dept+'">'+DEPT_LABELS[e.dept]+'</span></td><td><span class="attend-badge '+att.status+'">'+ATTEND_LABELS[att.status]+'</span></td><td>'+(att.checkIn||'-')+'</td><td>'+(att.checkOut||'-')+'</td><td style="font-size:10px;color:#6B5B4E">'+(att.note||'-')+'</td><td><button class="action-btn" onclick="openAttendModal(\''+e.id+'\')">✏️</button></td></tr>';
+    let att=ATTENDANCE.find(a=>a.empId===e.id&&a.date===state.selectedDate)||{status:'absent',checkIn:null,checkOut:null,notes:''};
+    h+='<tr><td><strong>'+e.code+'</strong></td><td>'+e.name+'</td><td><span class="dept-badge '+e.dept+'">'+DEPT_LABELS[e.dept]+'</span></td><td><span class="attend-badge '+att.status+'">'+ATTEND_LABELS[att.status]+'</span></td><td>'+(att.checkIn||'-')+'</td><td>'+(att.checkOut||'-')+'</td><td style="font-size:10px;color:#6B5B4E">'+(att.notes||att.note||'-')+'</td><td><button class="action-btn" onclick="openAttendModal(\''+e.id+'\')">✏️</button></td></tr>';
   });
   h+='</tbody></table></div>';
 }else{
@@ -814,8 +812,8 @@ if(state.attendMode==='day'){
   const end=new Date(state.attendTo);
   while(cur<=end){dates.push(cur.toISOString().split('T')[0]);cur.setDate(cur.getDate()+1);if(dates.length>31)break;}
 
-  const ATTEND_ICONS={checked_in:'✅',late:'⏰',outside:'🚶',off:'🏖️',business:'✈️',absent:'❌'};
-  const ATTEND_COLORS={checked_in:'#4A7A4D',late:'#D4851A',outside:'#7B1FA2',off:'#607D8B',business:'#4A7FB5',absent:'#C44536'};
+  const ATTEND_ICONS={present:'✅',late:'⏰',absent:'❌',leave:'🏖️',holiday:'🎌'};
+  const ATTEND_COLORS={present:'#4A7A4D',late:'#D4851A',absent:'#C44536',leave:'#607D8B',holiday:'#4A7FB5'};
 
   h+='<div class="table-wrap" style="overflow-x:auto"><table class="data-table" style="min-width:auto"><thead><tr><th style="position:sticky;left:0;z-index:2;min-width:140px">Nhân viên</th>';
   dates.forEach(d=>{
@@ -839,12 +837,12 @@ if(state.attendMode==='day'){
       const st=att?att.status:'absent';
       const dt=new Date(d);
       const isWeekend=dt.getDay()===0||dt.getDay()===6;
-      if(st==='checked_in'||st==='outside')checkedCount++;
+      if(st==='present')checkedCount++;
       else if(st==='late'){checkedCount++;lateCount++;}
-      else if(st==='off'||st==='business')offCount++;
+      else if(st==='leave'||st==='holiday')offCount++;
       else absentCount++;
       const icon=ATTEND_ICONS[st]||'—';
-      const title=ATTEND_LABELS[st]+(att&&att.note?' — '+att.note:'');
+      const title=ATTEND_LABELS[st]+(att&&(att.notes||att.note)?' — '+(att.notes||att.note):'');
       h+='<td style="text-align:center;padding:4px;font-size:12px;cursor:pointer;'+(isWeekend?'background:#FFF4E6':'')+'" title="'+title+'" onclick="state.selectedDate=\''+d+'\';state.attendMode=\'day\';state.currentEmpId=\''+e.id+'\';render();setTimeout(()=>openAttendModal(\''+e.id+'\'),100)">'+icon+'</td>';
     });
     // Summary cells
@@ -908,6 +906,7 @@ if(id){
   document.getElementById('empBirthday').value=e.birthday||'';
   document.getElementById('empStartDate').value=e.startDate||'';
   document.getElementById('empSalary').value=_fmtSalaryValue(e.salary);
+  document.getElementById('empDependents').value=e.dependents||0;
   _populateManagedBySelect(id);
   if(document.getElementById('empManagedBy'))document.getElementById('empManagedBy').value=e.managedBy||'';
   if(document.getElementById('empCommType'))document.getElementById('empCommType').value=e.commType||'individual';
@@ -927,6 +926,7 @@ if(id){
   document.getElementById('empBirthday').value='';
   document.getElementById('empStartDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('empSalary').value='';
+  document.getElementById('empDependents').value=0;
   document.getElementById('empLoginEmail').value='';
   document.getElementById('empLoginPw').value='123456';
   document.getElementById('empRole').value='EMPLOYEE_SALES';
@@ -936,7 +936,7 @@ m.classList.remove('hidden');
 }
 function saveEmployee(e){
 e.preventDefault();const id=document.getElementById('empId').value;
-const d={id:id||(function(){let eid;do{eid='EMP'+Date.now().toString(36).toUpperCase();}while(EMPLOYEES.find(x=>x.id===eid));return eid;})(),code:document.getElementById('empCode').value,name:document.getElementById('empName').value,dept:document.getElementById('empDept').value,position:document.getElementById('empPosition').value,status:document.getElementById('empStatus').value,phone:document.getElementById('empPhone').value,email:document.getElementById('empEmail').value,birthday:document.getElementById('empBirthday').value||'',startDate:document.getElementById('empStartDate').value,salary:_parseSalary(document.getElementById('empSalary').value),managedBy:document.getElementById('empManagedBy')?.value||'',commType:document.getElementById('empCommType')?.value||'individual'};
+const d={id:id||(function(){let eid;do{eid='EMP'+Date.now().toString(36).toUpperCase();}while(EMPLOYEES.find(x=>x.id===eid));return eid;})(),code:document.getElementById('empCode').value,name:document.getElementById('empName').value,dept:document.getElementById('empDept').value,position:document.getElementById('empPosition').value,status:document.getElementById('empStatus').value,phone:document.getElementById('empPhone').value,email:document.getElementById('empEmail').value,birthday:document.getElementById('empBirthday').value||'',startDate:document.getElementById('empStartDate').value,salary:_parseSalary(document.getElementById('empSalary').value),dependents:parseInt(document.getElementById('empDependents').value)||0,managedBy:document.getElementById('empManagedBy')?.value||'',commType:document.getElementById('empCommType')?.value||'individual'};
 
 // Save employee
 if(id){const i=EMPLOYEES.findIndex(x=>x.id===id);if(i>=0)EMPLOYEES[i]=d;}else EMPLOYEES.push(d);
@@ -1347,19 +1347,26 @@ function openAttendModal(empId){
 state.currentEmpId=empId;
 const e=EMPLOYEES.find(x=>x.id===empId);
 document.getElementById('attendEmpName').textContent=e.name;
-let att=ATTENDANCE.find(a=>a.empId===empId&&a.date===state.selectedDate)||{status:'absent',checkIn:'',checkOut:'',note:''};
+let att=ATTENDANCE.find(a=>a.empId===empId&&a.date===state.selectedDate)||{status:'absent',checkIn:'',checkOut:'',notes:''};
 document.getElementById('attendStatus').value=att.status;
 document.getElementById('attendCheckIn').value=att.checkIn||'';
 document.getElementById('attendCheckOut').value=att.checkOut||'';
-document.getElementById('attendNote').value=att.note||'';
+document.getElementById('attendNote').value=att.notes||att.note||'';
 document.getElementById('attendModal').classList.remove('hidden');
 }
 function saveAttendance(){
 const empId=state.currentEmpId;
-const data={empId,date:state.selectedDate,status:document.getElementById('attendStatus').value,checkIn:document.getElementById('attendCheckIn').value||null,checkOut:document.getElementById('attendCheckOut').value||null,note:document.getElementById('attendNote').value};
+const emp=EMPLOYEES.find(e=>e.id===empId);
+const checkIn=document.getElementById('attendCheckIn').value||'';
+const checkOut=document.getElementById('attendCheckOut').value||'';
+const status=document.getElementById('attendStatus').value;
+const notes=document.getElementById('attendNote').value;
+let workHours=0,otHours=0;
+if(checkIn&&checkOut){const[ih,im]=checkIn.split(':').map(Number);const[oh,om]=checkOut.split(':').map(Number);const total=Math.max(0,(oh*60+om-ih*60-im)/60);const wHPD=8;workHours=Math.min(total,wHPD);otHours=Math.max(0,total-wHPD);}
+const data={empId,empName:emp?emp.name:'',date:state.selectedDate,checkIn,checkOut,workHours:parseFloat(workHours.toFixed(2)),otHours:parseFloat(otHours.toFixed(2)),status,leaveType:status==='leave'?'personal':null,notes};
 let att=ATTENDANCE.find(a=>a.empId===empId&&a.date===state.selectedDate);
-if(att){Object.assign(att,data);}else{ATTENDANCE.push(data);}
-H5C.set('attendance', ATTENDANCE);
+if(att){Object.assign(att,data);}else{const newId='CC'+Date.now().toString(36).toUpperCase();ATTENDANCE.push({id:newId,...data,createdBy:state.user.name,createdAt:new Date().toISOString()});}
+H5C.set('timesheets', ATTENDANCE);
 closeModal('attendModal');render();
 }
 
@@ -1457,7 +1464,7 @@ function navigateTo(p) {
 // Auto-login from session on page load
 window.addEventListener('DOMContentLoaded', function() {
 EMPLOYEES = H5C.init('employees', EMPLOYEES);
-  ATTENDANCE = H5C.init('attendance', ATTENDANCE);
+  ATTENDANCE = H5C.init('timesheets', ATTENDANCE);
   KPI = H5C.init('kpi', KPI);
     const saved = loadSession();
   if (saved) {

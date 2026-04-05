@@ -6,10 +6,12 @@
 <title>Hello 5 Coffee — Hệ thống quản lý nội bộ</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <style>
 /* Dashboard-specific chart palette override */
+@media(max-width:900px){.alerts-section .alerts-grid{grid-template-columns:repeat(2,1fr)!important}}
 </style>
 </head>
 <body>
@@ -118,8 +120,6 @@ let state = {
 // ══════════════════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════════════════
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-
 function _isoToDisplay(iso) {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
@@ -170,11 +170,6 @@ function _setDatePreset(preset) {
   renderPage();
 }
 
-const fmtB = (n) => {
-  if(n >= 1e9) return (n/1e9).toFixed(1) + ' tỷ';
-  if(n >= 1e6) return (n/1e6).toFixed(0) + ' tr';
-  return fmt(n);
-};
 const getInitials = (name) => name.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
 
 // ══════════════════════════════════════════════════════════════
@@ -495,6 +490,62 @@ function renderDashboard() {
   });
 
   html += `</div>`;
+
+  // ─── Alerts / Warnings Section ───
+  {
+    const _contracts = H5C.get('contracts') || [];
+    const _orders = H5C.get('orders') || [];
+    const _expenses = H5C.get('expenses') || [];
+    const now = Date.now();
+    const day30 = 30 * 86400000;
+
+    const contractsExpiring = _contracts.filter(c => {
+      if (!c.endDate) return false;
+      const end = new Date(c.endDate).getTime();
+      return end >= now && (end - now) <= day30;
+    }).length;
+
+    const ordersAwaitingExport = _orders.filter(o =>
+      o._stockReserved === true && o._stockExported === false && o.status !== 'cancelled'
+    ).length;
+
+    const expensesPendingApproval = _expenses.filter(e => e.status === 'cho_duyet').length;
+
+    const overdueDebts60 = _orders.filter(o => {
+      if (o.status === 'cancelled') return false;
+      const total = o.total || 0;
+      const paid = o.payment === 'full_paid' ? total : (o.paidAmount || 0);
+      const remaining = total - paid;
+      if (remaining <= 0) return false;
+      const ref = o.dueDate || o.createdAt;
+      if (!ref) return false;
+      const agingDays = Math.floor((now - new Date(ref).getTime()) / 86400000);
+      return agingDays > 60;
+    }).length;
+
+    const alertItems = [
+      { count: contractsExpiring, icon: '📋', color: 'var(--h5c-amber)', label: 'Hợp đồng sắp hết hạn', href: 'contracts.html' },
+      { count: ordersAwaitingExport, icon: '📦', color: 'var(--h5c-steel)', label: 'Đơn chờ xuất kho', href: 'warehouse.html' },
+      { count: expensesPendingApproval, icon: '💸', color: 'var(--h5c-plum)', label: 'Chi phí chờ duyệt', href: 'expenses.html' },
+      { count: overdueDebts60, icon: '⏰', color: 'var(--h5c-terracotta)', label: 'Công nợ quá hạn >60 ngày', href: 'debts.html' }
+    ].filter(a => a.count > 0);
+
+    if (alertItems.length > 0) {
+      const cols = alertItems.length >= 4 ? 4 : alertItems.length;
+      html += `<div class="alerts-section" style="margin-bottom:24px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--h5c-text)">⚠️ Cảnh báo</div>
+        <div class="alerts-grid" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:12px">`;
+      alertItems.forEach(a => {
+        html += `
+          <div class="kpi-card" style="cursor:pointer;border-left:3px solid ${a.color}" onclick="window.location.href='${a.href}'">
+            <div class="kpi-icon">${a.icon}</div>
+            <div class="kpi-value" style="color:${a.color}">${a.count}</div>
+            <div class="kpi-label">${a.label}</div>
+          </div>`;
+      });
+      html += `</div></div>`;
+    }
+  }
 
   // ─── Charts Row 1: Revenue + Channel ───
   html += `

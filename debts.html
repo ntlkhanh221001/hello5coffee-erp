@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .debt-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -51,6 +52,7 @@
 .aging-card .label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
 .aging-card .value{font-size:16px;font-weight:800}
 .aging-card .count{font-size:10px;color:var(--h5c-text-secondary);margin-top:2px}
+@media(max-width:1400px){.kpi-grid{grid-template-columns:repeat(3,1fr)!important}}
 @media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}.aging-summary{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.modal-row{grid-template-columns:1fr}.aging-summary{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -139,9 +141,6 @@ const H5C=window.H5C||{
   salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
 };
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 const METHOD_LABELS={tien_mat:'Tiền mặt',ngan_hang:'Chuyển khoản',the:'Thẻ'};
 
@@ -261,12 +260,22 @@ function render(){
   const items=state.tab==='ar'?arItems:apItems;
   const totalDebt=state.tab==='ar'?totalAR:totalAP;
 
+  const now30=Date.now()-30*86400000;
+  const monthlyRevenue=(H5C.get('orders')||[]).filter(o=>o.status==='completed'&&new Date(o.created||o.date).getTime()>=now30).reduce((s,o)=>s+(o.total||0),0);
+  const monthlyExpenses=(H5C.get('expenses')||[]).filter(e=>e.status==='da_duyet'&&new Date(e.created||e.date).getTime()>=now30).reduce((s,e)=>s+(e.amount||0),0);
+  const dso=monthlyRevenue>0?Math.round((totalAR/monthlyRevenue)*30):null;
+  const dpo=monthlyExpenses>0?Math.round((totalAP/monthlyExpenses)*30):null;
+  const dsoColor=dso===null?'inherit':dso<30?'var(--h5c-sage)':dso<=60?'var(--h5c-amber)':'var(--h5c-terracotta)';
+  const dpoColor=dpo===null?'inherit':dpo<30?'var(--h5c-sage)':dpo<=60?'var(--h5c-amber)':'var(--h5c-terracotta)';
+
   let html=`
-    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:24px">
       <div class="kpi-card highlight"><div class="kpi-label">Phải thu (AR)</div><div class="kpi-value">${fmtB(totalAR)}đ</div><div class="stat-sub">${arItems.length} khoản</div></div>
       <div class="kpi-card highlight"><div class="kpi-label">Phải trả (AP)</div><div class="kpi-value">${fmtB(totalAP)}đ</div><div class="stat-sub">${apItems.length} khoản</div></div>
       <div class="kpi-card"><div class="kpi-label">Net Position</div><div class="kpi-value" style="color:${netPos>=0?'var(--h5c-sage)':'var(--h5c-terracotta)'}">${netPos>=0?'+':''}${fmtB(netPos)}đ</div><div class="stat-sub">${netPos>=0?'AR > AP':'AP > AR'}</div></div>
       <div class="kpi-card"><div class="kpi-label">Quá hạn</div><div class="kpi-value" style="color:var(--h5c-terracotta)">${fmtB(overdueAR+overdueAP)}đ</div><div class="stat-sub">Thu: ${fmtB(overdueAR)} · Trả: ${fmtB(overdueAP)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">DSO</div><div class="kpi-value" style="color:${dsoColor}">${dso!==null?dso+' ngày':'—'}</div><div class="stat-sub">Days Sales Outstanding</div></div>
+      <div class="kpi-card"><div class="kpi-label">DPO</div><div class="kpi-value" style="color:${dpoColor}">${dpo!==null?dpo+' ngày':'—'}</div><div class="stat-sub">Days Payable Outstanding</div></div>
     </div>
 
     <div class="tab-bar">
@@ -466,7 +475,7 @@ function savePayment(e){
     type:document.getElementById('payType').value,
     refType:document.getElementById('payRefType').value,
     refId:document.getElementById('payRefId').value,
-    amount:parseInt(document.getElementById('payAmount').value)||0,
+    amount:parseFloat(document.getElementById('payAmount').value)||0,
     date:document.getElementById('payDate').value,
     method:document.getElementById('payMethod').value,
     note:document.getElementById('payNote').value.trim(),

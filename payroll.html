@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .pr-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -171,10 +172,7 @@ const H5C=window.H5C||{
   clear(k){localStorage.removeItem(this._k(k));}
 };
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
 const fmtVND=n=>fmt(n)+'đ';
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 const pad2=n=>String(n).padStart(2,'0');
 
@@ -184,12 +182,37 @@ const PAYROLL_STATUS={draft:'Nháp',confirmed:'Đã duyệt',paid:'Đã trả'};
 const DEFAULT_CONFIG={
   workDaysPerMonth:26,workHoursPerDay:8,otRate:1.5,otWeekendRate:2.0,
   socialInsurance:0.08,healthInsurance:0.015,unemployment:0.01,
+  pitEnabled:true,
+  giamTruBanThan:11000000,
+  giamTruPhuThuoc:4400000,
   defaultAllowances:[
     {name:'Phụ cấp ăn trưa',amount:500000},
     {name:'Phụ cấp xăng xe',amount:300000},
     {name:'Phụ cấp điện thoại',amount:200000}
   ]
 };
+
+// Biểu thuế TNCN lũy tiến từng phần (Việt Nam)
+function calcPIT(taxableIncome){
+  if(taxableIncome<=0)return 0;
+  const brackets=[
+    {limit:5000000,rate:0.05},
+    {limit:10000000,rate:0.10},
+    {limit:18000000,rate:0.15},
+    {limit:32000000,rate:0.20},
+    {limit:52000000,rate:0.25},
+    {limit:80000000,rate:0.30},
+    {limit:Infinity,rate:0.35}
+  ];
+  let tax=0,prev=0;
+  for(const b of brackets){
+    if(taxableIncome<=prev)break;
+    const taxable=Math.min(taxableIncome,b.limit)-prev;
+    tax+=taxable*b.rate;
+    prev=b.limit;
+  }
+  return Math.round(tax);
+}
 
 let TIMESHEETS=[],PAYROLL=[],PAY_CONFIG={};
 let state={user:null,tab:'attendance',selectedMonth:new Date().getMonth()+1,selectedYear:new Date().getFullYear(),filterEmp:'all',search:'',charts:{}};
@@ -304,7 +327,7 @@ function renderAttendance(){
         </select>
       </div>
       <div style="display:flex;gap:8px">
-        ${_can('payroll.attendance')?`<button class="btn secondary" onclick="markHoliday()">Đánh dấu lễ</button><button class="btn primary" onclick="openAttendModal()">+ Chấm công</button>`:''}
+        ${_can('payroll.attendance')?`<button class="btn-secondary" onclick="markHoliday()">Đánh dấu lễ</button><button class="btn-add" onclick="openAttendModal()">+ Chấm công</button>`:''}
       </div>
     </div>`;
 
@@ -356,7 +379,7 @@ function renderPayrollTab(){
         </select>
       </div>
       <div style="display:flex;gap:8px">
-        ${_can('payroll.calculate')?`<button class="btn secondary" onclick="calculatePayroll()">⚙️ Tính lương</button>`:''}
+        ${_can('payroll.calculate')?`<button class="btn-secondary" onclick="calculatePayroll()">⚙️ Tính lương</button>`:''}
       </div>
     </div>`;
 
@@ -364,12 +387,12 @@ function renderPayrollTab(){
     h+=`<div style="text-align:center;padding:50px;color:var(--h5c-text-secondary)"><div style="font-size:48px;margin-bottom:12px">💰</div><p>Chưa có bảng lương tháng ${pad2(state.selectedMonth)}/${state.selectedYear}. ${_can('payroll.calculate')?'Nhấn "Tính lương" để tạo.':''}</p></div>`;
   }else{
     h+=`<div class="table-container"><table class="data-table"><thead><tr>
-      <th>STT</th><th>Nhân viên</th><th>Phòng ban</th><th>Lương CB</th><th>Ngày công</th><th>Tăng ca</th><th>Phụ cấp</th><th>Khấu trừ</th><th>Thực lãnh</th><th>Trạng thái</th>
+      <th>STT</th><th>Nhân viên</th><th>Phòng ban</th><th>Lương CB</th><th>Ngày công</th><th>Tăng ca</th><th>Phụ cấp</th><th>Bảo hiểm</th><th>Thuế TNCN</th><th>Thực lãnh</th><th>Trạng thái</th>
       ${_can('payroll.confirm')?'<th>Thao tác</th>':''}
     </tr></thead><tbody>`;
     monthPR.forEach((p,i)=>{
       const totalAllow=(p.allowances||[]).reduce((s,a)=>s+(a.amount||0),0);
-      const totalDeduct=(p.deductions||[]).reduce((s,a)=>s+(a.amount||0),0);
+      const insAmount=p.totalInsurance||(p.deductions||[]).filter(d=>d.name&&d.name.startsWith('BH')).reduce((s,d)=>s+(d.amount||0),0);
       h+=`<tr>
         <td style="font-size:12px;color:var(--h5c-text-secondary)">${i+1}</td>
         <td style="font-weight:700;font-size:13px">${p.empName||'—'}</td>
@@ -378,7 +401,8 @@ function renderPayrollTab(){
         <td style="font-weight:700">${p.actualDays||0}/${p.workDays||PAY_CONFIG.workDaysPerMonth}</td>
         <td style="color:var(--h5c-amber)">${p.otHours?p.otHours.toFixed(1)+'h':'—'}</td>
         <td style="color:var(--h5c-sage);font-size:12px">${fmtVND(totalAllow)}</td>
-        <td style="color:var(--h5c-terracotta);font-size:12px">${fmtVND(totalDeduct)}</td>
+        <td style="color:var(--h5c-terracotta);font-size:12px">${fmtVND(insAmount)}</td>
+        <td style="color:var(--h5c-terracotta);font-size:12px">${p.pit?fmtVND(p.pit):'—'}</td>
         <td style="font-weight:900;color:var(--h5c-copper)">${fmtVND(p.netPay)}</td>
         <td><span class="status-badge ${p.status||'draft'}">${PAYROLL_STATUS[p.status||'draft']}</span></td>
         ${_can('payroll.confirm')?`<td><div class="action-btns">
@@ -392,7 +416,7 @@ function renderPayrollTab(){
 
     const totalNet=monthPR.reduce((s,p)=>s+(p.netPay||0),0);
     h+=`</tbody><tfoot><tr style="background:var(--h5c-bg-subtle);font-weight:700">
-      <td colspan="8" style="text-align:right;padding:12px 16px;font-size:13px">Tổng thực lãnh:</td>
+      <td colspan="9" style="text-align:right;padding:12px 16px;font-size:13px">Tổng thực lãnh:</td>
       <td style="padding:12px 16px;font-size:14px;color:var(--h5c-copper);font-weight:900">${fmtVND(totalNet)}</td>
       <td colspan="${_can('payroll.confirm')?2:1}"></td>
     </tr></tfoot></table></div>`;
@@ -458,7 +482,7 @@ function renderConfig(){
   return`<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
       <h3 style="margin:0;font-size:16px">Cấu hình tính lương</h3>
-      <button class="btn primary" onclick="saveConfig()">Lưu cấu hình</button>
+      <button class="modal-btn primary" onclick="saveConfig()">Lưu cấu hình</button>
     </div>
 
     <div class="config-section">
@@ -481,12 +505,29 @@ function renderConfig(){
     </div>
 
     <div class="config-section">
+      <h4>Thuế thu nhập cá nhân (PIT)</h4>
+      <div class="config-grid">
+        <div class="config-item"><label>Bật tính thuế TNCN</label>
+          <select id="cfgPitEnabled" class="modal-input">
+            <option value="1"${c.pitEnabled!==false?' selected':''}>Có — tính thuế</option>
+            <option value="0"${c.pitEnabled===false?' selected':''}>Không — bỏ qua</option>
+          </select>
+        </div>
+        <div class="config-item"><label>Giảm trừ bản thân (VNĐ/tháng)</label><input type="number" id="cfgGiamTruBT" class="modal-input" value="${c.giamTruBanThan||11000000}" min="0" step="100000"></div>
+        <div class="config-item"><label>Giảm trừ người phụ thuộc (VNĐ/người)</label><input type="number" id="cfgGiamTruPT" class="modal-input" value="${c.giamTruPhuThuoc||4400000}" min="0" step="100000"></div>
+      </div>
+      <div style="margin-top:10px;padding:10px 14px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-sm);font-size:12px;color:var(--h5c-text-secondary)">
+        Biểu thuế lũy tiến: 5% (≤5tr) → 10% (5-10tr) → 15% (10-18tr) → 20% (18-32tr) → 25% (32-52tr) → 30% (52-80tr) → 35% (>80tr)
+      </div>
+    </div>
+
+    <div class="config-section">
       <h4>Phụ cấp mặc định</h4>
       ${allowRows}
       <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
         <input type="text" id="newAllowName" class="modal-input" placeholder="Tên phụ cấp" style="flex:1;min-width:160px">
         <input type="number" id="newAllowAmt" class="modal-input" placeholder="Số tiền" style="width:160px">
-        <button type="button" class="btn secondary" onclick="addAllowance()">+ Thêm</button>
+        <button type="button" class="modal-btn primary" onclick="addAllowance()">+ Thêm</button>
       </div>
     </div>
   </div>`;
@@ -626,13 +667,28 @@ function calculatePayroll(){
     const bhxh=baseForIns*(c.socialInsurance||0.08);
     const bhyt=baseForIns*(c.healthInsurance||0.015);
     const bhtn=baseForIns*(c.unemployment||0.01);
-    const deductions=[
-      {name:'BHXH (8%)',amount:Math.round(bhxh)},
-      {name:'BHYT (1.5%)',amount:Math.round(bhyt)},
-      {name:'BHTN (1%)',amount:Math.round(bhtn)}
+    const insDeductions=[
+      {name:'BHXH ('+((c.socialInsurance||0.08)*100).toFixed(1)+'%)',amount:Math.round(bhxh)},
+      {name:'BHYT ('+((c.healthInsurance||0.015)*100).toFixed(1)+'%)',amount:Math.round(bhyt)},
+      {name:'BHTN ('+((c.unemployment||0.01)*100).toFixed(1)+'%)',amount:Math.round(bhtn)}
     ];
-    const totalDeduct=deductions.reduce((s,d)=>s+(d.amount||0),0);
+    const totalInsurance=insDeductions.reduce((s,d)=>s+(d.amount||0),0);
     const grossPay=Math.round(dayRate*actualDays)+Math.round(otAmount)+totalAllow;
+
+    // PIT calculation
+    let pit=0,taxableIncome=0,giamTruBT=0,giamTruPT=0;
+    if(c.pitEnabled!==false){
+      giamTruBT=c.giamTruBanThan||11000000;
+      const dependents=emp.dependents||0;
+      giamTruPT=dependents*(c.giamTruPhuThuoc||4400000);
+      taxableIncome=grossPay-totalInsurance-giamTruBT-giamTruPT;
+      if(taxableIncome<0)taxableIncome=0;
+      pit=calcPIT(taxableIncome);
+    }
+
+    const deductions=[...insDeductions];
+    if(pit>0)deductions.push({name:'Thuế TNCN',amount:pit});
+    const totalDeduct=totalInsurance+pit;
     const netPay=Math.max(0,grossPay-totalDeduct);
 
     const existing=PAYROLL.find(p=>p.empId===empId&&p.month===state.selectedMonth&&p.year===state.selectedYear);
@@ -643,6 +699,8 @@ function calculatePayroll(){
       baseSalary,workDays:c.workDaysPerMonth||26,
       actualDays:parseFloat(actualDays.toFixed(2)),otHours:parseFloat(otHours.toFixed(2)),otAmount:Math.round(otAmount),
       allowances,deductions,grossPay,netPay,
+      pit,taxableIncome,giamTruBanThan:giamTruBT,giamTruPhuThuoc:giamTruPT,
+      dependents:emp.dependents||0,totalInsurance,
       status:'draft',createdBy:state.user.name,createdAt:new Date().toISOString()
     };
     if(existing){
@@ -686,9 +744,11 @@ function deletePayroll(id){
 function showSlip(id){
   const p=PAYROLL.find(x=>x.id===id);if(!p)return;
   const totalAllow=(p.allowances||[]).reduce((s,a)=>s+(a.amount||0),0);
-  const totalDeduct=(p.deductions||[]).reduce((s,a)=>s+(a.amount||0),0);
+  const insDeducts=(p.deductions||[]).filter(d=>d.name&&!d.name.includes('TNCN'));
+  const totalIns=p.totalInsurance||insDeducts.reduce((s,d)=>s+(d.amount||0),0);
+  const totalDeduct=totalIns+(p.pit||0);
   const allowRows=(p.allowances||[]).map(a=>`<div class="payslip-row"><span class="label">${a.name}</span><span class="value plus">+${fmtVND(a.amount)}</span></div>`).join('');
-  const deductRows=(p.deductions||[]).map(d=>`<div class="payslip-row"><span class="label">${d.name}</span><span class="value minus">−${fmtVND(d.amount)}</span></div>`).join('');
+  const insRows=insDeducts.map(d=>`<div class="payslip-row"><span class="label">${d.name}</span><span class="value minus">−${fmtVND(d.amount)}</span></div>`).join('');
 
   document.getElementById('slipContent').innerHTML=`
     <div class="payslip">
@@ -718,9 +778,23 @@ function showSlip(id){
       </div>
 
       <div class="payslip-section">
-        <h4>Khấu trừ</h4>
-        ${deductRows}
-        <div class="payslip-row" style="font-weight:800;border-top:1px solid var(--h5c-border)"><span class="label" style="color:var(--h5c-text)">Tổng khấu trừ</span><span class="value minus">−${fmtVND(totalDeduct)}</span></div>
+        <h4>Bảo hiểm bắt buộc</h4>
+        ${insRows}
+        <div class="payslip-row" style="font-weight:800;border-top:1px solid var(--h5c-border)"><span class="label" style="color:var(--h5c-text)">Tổng bảo hiểm</span><span class="value minus">−${fmtVND(totalIns)}</span></div>
+      </div>
+
+      ${p.pit||p.taxableIncome?`<div class="payslip-section">
+        <h4>Thuế thu nhập cá nhân (PIT)</h4>
+        <div class="payslip-row"><span class="label">Thu nhập chịu thuế trước giảm trừ</span><span class="value">${fmtVND(p.grossPay-totalIns)}</span></div>
+        <div class="payslip-row"><span class="label">Giảm trừ bản thân</span><span class="value">−${fmtVND(p.giamTruBanThan||0)}</span></div>
+        <div class="payslip-row"><span class="label">Giảm trừ người phụ thuộc (${p.dependents||0} người)</span><span class="value">−${fmtVND(p.giamTruPhuThuoc||0)}</span></div>
+        <div class="payslip-row" style="font-weight:700"><span class="label">Thu nhập chịu thuế</span><span class="value">${fmtVND(p.taxableIncome||0)}</span></div>
+        <div class="payslip-row" style="font-weight:800;border-top:1px solid var(--h5c-border)"><span class="label" style="color:var(--h5c-text)">Thuế TNCN</span><span class="value minus">−${fmtVND(p.pit||0)}</span></div>
+      </div>`:``}
+
+      <div class="payslip-section">
+        <h4>Tổng khấu trừ</h4>
+        <div class="payslip-row" style="font-weight:800"><span class="label" style="color:var(--h5c-text)">Bảo hiểm + Thuế TNCN</span><span class="value minus">−${fmtVND(totalDeduct)}</span></div>
       </div>
 
       <div class="payslip-net">
@@ -747,6 +821,9 @@ function saveConfig(){
   PAY_CONFIG.socialInsurance=parseFloat(document.getElementById('cfgBHXH').value)/100||0.08;
   PAY_CONFIG.healthInsurance=parseFloat(document.getElementById('cfgBHYT').value)/100||0.015;
   PAY_CONFIG.unemployment=parseFloat(document.getElementById('cfgBHTN').value)/100||0.01;
+  PAY_CONFIG.pitEnabled=document.getElementById('cfgPitEnabled').value==='1';
+  PAY_CONFIG.giamTruBanThan=parseInt(document.getElementById('cfgGiamTruBT').value)||11000000;
+  PAY_CONFIG.giamTruPhuThuoc=parseInt(document.getElementById('cfgGiamTruPT').value)||4400000;
   H5C.set('payroll_config',PAY_CONFIG);
   if(typeof showToast==='function')showToast('Đã lưu cấu hình','success');
   render();

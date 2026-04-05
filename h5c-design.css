@@ -954,6 +954,22 @@ body::after {
   border-color: var(--h5c-border-strong);
 }
 
+.btn.small {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: var(--h5c-radius-sm);
+  border: 1px solid var(--h5c-border);
+  background: var(--h5c-surface);
+  color: var(--h5c-text-secondary);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+.btn.small:hover {
+  background: var(--h5c-bg-subtle);
+  border-color: var(--h5c-border-strong);
+}
+
 /* ── BADGES ────────────────────────────────────────────────── */
 .badge, .status-badge, .payment-badge, .type-badge, .dept-badge {
   display: inline-flex;
@@ -1228,4 +1244,24 @@ body.h5c-leaving {
   .main { margin-left: 220px !important; }
   .topbar { padding: 12px 20px; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── MOBILE MODAL ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .modal-box, .modal, .modal.large, .modal.xl {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 90vh;
+    margin: 5vh auto;
+    padding: 16px;
+  }
+  .modal-box input, .modal-box select, .modal-box textarea,
+  .modal input, .modal select, .modal textarea {
+    font-size: 16px; /* prevent iOS zoom on focus */
+  }
+  .modal-row, .modal-row.three {
+    grid-template-columns: 1fr !important;
+  }
+  .modal table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .modal .table-wrap, .modal-box .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }

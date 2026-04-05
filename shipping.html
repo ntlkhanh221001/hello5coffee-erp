@@ -6,6 +6,7 @@
 <title>Hello 5 Coffee — Quản lý vận chuyển</title>
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .ship-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -269,9 +270,6 @@ const METHOD_LABELS={xe_tai:'Xe tải',xe_may:'Xe máy',chuyen_phat:'Chuyển ph
 const STATUS_LABELS={cho_lay:'Chờ lấy hàng',dang_giao:'Đang giao',da_giao:'Đã giao',that_bai:'Thất bại',hoan:'Hoàn hàng'};
 const PARTNER_TYPE_LABELS={noi_bo:'Nội bộ',doi_tac_3pl:'Đối tác 3PL',freelancer:'Freelancer'};
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 
 // ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
@@ -423,7 +421,7 @@ function renderShipmentsTab(){
         <input type="date" class="filter-input" value="${state.dateTo}" onchange="state.dateTo=this.value;state.page=1;render()" title="Đến ngày">
       </div>
       <div style="display:flex;gap:8px">
-        ${_can('shipping.create')?'<button class="btn primary" onclick="openCreateShipModal()">+ Tạo đơn giao</button>':''}
+        ${_can('shipping.create')?'<button class="btn-add" onclick="openCreateShipModal()">+ Tạo đơn giao</button>':''}
       </div>
     </div>`;
 
@@ -486,7 +484,7 @@ function renderPartnersTab(){
     <div class="ship-header">
       <div style="font-size:14px;font-weight:700">Đối tác vận chuyển (${PARTNERS.length})</div>
       <div style="display:flex;gap:8px">
-        ${_can('shipping.create')?'<button class="btn primary" onclick="openCreatePartnerModal()">+ Thêm đối tác</button>':''}
+        ${_can('shipping.create')?'<button class="btn-add" onclick="openCreatePartnerModal()">+ Thêm đối tác</button>':''}
       </div>
     </div>`;
 

@@ -6,6 +6,7 @@
 <title>Hello 5 Coffee — Hợp đồng</title>
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .ct-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -64,6 +65,18 @@
 .empty-state{text-align:center;padding:60px 20px;color:var(--h5c-text-secondary)}
 .empty-state .icon{font-size:48px;margin-bottom:16px}
 .empty-state p{font-size:14px}
+.detail-section{margin-top:20px;border-top:1px solid var(--h5c-border);padding-top:16px}
+.detail-section h4{margin:0 0 12px;font-size:14px;font-weight:700;color:var(--h5c-text)}
+.detail-section .mini-table{width:100%;border-collapse:collapse;font-size:12px}
+.detail-section .mini-table th{background:var(--h5c-bg-subtle);padding:8px 10px;text-align:left;font-weight:600;color:var(--h5c-text-secondary);border-bottom:1px solid var(--h5c-border)}
+.detail-section .mini-table td{padding:8px 10px;border-bottom:1px solid var(--h5c-border-subtle)}
+.detail-summary{display:flex;gap:20px;margin-top:12px;flex-wrap:wrap}
+.detail-summary .sum-item{background:var(--h5c-bg-subtle);padding:10px 16px;border-radius:var(--h5c-radius-md);flex:1;min-width:160px}
+.detail-summary .sum-label{font-size:11px;color:var(--h5c-text-secondary);margin-bottom:4px}
+.detail-summary .sum-value{font-size:16px;font-weight:700;color:var(--h5c-text)}
+.expiry-warn{display:inline-block;padding:2px 8px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:6px}
+.expiry-warn.red{background:rgba(196,69,54,.15);color:var(--h5c-terracotta)}
+.expiry-warn.orange{background:rgba(212,133,26,.15);color:var(--h5c-amber)}
 @media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
 @media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}.ct-filters{flex-direction:column}}
 </style>
@@ -169,6 +182,17 @@
 </div>
 </div>
 
+<!-- Detail Modal -->
+<div id="detailModal" class="modal-overlay hidden">
+<div class="modal" style="max-width:800px;max-height:90vh;overflow-y:auto">
+  <div class="modal-title" id="detailModalTitle">Chi tiết hợp đồng</div>
+  <div id="detailModalBody"></div>
+  <div class="modal-btns" style="margin-top:20px">
+    <button class="modal-btn cancel" onclick="closeModal('detailModal')">Đóng</button>
+  </div>
+</div>
+</div>
+
 <!-- Delete Confirm -->
 <div id="deleteModal" class="modal-overlay hidden">
 <div class="modal" style="max-width:400px">
@@ -201,9 +225,6 @@ const SALE_TYPES={dai_ly:'Đại lý',phan_phoi:'Phân phối',ban_buon:'Bán bu
 const PURCHASE_TYPES={nguyen_lieu:'Nguyên liệu',thiet_bi:'Thiết bị',dich_vu:'Dịch vụ',van_chuyen:'Vận chuyển'};
 const STATUS_LABELS={nhap:'Nháp',hieu_luc:'Hiệu lực',het_han:'Hết hạn',da_huy:'Đã hủy',gia_han:'Gia hạn'};
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 const today=()=>{const d=new Date();return d.toISOString().split('T')[0];};
 const daysUntil=endDate=>{if(!endDate)return null;const ms=new Date(endDate)-new Date(today());return Math.ceil(ms/86400000);};
@@ -295,9 +316,12 @@ function render(){
 
   const allActive=CONTRACTS.filter(c=>c.status==='hieu_luc'||c.status==='gia_han');
   const expiring=allActive.filter(c=>c.endDate&&daysUntil(c.endDate)<=30&&daysUntil(c.endDate)>=0);
+  const needRenew=allActive.filter(c=>c.endDate&&daysUntil(c.endDate)>30&&daysUntil(c.endDate)<=60);
   const totalValue=allActive.reduce((s,c)=>s+(c.value||0),0);
   const salesContracts=CONTRACTS.filter(c=>c.kind==='sales');
   const purchaseContracts=CONTRACTS.filter(c=>c.kind==='purchase');
+  const salesWarn=salesContracts.filter(c=>(c.status==='hieu_luc'||c.status==='gia_han')&&c.endDate&&daysUntil(c.endDate)>=0&&daysUntil(c.endDate)<=60).length;
+  const purchaseWarn=purchaseContracts.filter(c=>(c.status==='hieu_luc'||c.status==='gia_han')&&c.endDate&&daysUntil(c.endDate)>=0&&daysUntil(c.endDate)<=60).length;
 
   let html=`
     <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
@@ -308,8 +332,8 @@ function render(){
     </div>
 
     <div class="tab-bar">
-      <button class="tab-btn${state.tab==='sales'?' active':''}" onclick="state.tab='sales';state.search='';state.filterType='all';state.filterStatus='all';render()">HĐ Bán <span style="display:inline-block;background:var(--h5c-bg-subtle);padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:4px">${salesContracts.length}</span></button>
-      <button class="tab-btn${state.tab==='purchase'?' active':''}" onclick="state.tab='purchase';state.search='';state.filterType='all';state.filterStatus='all';render()">HĐ Mua <span style="display:inline-block;background:var(--h5c-bg-subtle);padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:4px">${purchaseContracts.length}</span></button>
+      <button class="tab-btn${state.tab==='sales'?' active':''}" onclick="state.tab='sales';state.search='';state.filterType='all';state.filterStatus='all';render()">HĐ Bán <span style="display:inline-block;background:var(--h5c-bg-subtle);padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:4px">${salesContracts.length}</span>${salesWarn?`<span style="display:inline-block;background:var(--h5c-terracotta);color:#fff;padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:4px">⚠ ${salesWarn}</span>`:''}</button>
+      <button class="tab-btn${state.tab==='purchase'?' active':''}" onclick="state.tab='purchase';state.search='';state.filterType='all';state.filterStatus='all';render()">HĐ Mua <span style="display:inline-block;background:var(--h5c-bg-subtle);padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:4px">${purchaseContracts.length}</span>${purchaseWarn?`<span style="display:inline-block;background:var(--h5c-terracotta);color:#fff;padding:2px 7px;border-radius:var(--h5c-radius-full);font-size:10px;font-weight:700;margin-left:4px">⚠ ${purchaseWarn}</span>`:''}</button>
       <button class="tab-btn${state.tab==='deadline'?' active':''}" onclick="state.tab='deadline';render()">Theo dõi hạn</button>
     </div>`;
 
@@ -350,7 +374,7 @@ function renderContractTab(kind){
           ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}"${state.filterStatus===k?' selected':''}>${v}</option>`).join('')}
         </select>
       </div>
-      ${canCreate?`<button class="btn primary" onclick="openCreateModal('${kind}')">+ Thêm HĐ ${isSales?'Bán':'Mua'}</button>`:''}
+      ${canCreate?`<button class="btn-add" onclick="openCreateModal('${kind}')">+ Thêm HĐ ${isSales?'Bán':'Mua'}</button>`:''}
     </div>`;
 
   if(!filtered.length){
@@ -379,9 +403,10 @@ function renderContractTab(kind){
         <td style="font-weight:700;color:var(--h5c-text)">${fmtB(c.value||0)}đ</td>
         <td>${formatDate(c.startDate)}</td>
         <td>${formatDate(c.endDate)}${isExpiring?`<span class="expiring-badge">${days}d</span>`:''}</td>
-        <td><span class="status-badge ${c.status}">${STATUS_LABELS[c.status]||c.status}</span></td>
+        <td><span class="status-badge ${c.status}">${STATUS_LABELS[c.status]||c.status}</span>${(()=>{if(c.status!=='hieu_luc'&&c.status!=='gia_han')return '';const d=daysUntil(c.endDate);if(d===null||d<0)return '';if(d<=30)return '<span class="expiry-warn red">Sắp hết hạn</span>';if(d<=60)return '<span class="expiry-warn orange">Cần gia hạn</span>';return '';})()}</td>
         <td style="font-size:11px;color:var(--h5c-text-secondary);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.payTerms||''}">${c.payTerms||'—'}</td>
         <td><div class="action-btns">
+          <button class="action-btn view" onclick="viewContract('${c.id}')" title="Chi tiết">👁️</button>
           ${_can('contracts.edit')?`<button class="action-btn edit" onclick="openEditModal('${c.id}')" title="Sửa">✏️</button>`:''}
           ${_can('contracts.renew')&&(c.status==='hieu_luc'||c.status==='het_han')?`<button class="action-btn renew" onclick="openRenewModal('${c.id}')" title="Gia hạn">🔄</button>`:''}
           ${_can('contracts.delete')?`<button class="action-btn delete" onclick="askDelete('${c.id}')" title="Xóa">🗑️</button>`:''}
@@ -633,6 +658,130 @@ function confirmDelete(){
   closeModal('deleteModal');
   if(typeof showToast==='function')showToast('Đã xóa hợp đồng','success');
   render();
+}
+
+// ════════════════════════════════════════════════════════════════
+// VIEW CONTRACT DETAIL — linked orders / expenses
+// ════════════════════════════════════════════════════════════════
+function viewContract(id){
+  loadData();
+  const c=CONTRACTS.find(x=>x.id===id);if(!c)return;
+  const isSales=c.kind==='sales';
+  const typeLabel=isSales?(SALE_TYPES[c.type]||c.type):(PURCHASE_TYPES[c.type]||c.type);
+  const days=daysUntil(c.endDate);
+
+  let h=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:8px">
+    <div><strong>Số HĐ:</strong> ${c.contractNumber||'—'}</div>
+    <div><strong>Loại:</strong> <span class="type-badge ${c.type}">${typeLabel}</span></div>
+    <div><strong>${isSales?'Khách hàng':'NCC'}:</strong> ${c.partyName||'—'}</div>
+    <div><strong>Giá trị:</strong> ${fmtB(c.value||0)}đ</div>
+    <div><strong>Hiệu lực:</strong> ${formatDate(c.startDate)} → ${formatDate(c.endDate)}</div>
+    <div><strong>Trạng thái:</strong> <span class="status-badge ${c.status}">${STATUS_LABELS[c.status]||c.status}</span>${(()=>{if((c.status!=='hieu_luc'&&c.status!=='gia_han')||days===null||days<0)return '';if(days<=30)return ' <span class="expiry-warn red">Sắp hết hạn ('+days+' ngày)</span>';if(days<=60)return ' <span class="expiry-warn orange">Cần gia hạn ('+days+' ngày)</span>';return '';})()}</div>
+    ${c.payTerms?`<div style="grid-column:span 2"><strong>Điều khoản TT:</strong> ${c.payTerms}</div>`:''}
+    ${c.notes?`<div style="grid-column:span 2"><strong>Ghi chú:</strong> ${c.notes}</div>`:''}
+  </div>`;
+
+  if(isSales){
+    h+=_renderLinkedOrders(c);
+  } else {
+    h+=_renderLinkedExpenses(c);
+  }
+
+  document.getElementById('detailModalTitle').textContent='Chi tiết: '+(c.contractNumber||c.id);
+  document.getElementById('detailModalBody').innerHTML=h;
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+
+function _renderLinkedOrders(c){
+  const orders=(H5C.get('orders')||[]).filter(o=>{
+    if(c.partyId&&o.custCode&&o.custCode===c.partyId)return true;
+    if(c.partyName&&o.customer&&o.customer===c.partyName)return true;
+    return false;
+  });
+  // Filter by contract date range
+  const inRange=orders.filter(o=>{
+    if(!o.createdAt)return true;
+    const d=o.createdAt.split('T')[0];
+    if(c.startDate&&d<c.startDate)return false;
+    if(c.endDate&&d>c.endDate)return false;
+    return true;
+  });
+  const totalRevenue=inRange.reduce((s,o)=>s+(o.total||0),0);
+  const paidOrders=inRange.filter(o=>o.payment==='paid').length;
+  const STATUS_MAP={confirmed:'Đã xác nhận',producing:'Đang SX',produced:'Đã SX',shipping:'Đang giao',completed:'Hoàn thành',returned:'Trả hàng',cancelled:'Đã hủy'};
+
+  let h=`<div class="detail-section"><h4>📦 Đơn hàng liên quan (${inRange.length})</h4>`;
+  if(!inRange.length){
+    h+=`<p style="color:var(--h5c-text-secondary);font-size:12px">Chưa có đơn hàng nào khớp với hợp đồng này.</p>`;
+  } else {
+    h+=`<table class="mini-table"><thead><tr>
+      <th>Mã ĐH</th><th>Ngày</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th>
+    </tr></thead><tbody>`;
+    inRange.forEach(o=>{
+      const payLabel=o.payment==='paid'?'Đã TT':o.payment==='partial'?'TT một phần':'Chưa TT';
+      const payColor=o.payment==='paid'?'var(--h5c-sage)':o.payment==='partial'?'var(--h5c-amber)':'var(--h5c-terracotta)';
+      h+=`<tr>
+        <td style="font-weight:700;color:var(--h5c-copper)">${o.id||'—'}</td>
+        <td>${formatDate(o.createdAt?(o.createdAt.split('T')[0]):'')||'—'}</td>
+        <td style="font-weight:600">${fmtB(o.total||0)}đ</td>
+        <td><span style="color:${payColor};font-weight:600;font-size:11px">${payLabel}</span></td>
+        <td><span style="font-size:11px">${STATUS_MAP[o.status]||o.status||'—'}</span></td>
+      </tr>`;
+    });
+    h+=`</tbody></table>`;
+    h+=`<div class="detail-summary">
+      <div class="sum-item"><div class="sum-label">Doanh thu thực tế</div><div class="sum-value" style="color:var(--h5c-sage)">${fmtB(totalRevenue)}đ</div></div>
+      <div class="sum-item"><div class="sum-label">Giá trị hợp đồng</div><div class="sum-value">${fmtB(c.value||0)}đ</div></div>
+      <div class="sum-item"><div class="sum-label">Tỷ lệ thực hiện</div><div class="sum-value" style="color:${totalRevenue>=(c.value||0)?'var(--h5c-sage)':'var(--h5c-amber)'}">${c.value?Math.round(totalRevenue/(c.value)*100):0}%</div></div>
+      <div class="sum-item"><div class="sum-label">Đã thanh toán</div><div class="sum-value">${paidOrders}/${inRange.length} đơn</div></div>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function _renderLinkedExpenses(c){
+  const expenses=(H5C.get('expenses')||[]).filter(e=>{
+    if(!e.party&&!e.supplier)return false;
+    const party=(e.party||e.supplier||'').toLowerCase();
+    return party===(c.partyName||'').toLowerCase();
+  });
+  const inRange=expenses.filter(e=>{
+    if(!e.date)return true;
+    if(c.startDate&&e.date<c.startDate)return false;
+    if(c.endDate&&e.date>c.endDate)return false;
+    return true;
+  });
+  const totalExpense=inRange.reduce((s,e)=>s+(e.amount||0),0);
+  const paidCount=inRange.filter(e=>e.status==='paid'||e.payment==='paid').length;
+
+  let h=`<div class="detail-section"><h4>💰 Chi phí liên quan (${inRange.length})</h4>`;
+  if(!inRange.length){
+    h+=`<p style="color:var(--h5c-text-secondary);font-size:12px">Chưa có chi phí nào khớp với hợp đồng này.</p>`;
+  } else {
+    h+=`<table class="mini-table"><thead><tr>
+      <th>Mã CP</th><th>Ngày</th><th>Số tiền</th><th>Danh mục</th><th>Trạng thái</th>
+    </tr></thead><tbody>`;
+    inRange.forEach(e=>{
+      const stLabel=e.status==='paid'?'Đã TT':e.status==='approved'?'Đã duyệt':e.status==='pending'?'Chờ duyệt':e.status||'—';
+      h+=`<tr>
+        <td style="font-weight:700;color:var(--h5c-copper)">${e.id||'—'}</td>
+        <td>${formatDate(e.date)||'—'}</td>
+        <td style="font-weight:600">${fmtB(e.amount||0)}đ</td>
+        <td style="font-size:11px">${e.category||'—'}</td>
+        <td style="font-size:11px">${stLabel}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table>`;
+    h+=`<div class="detail-summary">
+      <div class="sum-item"><div class="sum-label">Tổng chi phí</div><div class="sum-value" style="color:var(--h5c-terracotta)">${fmtB(totalExpense)}đ</div></div>
+      <div class="sum-item"><div class="sum-label">Giá trị hợp đồng</div><div class="sum-value">${fmtB(c.value||0)}đ</div></div>
+      <div class="sum-item"><div class="sum-label">Tỷ lệ sử dụng</div><div class="sum-value" style="color:${totalExpense>(c.value||0)?'var(--h5c-terracotta)':'var(--h5c-sage)'}">${c.value?Math.round(totalExpense/(c.value)*100):0}%</div></div>
+      <div class="sum-item"><div class="sum-label">Đã thanh toán</div><div class="sum-value">${paidCount}/${inRange.length} khoản</div></div>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
 }
 
 function closeModal(id){document.getElementById(id).classList.add('hidden');}

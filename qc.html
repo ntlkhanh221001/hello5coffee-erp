@@ -6,6 +6,7 @@
 <title>Hello 5 Coffee — Quản lý chất lượng</title>
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .qc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -188,7 +189,7 @@
       <span>Tên chỉ tiêu</span><span>Đơn vị</span><span>Min</span><span>Max</span><span>Mục tiêu</span><span></span>
     </div>
     <div id="stdParamRows"></div>
-    <button type="button" class="btn secondary" onclick="addParamRow()" style="margin-bottom:16px">+ Thêm chỉ tiêu</button>
+    <button type="button" class="modal-btn cancel" onclick="addParamRow()" style="margin-bottom:16px">+ Thêm chỉ tiêu</button>
     <div class="modal-btns">
       <button type="button" class="modal-btn cancel" onclick="closeModal('stdModal')">Hủy</button>
       <button type="submit" class="modal-btn primary">Lưu</button>
@@ -228,8 +229,6 @@ const H5C=window.H5C||{
 const CAT_LABELS={nguyen_lieu:'Nguyên liệu',rang:'Rang',thanh_pham:'Thành phẩm',dong_goi:'Đóng gói',bao_quan:'Bảo quản'};
 const RESULT_LABELS={dat:'Đạt',khong_dat:'Không đạt',dat_co_dk:'Đạt có ĐK'};
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const today=()=>new Date().toISOString().split('T')[0];
 const thisMonth=()=>{const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');};
 const isCLevel=()=>state.user&&state.user.role==='C_LEVEL';
@@ -383,7 +382,7 @@ function renderInspectionsTab(){
       <input type="date" class="filter-input" value="${state.dateTo}" title="Đến ngày" onchange="state.dateTo=this.value;state.page=1;render()">
     </div>
     <div style="display:flex;gap:8px">
-      ${_can('qc.create')?'<button class="btn primary" onclick="openCreateInspModal()">+ Tạo phiếu KT</button>':''}
+      ${_can('qc.create')?'<button class="btn-add" onclick="openCreateInspModal()">+ Tạo phiếu KT</button>':''}
     </div>
   </div>`;
 
@@ -435,7 +434,7 @@ function renderInspectionsTab(){
 function renderStandardsTab(){
   const catOrder=['nguyen_lieu','rang','thanh_pham','dong_goi','bao_quan'];
   let h=`<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
-    ${_can('qc.manage_standards')?'<button class="btn primary" onclick="openCreateStdModal()">+ Thêm tiêu chuẩn</button>':''}
+    ${_can('qc.manage_standards')?'<button class="btn-add" onclick="openCreateStdModal()">+ Thêm tiêu chuẩn</button>':''}
   </div>`;
 
   if(!STANDARDS.length){

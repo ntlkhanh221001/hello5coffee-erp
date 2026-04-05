@@ -6,6 +6,7 @@
 <title>Hello 5 Coffee — Sản xuất</title>
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .prod-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -191,8 +192,6 @@ const H5C=window.H5C||{
   salesList(){const e=this.get('employees')||[];return e.filter(x=>x.status!=='inactive').map(x=>x.name);}
 };
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 
 const STATUS_LABELS={draft:'Nháp',planned:'Đã lên kế hoạch',in_progress:'Đang SX',completed:'Hoàn thành',cancelled:'Đã hủy'};
@@ -301,7 +300,7 @@ function renderKanban(){
     {status:'completed',label:'Hoàn thành',color:'var(--h5c-sage)',bg:'var(--h5c-sage-light)'}
   ];
   let h=`<div style="display:flex;justify-content:flex-end;margin-bottom:12px;gap:8px">
-    ${_can('production.create')?'<button class="btn primary" onclick="openProdOrderModal()">+ Lệnh SX</button>':''}
+    ${_can('production.create')?'<button class="btn-add" onclick="openProdOrderModal()">+ Lệnh SX</button>':''}
   </div><div class="kanban">`;
   cols.forEach(col=>{
     const items=PROD_ORDERS.filter(p=>p.status===col.status).sort((a,b)=>{const pr={high:0,normal:1,low:2};return(pr[a.priority]||1)-(pr[b.priority]||1);});
@@ -344,7 +343,7 @@ function renderTable(){
         ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}"${state.filterStatus===k?' selected':''}>${v}</option>`).join('')}
       </select>
     </div>
-    ${_can('production.create')?'<button class="btn primary" onclick="openProdOrderModal()">+ Lệnh SX</button>':''}
+    ${_can('production.create')?'<button class="btn-add" onclick="openProdOrderModal()">+ Lệnh SX</button>':''}
   </div>
   <div class="table-container"><table class="data-table"><thead><tr>
     <th>Mã LSX</th><th>Sản phẩm</th><th>SL kế hoạch</th><th>SL thực tế</th><th>Ưu tiên</th><th>Trạng thái</th><th>Giai đoạn</th><th>Phụ trách</th><th>Ngày BĐ</th><th>Thao tác</th>
@@ -374,7 +373,7 @@ function renderTable(){
 function renderBOM(){
   let h=`<div class="card"><div class="prod-header">
     <h3 style="margin:0;font-size:16px">Công thức sản xuất (BOM)</h3>
-    ${_can('production.create')?'<button class="btn primary" onclick="openBOMModal()">+ Thêm BOM</button>':''}
+    ${_can('production.create')?'<button class="btn-add" onclick="openBOMModal()">+ Thêm BOM</button>':''}
   </div>`;
   if(!BOMS.length){
     h+=`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)"><div style="font-size:40px;margin-bottom:12px">📋</div><p>Chưa có công thức nào</p></div>`;

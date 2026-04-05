@@ -170,6 +170,7 @@
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}.modal-row,.modal-row.three{grid-template-columns:1fr}.product-row,.product-row-header{grid-template-columns:1fr 60px 60px 90px 90px 70px 28px}.gm-summary-grid{grid-template-columns:1fr 1fr}}
 </style>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 </head>
 <body>
@@ -490,7 +491,7 @@
   <div class="modal large">
     <div class="modal-title">Quản lý cơ chế hoa hồng</div>
     <div id="commSchemesList"></div>
-    <button class="btn-add" onclick="addScheme()" style="width:100%;margin-top:8px">+ Thêm cơ chế mới</button>
+    <button class="modal-btn primary" onclick="addScheme()" style="width:100%;margin-top:8px">+ Thêm cơ chế mới</button>
     <div style="margin-top:20px;border-top:1px solid var(--h5c-border);padding-top:16px">
       <div style="font-size:12px;font-weight:800;color:var(--h5c-text);margin-bottom:10px">Phân công cơ chế cho từng Sales</div>
       <div id="salesSchemeAssign"></div>
@@ -713,7 +714,7 @@ const CHANNEL_LABELS={website:'🌐 Website',shopee:'🛍 Shopee',lazada:'🛒 L
 const PAY_LABELS={unpaid:'Chưa TT',partial:'Một phần',paid:'Đã TT'};
 
 let state={user:null,tab:'orders',filterStatus:'all',filterSales:'all',filterPayment:'all',filterCustType:'all',search:'',page:1,perPage:10,cancelId:null,detailId:null,progressId:null,approvalId:null,custType:'le',stockSource:'ton_kho',
-  historyFrom:'',historyTo:'',selectedProgressStatus:null,reqCustType:'le',reqDetailId:null,restoreId:null};
+  historyFrom:'',historyTo:'',historyCustType:'all',selectedProgressStatus:null,reqCustType:'le',reqDetailId:null,restoreId:null};
 
 // ════════════════════════════════════════════════════════════════
 // ORDER REQUESTS
@@ -723,9 +724,7 @@ let ORDER_REQUESTS = [];
 // ════════════════════════════════════════════════════════════════
 // UTILITIES
 // ════════════════════════════════════════════════════════════════
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
-const fmtDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
+// fmt, fmtB, fmtDate now provided globally by constants.js
 const getInitials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
 const genId=()=>{let n=ORDERS.length+1;while(ORDERS.find(o=>o.id==='DH'+String(n).padStart(3,'0')))n++;return'DH'+String(n).padStart(3,'0');};
 const isCLevel=()=>state.user&&(state.user.role==='C_LEVEL');
@@ -741,7 +740,7 @@ function canApproveRestore(){return _can('orders.approve_restore');}
 // ════════════════════════════════════════════════════════════════
 function getSchemeForSales(salesName){
   const schemeId=SALES_SCHEMES[salesName];
-  return COMM_SCHEMES.find(s=>s.id===schemeId)||COMM_SCHEMES[0];
+  return COMM_SCHEMES.find(s=>s.id===schemeId)||COMM_SCHEMES[0]||{id:'',name:'Scheme đã xóa',hoaHong:0,gmCoban:0,bonusGm:0,phatLo:0,maxDiscount:0};
 }
 
 function calcCommission(totalRevenue,totalCogs,salesName){
@@ -815,8 +814,8 @@ function showMain(){
   const urlParams=new URLSearchParams(window.location.search);
   const filter=urlParams.get('filter');
   if(filter==='pending'){state.filterStatus='pending';state.tab='orders';}
-  else if(filter==='completed'){state.filterStatus='completed';state.tab='orders';}
-  else if(filter==='ar'){state.filterStatus='completed';state.filterPayment='not_paid';state.tab='orders';}
+  else if(filter===H5C_CONST.ORDER_STATUS.COMPLETED){state.filterStatus=H5C_CONST.ORDER_STATUS.COMPLETED;state.tab='orders';}
+  else if(filter==='ar'){state.filterStatus=H5C_CONST.ORDER_STATUS.COMPLETED;state.filterPayment='not_paid';state.tab='orders';}
   else if(filter){state.filterStatus=filter;state.tab='orders';}
   renderNav();render();
 }
@@ -879,18 +878,18 @@ function render(){
 function pendingEditCount(){return ORDERS.filter(o=>o.pendingEdit).length;}
 
 function buildPage(){
-  const all=ORDERS.filter(o=>o.status!=='cancelled'&&o.status!=='returned');
+  const all=ORDERS.filter(o=>o.status!==H5C_CONST.ORDER_STATUS.CANCELLED&&o.status!==H5C_CONST.ORDER_STATUS.RETURNED);
   const totalRev=all.reduce((s,o)=>{const f=calcOrderFinancials(o);return s+f.totalRevenue;},0);
-  const completed=ORDERS.filter(o=>o.status==='completed').length;
-  const pending=ORDERS.filter(o=>['confirmed','producing','produced','shipping'].includes(o.status)).length;
+  const completed=ORDERS.filter(o=>o.status===H5C_CONST.ORDER_STATUS.COMPLETED).length;
+  const pending=ORDERS.filter(o=>[H5C_CONST.ORDER_STATUS.CONFIRMED,H5C_CONST.ORDER_STATUS.PRODUCING,H5C_CONST.ORDER_STATUS.PRODUCED,H5C_CONST.ORDER_STATUS.SHIPPING].includes(o.status)).length;
   const pendingApproval=pendingEditCount();
   const pendingCancels=ORDERS.filter(o=>o.pendingCancel).length;
   const pendingRestores=ORDERS.filter(o=>o.pendingRestore).length;
-  const cancelledCount=ORDERS.filter(o=>o.status==='cancelled'||o.status==='returned').length;
+  const cancelledCount=ORDERS.filter(o=>o.status===H5C_CONST.ORDER_STATUS.CANCELLED||o.status===H5C_CONST.ORDER_STATUS.RETURNED).length;
   const _reqScope=_canScope('orders.view');
   const _scopedReqs=(_reqScope==='own'&&state.user)?ORDER_REQUESTS.filter(r=>r.requestedBy===state.user.name):ORDER_REQUESTS;
-  const pendingRequests=_scopedReqs.filter(r=>r.status==='pending').length;
-  const unpaid=all.filter(o=>o.payment!=='paid').reduce((s,o)=>{const f=calcOrderFinancials(o);return s+f.totalRevenue;},0);
+  const pendingRequests=_scopedReqs.filter(r=>r.status===H5C_CONST.ORDER_REQUEST_STATUS.PENDING).length;
+  const unpaid=all.filter(o=>o.payment!==H5C_CONST.PAYMENT_STATUS.PAID).reduce((s,o)=>{const f=calcOrderFinancials(o);return s+f.totalRevenue;},0);
 
   const filtered=getFiltered();
   const totalPages=Math.max(1,Math.ceil(filtered.length/state.perPage));
@@ -961,7 +960,7 @@ function buildPage(){
       const {comm,scheme}=calcCommission(fin.totalRevenue,fin.totalCogs,o.sales);
       const gmClass=fin.gmPct>=0.20?'good':fin.gmPct>=0.10?'mid':'low';
       const prodSummary=!o.products||!o.products.length?'(Chưa có SP)':o.products.length===1?o.products[0].name.substring(0,26)+(o.products[0].name.length>26?'…':''):`${o.products[0].name.substring(0,18)}… (+${o.products.length-1})`;
-      h+=`<tr class="${o.status==='cancelled'?'cancelled':''}${o.pendingEdit?' pending-edit':''}${o.pendingCancel?' pending-edit':''}" onclick="openDetail('${o.id}')">
+      h+=`<tr class="${o.status===H5C_CONST.ORDER_STATUS.CANCELLED?'cancelled':''}${o.pendingEdit?' pending-edit':''}${o.pendingCancel?' pending-edit':''}" onclick="openDetail('${o.id}')">
         <td><strong style="font-size:12px">${o.id}</strong>${o.pendingEdit?'<span class="pending-edit-badge">Chờ duyệt sửa</span>':''}${o.pendingCancel?'<span class="pending-edit-badge" style="background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)">Chờ duyệt hủy</span>':''}<div style="font-size:10px;color:var(--h5c-text-secondary)">${fmtDate(o.createdAt)}</div></td>
         <td><strong style="font-size:12px">${o.customer}</strong><div style="font-size:10px;color:var(--h5c-text-secondary)">${o.phone}</div></td>
         <td style="max-width:160px"><div style="font-size:11px">${prodSummary}</div><div style="font-size:10px;color:var(--h5c-text-secondary)">${o.products.reduce((s,p)=>s+p.qty,0)} sp</div></td>
@@ -976,7 +975,7 @@ function buildPage(){
         <td onclick="event.stopPropagation()"><div class="action-btns">
           ${_can('orders.update_progress')?`<button class="action-btn progress" title="Cập nhật tiến độ" onclick="openProgressModal('${o.id}')">📊</button>`:''}
           ${_can('orders.edit')?`<button class="action-btn edit" title="Chỉnh sửa" onclick="openEditModal('${o.id}')">✏️</button>`:''}
-          ${_can('orders.request_cancel')&&o.status!=='cancelled'&&!o.pendingCancel?`<button class="action-btn del" title="Yêu cầu hủy đơn" onclick="openCancelModal('${o.id}')">🗑</button>`:''}
+          ${_can('orders.request_cancel')&&o.status!==H5C_CONST.ORDER_STATUS.CANCELLED&&!o.pendingCancel?`<button class="action-btn del" title="Yêu cầu hủy đơn" onclick="openCancelModal('${o.id}')">🗑</button>`:''}
         </div></td>
       </tr>`;
     });
@@ -996,12 +995,12 @@ function getFiltered(){
     // Scope: only own orders if permission is 'own'
     if(scope==='own'&&o.sales!==state.user.name)return false;
     // Cancelled/returned orders go to separate tab — exclude from main list
-    if((o.status==='cancelled'||o.status==='returned')&&!o.pendingCancel)return false;
+    if((o.status===H5C_CONST.ORDER_STATUS.CANCELLED||o.status===H5C_CONST.ORDER_STATUS.RETURNED)&&!o.pendingCancel)return false;
     // Orders pending cancel still show in main list with badge
-    if(state.filterStatus==='pending'){if(!['confirmed','producing','produced','shipping'].includes(o.status))return false;}
+    if(state.filterStatus==='pending'){if(![H5C_CONST.ORDER_STATUS.CONFIRMED,H5C_CONST.ORDER_STATUS.PRODUCING,H5C_CONST.ORDER_STATUS.PRODUCED,H5C_CONST.ORDER_STATUS.SHIPPING].includes(o.status))return false;}
     else if(state.filterStatus!=='all'&&o.status!==state.filterStatus)return false;
     if(state.filterSales!=='all'&&o.sales!==state.filterSales)return false;
-    if(state.filterPayment==='not_paid'){if(o.payment==='paid')return false;}
+    if(state.filterPayment==='not_paid'){if(o.payment===H5C_CONST.PAYMENT_STATUS.PAID)return false;}
     else if(state.filterPayment!=='all'&&o.payment!==state.filterPayment)return false;
     if(state.filterCustType!=='all'){
       const isBuon=o.custType==='buon';
@@ -1111,14 +1110,14 @@ function renderApprovalTab(){
 // ════════════════════════════════════════════════════════════════
 function renderCancelledTab(){
   const scope=_canScope('orders.view');
-  const cancelled=ORDERS.filter(o=>(o.status==='cancelled'||o.status==='returned')&&(scope==='all'||o.sales===state.user.name));
+  const cancelled=ORDERS.filter(o=>(o.status===H5C_CONST.ORDER_STATUS.CANCELLED||o.status===H5C_CONST.ORDER_STATUS.RETURNED)&&(scope==='all'||o.sales===state.user.name));
   if(!cancelled.length)return`<div style="text-align:center;padding:40px;color:var(--h5c-text-secondary)">Không có đơn hàng nào đã hủy/trả hàng</div>`;
 
   let h=`<div style="font-size:12px;color:var(--h5c-text-secondary);margin-bottom:14px">${cancelled.length} đơn đã hủy/trả hàng</div>`;
   cancelled.forEach(o=>{
     const fin=calcOrderFinancials(o);
     const hasPendingRestore=!!o.pendingRestore;
-    const isReturned=o.status==='returned';
+    const isReturned=o.status===H5C_CONST.ORDER_STATUS.RETURNED;
     h+=`<div class="cancel-card ${hasPendingRestore?'pending-restore':'cancelled'}" style="${isReturned?'border-left:3px solid var(--h5c-terracotta)':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
@@ -1157,9 +1156,9 @@ function renderRequestsTab(){
   const requests=(_scope==='own'&&state.user)
     ?ORDER_REQUESTS.filter(r=>r.requestedBy===state.user.name)
     :ORDER_REQUESTS;
-  const pending=requests.filter(r=>r.status==='pending').length;
-  const processing=requests.filter(r=>r.status==='processing').length;
-  const converted=requests.filter(r=>r.status==='converted').length;
+  const pending=requests.filter(r=>r.status===H5C_CONST.ORDER_REQUEST_STATUS.PENDING).length;
+  const processing=requests.filter(r=>r.status===H5C_CONST.ORDER_REQUEST_STATUS.PROCESSING).length;
+  const converted=requests.filter(r=>r.status===H5C_CONST.ORDER_REQUEST_STATUS.CONVERTED).length;
 
   let h=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
     <div class="kpi-card" onclick="filterRequests('all')"><div class="kpi-icon">📝</div><div class="kpi-label">Tổng yêu cầu</div><div class="kpi-value">${requests.length}</div></div>
@@ -1176,8 +1175,8 @@ function renderRequestsTab(){
   const filtered=state.reqFilter?requests.filter(r=>r.status===state.reqFilter):requests;
   filtered.sort((a,b)=>{
     const pOrder={urgent:0,high:1,normal:2};
-    if(a.status==='pending'&&b.status!=='pending')return -1;
-    if(b.status==='pending'&&a.status!=='pending')return 1;
+    if(a.status===H5C_CONST.ORDER_REQUEST_STATUS.PENDING&&b.status!==H5C_CONST.ORDER_REQUEST_STATUS.PENDING)return -1;
+    if(b.status===H5C_CONST.ORDER_REQUEST_STATUS.PENDING&&a.status!==H5C_CONST.ORDER_REQUEST_STATUS.PENDING)return 1;
     return (pOrder[a.priority]||2)-(pOrder[b.priority]||2);
   });
 
@@ -1197,7 +1196,7 @@ function renderRequestsTab(){
           </div>
         </div>
         <div style="display:flex;gap:6px">
-          ${_can('orders.approve_request')&&r.status==='pending'?`
+          ${_can('orders.approve_request')&&r.status===H5C_CONST.ORDER_REQUEST_STATUS.PENDING?`
             <button class="btn-add" style="padding:6px 12px;font-size:11px" onclick="event.stopPropagation();convertToOrder('${r.id}')">Duyệt</button>
             <button class="btn-secondary" style="font-size:11px;color:var(--h5c-terracotta)" onclick="event.stopPropagation();rejectRequest('${r.id}')">Từ chối</button>
           `:''}
@@ -1242,7 +1241,7 @@ function openReqDetail(id){
   `;
 
   let btns=`<button class="modal-btn cancel" onclick="closeModal('reqDetailModal')">Đóng</button>`;
-  if(_can('orders.approve_request')&&r.status==='pending'){
+  if(_can('orders.approve_request')&&r.status===H5C_CONST.ORDER_REQUEST_STATUS.PENDING){
     btns+=`<button class="modal-btn primary" onclick="convertToOrder('${r.id}')">✅ Duyệt — Tạo đơn hàng</button>`;
   }
   document.getElementById('reqDetailBtns').innerHTML=btns;
@@ -1251,7 +1250,7 @@ function openReqDetail(id){
 
 function convertToOrder(reqId){
   const r=ORDER_REQUESTS.find(x=>x.id===reqId);
-  if(!r||r.status!=='pending')return;
+  if(!r||r.status!==H5C_CONST.ORDER_REQUEST_STATUS.PENDING)return;
 
   let n=ORDERS.length+1;
   while(ORDERS.find(o=>o.id==='DH'+String(n).padStart(3,'0')))n++;
@@ -1277,19 +1276,19 @@ function convertToOrder(reqId){
     address:r.address||'',
     sales:r.requestedBy||state.user.name,
     channel:r.channel||'truc_tiep',
-    status:'confirmed',
-    payment:'unpaid',
+    status:H5C_CONST.ORDER_STATUS.CONFIRMED,
+    payment:H5C_CONST.PAYMENT_STATUS.UNPAID,
     products,
     total,
     createdAt:today,
     fromYCId:reqId,
     note:'[Từ '+reqId+'] '+(r.note||''),
-    statusLog:[{status:'confirmed',at:today,by:state.user.name,note:'Tạo từ YC '+reqId}]
+    statusLog:[{status:H5C_CONST.ORDER_STATUS.CONFIRMED,at:today,by:state.user.name,note:'Tạo từ YC '+reqId}]
   };
   ORDERS.unshift(newOrder);
   H5C.set('orders',ORDERS);
 
-  r.status='converted';
+  r.status=H5C_CONST.ORDER_REQUEST_STATUS.CONVERTED;
   r.convertedOrderId=newId;
   H5C.set('order_requests',ORDER_REQUESTS);
 
@@ -1303,7 +1302,7 @@ function rejectRequest(reqId){
   const reason=prompt('Lý do từ chối yêu cầu:');
   if(reason===null)return;
   const r=ORDER_REQUESTS.find(x=>x.id===reqId);
-  if(r){r.status='rejected';r.rejectedBy=state.user.name;r.rejectedReason=reason;}
+  if(r){r.status=H5C_CONST.ORDER_REQUEST_STATUS.REJECTED;r.rejectedBy=state.user.name;r.rejectedReason=reason;}
   H5C.set('order_requests',ORDER_REQUESTS);render();
 }
 
@@ -1421,7 +1420,7 @@ function saveOrderRequest(e){
     note:document.getElementById('reqNote').value,
     requestedBy:state.user.name,
     requestedAt:createdAt,
-    status:'pending'
+    status:H5C_CONST.ORDER_REQUEST_STATUS.PENDING
   };
   ORDER_REQUESTS.unshift(newReq);
   H5C.set('order_requests',ORDER_REQUESTS);
@@ -1486,7 +1485,7 @@ function openProgressModal(id){
     const canSelect=STATUS_STEPS.findIndex(x=>x.key===s.key)>=stepIdx;
     return`<button type="button" class="progress-status-btn${s.key===state.selectedProgressStatus?' active':''}${!canSelect?' disabled':''}" onclick="${canSelect?`selectProgressStatus('${s.key}')`:''}">${s.icon}<br>${s.label}</button>`;
   }).join('')+
-  `<button type="button" class="progress-status-btn${o.status!=='cancelled'&&state.selectedProgressStatus==='cancelled'?' active':''}" onclick="selectProgressStatus('cancelled')">❌<br>Hủy</button>`;
+  `<button type="button" class="progress-status-btn${o.status!==H5C_CONST.ORDER_STATUS.CANCELLED&&state.selectedProgressStatus===H5C_CONST.ORDER_STATUS.CANCELLED?' active':''}" onclick="selectProgressStatus('${H5C_CONST.ORDER_STATUS.CANCELLED}')">❌<br>Hủy</button>`;
   // Pre-fill dates
   document.getElementById('prgProductionDate').value=o.productionDate||'';
   document.getElementById('prgShipDate').value=o.shipDate||'';
@@ -1505,9 +1504,9 @@ function _checkMissingLinkedData(order){
   const entries=H5C.get('journal_entries')||[];
   const receipts=H5C.get('cash_receipts')||[];
   const stepIdx=STATUS_STEPS.findIndex(s=>s.key===order.status);
-  const producingIdx=STATUS_STEPS.findIndex(s=>s.key==='producing');
-  const shippingIdx=STATUS_STEPS.findIndex(s=>s.key==='shipping');
-  const completedIdx=STATUS_STEPS.findIndex(s=>s.key==='completed');
+  const producingIdx=STATUS_STEPS.findIndex(s=>s.key===H5C_CONST.ORDER_STATUS.PRODUCING);
+  const shippingIdx=STATUS_STEPS.findIndex(s=>s.key===H5C_CONST.ORDER_STATUS.SHIPPING);
+  const completedIdx=STATUS_STEPS.findIndex(s=>s.key===H5C_CONST.ORDER_STATUS.COMPLETED);
 
   // If past "producing" but no LSX
   if(stepIdx>=producingIdx&&!prodOrders.find(p=>p._orderRef===order.id||p.orderRef===order.id))
@@ -1516,10 +1515,10 @@ function _checkMissingLinkedData(order){
   if(stepIdx>=shippingIdx&&!shipments.find(s=>s._orderRef===order.id||s.orderId===order.id))
     missing.push({label:'Đơn giao hàng (GH)',action:'shipment'});
   // If "completed" but no journal entry
-  if(order.status==='completed'&&!entries.find(je=>je._orderRef===order.id))
+  if(order.status===H5C_CONST.ORDER_STATUS.COMPLETED&&!entries.find(je=>je._orderRef===order.id))
     missing.push({label:'Bút toán doanh thu (JE)',action:'journal'});
   // If paid but no cash receipt
-  if(order.payment==='paid'&&!receipts.find(r=>r._orderRef===order.id))
+  if(order.payment===H5C_CONST.PAYMENT_STATUS.PAID&&!receipts.find(r=>r._orderRef===order.id))
     missing.push({label:'Phiếu thu (PT)',action:'receipt'});
 
   if(!missing.length)return;
@@ -1528,9 +1527,9 @@ function _checkMissingLinkedData(order){
   setTimeout(()=>{
     if(confirm('Đơn '+order.id+' thiếu dữ liệu liên kết:\n• '+missing.map(m=>m.label).join('\n• ')+'\n\nTạo bổ sung tự động?')){
       missing.forEach(m=>{
-        if(m.action==='production')_autoCreateProductionOrder({...order,status:'producing'});
-        if(m.action==='shipment')_autoCreateShipment({...order,status:'shipping'});
-        if(m.action==='journal')_autoCreateJournalEntry({...order,status:'completed'});
+        if(m.action==='production')_autoCreateProductionOrder({...order,status:H5C_CONST.ORDER_STATUS.PRODUCING});
+        if(m.action==='shipment')_autoCreateShipment({...order,status:H5C_CONST.ORDER_STATUS.SHIPPING});
+        if(m.action==='journal')_autoCreateJournalEntry({...order,status:H5C_CONST.ORDER_STATUS.COMPLETED});
         if(m.action==='receipt')_autoCreateCashReceipt(order);
       });
       showToast('Đã tạo bổ sung: '+msgList,'success');
@@ -1551,11 +1550,11 @@ function selectProgressStatus(key){
     const canSelect=STATUS_STEPS.findIndex(x=>x.key===s.key)>=stepIdx;
     return`<button type="button" class="progress-status-btn${s.key===key?' active':''}${!canSelect?' disabled':''}" onclick="${canSelect?`selectProgressStatus('${s.key}')`:''}">${s.icon}<br>${s.label}</button>`;
   }).join('')+
-  `<button type="button" class="progress-status-btn${'cancelled'===key?' active':''}" onclick="selectProgressStatus('cancelled')">❌<br>Hủy</button>`;
+  `<button type="button" class="progress-status-btn${H5C_CONST.ORDER_STATUS.CANCELLED===key?' active':''}" onclick="selectProgressStatus('${H5C_CONST.ORDER_STATUS.CANCELLED}')">❌<br>Hủy</button>`;
 }
 
 function _autoCreateExpenseFromPO(order){
-  if(order.status!=='completed')return;
+  if(order.status!==H5C_CONST.ORDER_STATUS.COMPLETED)return;
   const poId=order.maNhap||'';
   const lotNo=order.maXuat||'';
   if(!poId&&!lotNo)return;
@@ -1611,7 +1610,7 @@ function _autoCreateExpenseFromPO(order){
 }
 
 function _autoCreateJournalEntry(order){
-  if(order.status!=='completed')return;
+  if(order.status!==H5C_CONST.ORDER_STATUS.COMPLETED)return;
   const entries=H5C.get('journal_entries')||[];
   // Duplicate check
   if(entries.find(je=>je._orderRef===order.id))return;
@@ -1639,7 +1638,7 @@ function _autoCreateJournalEntry(order){
 }
 
 function _autoCreateCashReceipt(order){
-  if(order.payment!=='paid')return;
+  if(order.payment!==H5C_CONST.PAYMENT_STATUS.PAID)return;
   const receipts=H5C.get('cash_receipts')||[];
   // Duplicate check
   if(receipts.find(r=>r._orderRef===order.id))return;
@@ -1667,14 +1666,16 @@ function _autoCreateCashReceipt(order){
 }
 
 function _autoFlagStockReserve(order){
-  if(order.status!=='confirmed')return;
+  if(order.status!==H5C_CONST.ORDER_STATUS.CONFIRMED)return;
   if(order._stockExported)return; // đã xuất kho rồi
   order._stockReserved=true;
   order._stockReservedAt=new Date().toISOString().split('T')[0];
 
   // Reserve actual qty on lots (FIFO)
   if(order.stockSource==='ton_kho'){
-    const lots=H5C.get('lots')||[];
+    const snap=H5C_LOT.read();
+    const lots=snap.lots;
+    const modifiedIds=[];
     (order.products||[]).forEach(prod=>{
       let remain=prod.qty;
       lots.filter(l=>l.type==='nhap'&&l.skuId===(prod.productId||prod.skuId)&&(l.qtyRemain-(l.reservedQty||0))>0)
@@ -1686,17 +1687,18 @@ function _autoFlagStockReserve(order){
           lot.reservedQty=(lot.reservedQty||0)+toReserve;
           if(!lot._reservedOrders)lot._reservedOrders=[];
           lot._reservedOrders.push({orderId:order.id,qty:toReserve});
+          modifiedIds.push(lot.id);
           remain-=toReserve;
         });
     });
-    H5C.set('lots',lots);
+    if(!H5C_LOT.save(snap,modifiedIds))return;
   }
 
   H5C.set('orders',ORDERS);
 }
 
 function _autoCreateShipment(order){
-  if(order.status!=='shipping')return;
+  if(order.status!==H5C_CONST.ORDER_STATUS.SHIPPING)return;
   const shipments=H5C.get('shipments')||[];
   // Check duplicate
   if(shipments.find(s=>s._orderRef===order.id))return;
@@ -1717,7 +1719,7 @@ function _autoCreateShipment(order){
     partnerName:'',
     weight:0,
     shippingFee:order.costShipping||0,
-    codAmount:order.payment==='unpaid'?(order.total||0):0,
+    codAmount:order.payment===H5C_CONST.PAYMENT_STATUS.UNPAID?(order.total||0):0,
     trackingCode:'',
     estimatedDate:order.deliveryDate||'',
     notes:'Tự động từ đơn '+order.id+'. SP: '+prodSummary,
@@ -1731,7 +1733,7 @@ function _autoCreateShipment(order){
 }
 
 function _autoCreateProductionOrder(order){
-  if(order.status!=='producing')return;
+  if(order.status!==H5C_CONST.ORDER_STATUS.PRODUCING)return;
   const prodOrders=H5C.get('production_orders')||[];
   // Check duplicate: đã tạo LSX cho order này chưa
   if(prodOrders.find(p=>p._orderRef===order.id))return;
@@ -1775,16 +1777,16 @@ function saveProgress(){
   o.shipDate=document.getElementById('prgShipDate').value||o.shipDate;
   o.deliveryDate=document.getElementById('prgDeliveryDate').value||o.deliveryDate;
   if(note){o.statusLog=o.statusLog||[];o.statusLog.push({status:newStatus,note,by:state.user.name,at:new Date().toISOString().split('T')[0]});}
-  if(newStatus==='completed'&&o.payment!=='paid'){
+  if(newStatus===H5C_CONST.ORDER_STATUS.COMPLETED&&o.payment!==H5C_CONST.PAYMENT_STATUS.PAID){
     showToast('⚠️ Đơn '+o.id+' hoàn thành nhưng chưa thanh toán đủ! Kiểm tra công nợ.','warning',5000);
   }
   H5C.set('orders',ORDERS);
-  if(newStatus==='confirmed')_autoFlagStockReserve(o);
-  if(newStatus==='producing')_autoCreateProductionOrder(o);
-  if(newStatus==='shipping')_autoCreateShipment(o);
-  if(newStatus==='completed')_autoCreateExpenseFromPO(o);
-  if(newStatus==='completed')_autoCreateJournalEntry(o);
-  if(newStatus==='cancelled')_autoCancelCascade(o);
+  if(newStatus===H5C_CONST.ORDER_STATUS.CONFIRMED)_autoFlagStockReserve(o);
+  if(newStatus===H5C_CONST.ORDER_STATUS.PRODUCING)_autoCreateProductionOrder(o);
+  if(newStatus===H5C_CONST.ORDER_STATUS.SHIPPING)_autoCreateShipment(o);
+  if(newStatus===H5C_CONST.ORDER_STATUS.COMPLETED)_autoCreateExpenseFromPO(o);
+  if(newStatus===H5C_CONST.ORDER_STATUS.COMPLETED)_autoCreateJournalEntry(o);
+  if(newStatus===H5C_CONST.ORDER_STATUS.CANCELLED)_autoCancelCascade(o);
   closeModal('progressModal');render();
 }
 
@@ -1930,7 +1932,7 @@ function openEditModal(id){
   (o.revenueOther||[]).forEach(r=>addRevenueRow(r));
 
   // Partial
-  if(o.payment==='partial'){
+  if(o.payment===H5C_CONST.PAYMENT_STATUS.PARTIAL){
     document.getElementById('partialSection').classList.add('show');
     document.getElementById('orderPaidAmount').value=o.paidAmount||'';
     document.getElementById('orderPaidPct').value=o.paidPct||'';
@@ -2213,14 +2215,14 @@ function addRevenueRow(existing){
 function getCostOther(){
   return [...document.querySelectorAll('#costOtherRows .cost-other-row')].map(row=>{
     const inputs=row.querySelectorAll('input');
-    return{name:inputs[0].value,amount:parseInt(inputs[1].value)||0};
+    return{name:inputs[0].value,amount:parseFloat(inputs[1].value)||0};
   }).filter(c=>c.name||c.amount);
 }
 
 function getRevenueOther(){
   return [...document.querySelectorAll('#revenueOtherRows .cost-other-row')].map(row=>{
     const inputs=row.querySelectorAll('input');
-    return{name:inputs[0].value,amount:parseInt(inputs[1].value)||0};
+    return{name:inputs[0].value,amount:parseFloat(inputs[1].value)||0};
   }).filter(c=>c.name||c.amount);
 }
 
@@ -2232,16 +2234,16 @@ function recalcTotal(){
   let productRev=0,productCogs=0;
   rows.forEach(row=>{
     const qty=parseInt(row.querySelector('.qty-input').value)||0;
-    const cost=parseInt(row.querySelector('.cost-input').value)||0;
-    const price=parseInt(row.querySelector('.price-input').value)||0;
+    const cost=parseFloat(row.querySelector('.cost-input').value)||0;
+    const price=parseFloat(row.querySelector('.price-input').value)||0;
     const rowGP=(price-cost)*qty;
     const gpInput=row.querySelector('.gp-input');
     if(gpInput){gpInput.value=rowGP?fmt(rowGP)+'đ':'';gpInput.style.color=rowGP>=0?'var(--h5c-sage)':'var(--h5c-terracotta)';}
     productRev+=price*qty;
     productCogs+=cost*qty;
   });
-  const costShipping=parseInt(document.getElementById('costShipping').value)||0;
-  const revenueShipping=parseInt(document.getElementById('revenueShipping').value)||0;
+  const costShipping=parseFloat(document.getElementById('costShipping').value)||0;
+  const revenueShipping=parseFloat(document.getElementById('revenueShipping').value)||0;
   const extraCogs=costShipping+getCostOther().reduce((s,c)=>s+c.amount,0);
   const extraRev=revenueShipping+getRevenueOther().reduce((s,c)=>s+c.amount,0);
   const totalRevenue=productRev+extraRev;
@@ -2263,8 +2265,8 @@ function updateGMSummary(totalRevenue,totalCogs,salesName){
   document.getElementById('gmPct').style.color=gmColor;
   if(salesName){
     const {comm,scheme}=calcCommission(totalRevenue,totalCogs,salesName);
-    document.getElementById('commSchemeName').textContent=`Cơ chế: ${scheme.name}`;
-    document.getElementById('commSchemeDetail').textContent=`HH ${scheme.hoaHong}% GP + Bonus GM>${scheme.gmCoban}% | Phạt lỗ ${scheme.phatLo}%`;
+    document.getElementById('commSchemeName').textContent=`Cơ chế: ${scheme?.name||'Scheme đã xóa'}`;
+    document.getElementById('commSchemeDetail').textContent=scheme?.hoaHong!=null?`HH ${scheme.hoaHong}% GP + Bonus GM>${scheme.gmCoban}% | Phạt lỗ ${scheme.phatLo}%`:'Không có dữ liệu scheme';
     document.getElementById('commEstimate').textContent=comm?fmtB(comm)+'đ':'0đ';
     document.getElementById('commEstimate').style.color=comm>=0?'#FFE082':'#EF9A9A';
   }else{
@@ -2276,16 +2278,16 @@ function updateGMSummary(totalRevenue,totalCogs,salesName){
 
 function togglePartial(){
   const v=document.getElementById('orderPayment').value;
-  document.getElementById('partialSection').classList.toggle('show',v==='partial');
+  document.getElementById('partialSection').classList.toggle('show',v===H5C_CONST.PAYMENT_STATUS.PARTIAL);
 }
 function syncPaidPct(){
-  const total=parseInt((document.getElementById('orderTotal').value||'').replace(/[^0-9]/g,''))||0;
-  const amt=parseInt(document.getElementById('orderPaidAmount').value)||0;
+  const total=parseFloat((document.getElementById('orderTotal').value||'').replace(/[^0-9.]/g,''))||0;
+  const amt=parseFloat(document.getElementById('orderPaidAmount').value)||0;
   if(total&&amt)document.getElementById('orderPaidPct').value=Math.round(amt/total*100);
 }
 function syncPaidAmt(){
-  const total=parseInt((document.getElementById('orderTotal').value||'').replace(/[^0-9]/g,''))||0;
-  const pct=parseInt(document.getElementById('orderPaidPct').value)||0;
+  const total=parseFloat((document.getElementById('orderTotal').value||'').replace(/[^0-9.]/g,''))||0;
+  const pct=parseFloat(document.getElementById('orderPaidPct').value)||0;
   if(total&&pct)document.getElementById('orderPaidAmount').value=Math.round(total*pct/100);
 }
 
@@ -2299,8 +2301,8 @@ function saveOrder(e){
   rows.forEach(row=>{
     const sel=row.querySelector('.sku-select');
     const qty=parseInt(row.querySelector('.qty-input').value)||0;
-    const cost=parseInt(row.querySelector('.cost-input').value)||0;
-    const price=parseInt(row.querySelector('.price-input').value)||0;
+    const cost=parseFloat(row.querySelector('.cost-input').value)||0;
+    const price=parseFloat(row.querySelector('.price-input').value)||0;
     if(!sel.value||qty===0)return;
     const prod=PRODUCTS_LIST.find(p=>p.id===sel.value);
     if(prod)products.push({productId:prod.id,name:prod.name,unit:prod.displayUnit||prod.unit,qty,costPerUnit:cost,unitPrice:price});
@@ -2310,7 +2312,7 @@ function saveOrder(e){
   const editMode=document.getElementById('orderEditMode').value;
   const editId=document.getElementById('orderId').value;
   const isWholesale=state.custType==='buon';
-  const totalRevenue=parseInt((document.getElementById('orderTotal').value||'').replace(/[^0-9]/g,''))||0;
+  const totalRevenue=parseFloat((document.getElementById('orderTotal').value||'').replace(/[^0-9.]/g,''))||0;
   const payMethod=document.getElementById('orderPayment').value;
 
   const orderData={
@@ -2326,16 +2328,16 @@ function saveOrder(e){
     channel:document.getElementById('orderChannel').value,
     status:document.getElementById('orderStatus').value,
     payment:payMethod,
-    paidAmount:payMethod==='partial'?(parseInt(document.getElementById('orderPaidAmount').value)||0):0,
-    paidPct:payMethod==='partial'?(parseInt(document.getElementById('orderPaidPct').value)||0):0,
+    paidAmount:payMethod===H5C_CONST.PAYMENT_STATUS.PARTIAL?(parseFloat(document.getElementById('orderPaidAmount').value)||0):0,
+    paidPct:payMethod===H5C_CONST.PAYMENT_STATUS.PARTIAL?(parseFloat(document.getElementById('orderPaidPct').value)||0):0,
     productionDate:document.getElementById('orderProductionDate').value,
     shipDate:document.getElementById('orderShipDate').value,
     deliveryDate:document.getElementById('orderDeliveryDate').value,
     note:document.getElementById('orderNote').value,
     products,
-    costShipping:parseInt(document.getElementById('costShipping').value)||0,
+    costShipping:parseFloat(document.getElementById('costShipping').value)||0,
     costOther:getCostOther(),
-    revenueShipping:parseInt(document.getElementById('revenueShipping').value)||0,
+    revenueShipping:parseFloat(document.getElementById('revenueShipping').value)||0,
     revenueOther:getRevenueOther(),
     total:totalRevenue,
     stockSource:state.stockSource,
@@ -2352,7 +2354,7 @@ function saveOrder(e){
   };
 
   // Block "confirmed" if no PO linked
-  if(orderData.status==='confirmed'){
+  if(orderData.status===H5C_CONST.ORDER_STATUS.CONFIRMED){
     const linkedPO=orderData.stockSource==='ton_kho'?orderData.maXuat:orderData.maNhap;
     if(!linkedPO){
       alert('⚠️ Để xác nhận đơn hàng, bắt buộc phải chọn PO nguồn hàng!\n\n• Hàng tồn kho → chọn PO đã nhận hàng\n• Đặt đơn riêng → chọn PO đang đặt NCC');
@@ -2363,7 +2365,7 @@ function saveOrder(e){
   // Snapshot commission at save time
   const _fin=calcOrderFinancials(orderData);
   const _comm=calcCommission(_fin.totalRevenue,_fin.totalCogs,orderData.sales);
-  orderData._commSnapshot={amount:_comm.comm,schemeName:_comm.scheme.name,schemeId:_comm.scheme.id,gmPct:_fin.gmPct,calcAt:new Date().toISOString()};
+  orderData._commSnapshot={amount:_comm.comm,schemeName:_comm.scheme?.name||'Scheme đã xóa',schemeId:_comm.scheme?.id||'',gmPct:_fin.gmPct,calcAt:new Date().toISOString()};
 
   if(editMode==='new'){
     const today=new Date();
@@ -2374,7 +2376,7 @@ function saveOrder(e){
     const fromReq=document.getElementById('orderId').dataset.fromReq;
     if(fromReq){
       const req=ORDER_REQUESTS.find(r=>r.id===fromReq);
-      if(req){req.convertedOrderId=newId;req.status='converted';}
+      if(req){req.convertedOrderId=newId;req.status=H5C_CONST.ORDER_REQUEST_STATUS.CONVERTED;}
       H5C.set('order_requests',ORDER_REQUESTS);
       delete document.getElementById('orderId').dataset.fromReq;
     }
@@ -2397,16 +2399,16 @@ function saveOrder(e){
   }
 
   H5C.set('orders',ORDERS);
-  if(orderData.status==='confirmed'){
+  if(orderData.status===H5C_CONST.ORDER_STATUS.CONFIRMED){
     const saved=editMode==='new'?ORDERS[0]:ORDERS.find(o=>o.id===editId);
     if(saved)_autoFlagStockReserve(saved);
   }
-  if(orderData.status==='completed'){
+  if(orderData.status===H5C_CONST.ORDER_STATUS.COMPLETED){
     const saved=ORDERS.find(o=>o.id===editId)||ORDERS[0];
     if(saved)_autoCreateExpenseFromPO(saved);
     if(saved)_autoCreateJournalEntry(saved);
   }
-  if(orderData.payment==='paid'){
+  if(orderData.payment===H5C_CONST.PAYMENT_STATUS.PAID){
     const saved=editMode==='new'?ORDERS[0]:ORDERS.find(o=>o.id===editId);
     if(saved)_autoCreateCashReceipt(saved);
   }
@@ -2424,12 +2426,12 @@ function openDetail(id){
   const{comm,scheme}=calcCommission(fin.totalRevenue,fin.totalCogs,o.sales);
   const stepIdx=STATUS_STEPS.findIndex(s=>s.key===o.status);
   let timeline='';
-  if(o.status!=='cancelled'&&o.status!=='returned'){
+  if(o.status!==H5C_CONST.ORDER_STATUS.CANCELLED&&o.status!==H5C_CONST.ORDER_STATUS.RETURNED){
     timeline='<div class="status-timeline">'+STATUS_STEPS.map((s,i)=>{
       const done=i<stepIdx,cur=i===stepIdx;
       return`<div class="timeline-step${done?' done':''}"><div class="timeline-dot${done?' done':cur?' current':''}"> ${done?'✓':s.icon}</div><div class="timeline-label${cur?' current':''}">${s.label}</div></div>`;
     }).join('')+'</div>';
-  }else if(o.status==='returned'){timeline=`<div style="margin-bottom:14px"><span class="status-badge" style="background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)">↩️ Đã trả hàng</span></div>`;}
+  }else if(o.status===H5C_CONST.ORDER_STATUS.RETURNED){timeline=`<div style="margin-bottom:14px"><span class="status-badge" style="background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)">↩️ Đã trả hàng</span></div>`;}
   else{timeline=`<div style="margin-bottom:14px"><span class="status-badge cancelled">Đã hủy</span></div>`;}
 
   const prods=o.products.map(p=>{
@@ -2481,7 +2483,7 @@ function openDetail(id){
         <div><div style="font-size:14px;font-weight:900;color:${gmColor}">${gmPctNum}%</div><div style="font-size:9px;color:rgba(255,255,255,.6)">GM%</div></div>
       </div>
       <div style="background:var(--h5c-amber-light);border-radius:8px;padding:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-        <div><div style="font-size:11px;font-weight:700;color:var(--h5c-amber)">Hoa hồng dự tính — ${scheme.name}</div><div style="font-size:10px;color:var(--h5c-text-secondary)">${scheme.hoaHong}% GP + bonus GM>${scheme.gmCoban}%</div></div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--h5c-amber)">Hoa hồng dự tính — ${scheme?.name||'Scheme đã xóa'}</div><div style="font-size:10px;color:var(--h5c-text-secondary)">${scheme?.hoaHong!=null?scheme.hoaHong+'% GP + bonus GM>'+scheme.gmCoban+'%':'Không có dữ liệu scheme'}</div></div>
         <div style="font-size:20px;font-weight:900;color:${comm>=0?'var(--h5c-amber)':'var(--h5c-terracotta)'}">${fmt(comm)}đ</div>
       </div>
     </div>
@@ -2493,7 +2495,7 @@ function openDetail(id){
 
   // Show "Trả hàng" button only for completed orders
   const _returnBtn=document.getElementById('detailReturnBtn');
-  if(_returnBtn)_returnBtn.style.display=(o.status==='completed'&&_can('orders.update_progress'))?'':'none';
+  if(_returnBtn)_returnBtn.style.display=(o.status===H5C_CONST.ORDER_STATUS.COMPLETED&&_can('orders.update_progress'))?'':'none';
 
   document.getElementById('detailModal').classList.remove('hidden');
 }
@@ -2519,8 +2521,8 @@ function renderSchemesList(){
           <div style="font-size:11px;color:var(--h5c-text-secondary)">${s.desc}</div>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn-secondary" style="padding:5px 10px;font-size:11px" onclick="editSchemeInline(${i})">Edit</button>
-          ${COMM_SCHEMES.length>1?`<button class="btn-secondary" style="padding:5px 10px;font-size:11px;color:var(--h5c-terracotta)" onclick="removeScheme(${i})">Del</button>`:''}
+          <button class="modal-btn cancel" style="padding:5px 10px;font-size:11px" onclick="editSchemeInline(${i})">Edit</button>
+          ${COMM_SCHEMES.length>1?`<button class="modal-btn danger" style="padding:5px 10px;font-size:11px" onclick="removeScheme(${i})">Del</button>`:''}
         </div>
       </div>
       <div class="scheme-metrics">
@@ -2634,7 +2636,7 @@ function saveCommSchemes(){
 // ════════════════════════════════════════════════════════════════
 function openReturnModal(id){
   const o=ORDERS.find(x=>x.id===id);
-  if(!o||o.status!=='completed')return;
+  if(!o||o.status!==H5C_CONST.ORDER_STATUS.COMPLETED)return;
   document.getElementById('returnOrderId').textContent=id;
   document.getElementById('returnReason').value='';
   // Build product rows with qty to return
@@ -2698,37 +2700,42 @@ function submitReturn(){
 
   // 2. Import returned goods to warehouse
   if(whId){
-    const lots=H5C.get('lots')||[];
-    const history=H5C.get('wh_history')||[];
-    const lotNo='RET-'+today.replace(/-/g,'')+'-'+Date.now().toString(36).slice(-3).toUpperCase();
-    returnItems.forEach(item=>{
-      const lotId='LOT'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();
-      lots.push({
-        id:lotId,lotNo,date:today,type:'nhap',
-        skuId:item.productId||'',warehouseId:whId,giaoTrucTiep:false,
-        qty:item.returnQty,qtyRemain:item.returnQty,price:item.costPerUnit||0,
-        mfgDate:null,bestBeforeMonths:null,supplierId:null,location:null,
-        payStatus:'paid',paidAmount:null,dueDate:null,
-        user:state.user.name,note:'Trả hàng từ đơn '+o.id+'. Lý do: '+reason
+    const existingReturnLots=(H5C.get('lots')||[]).filter(l=>l.lotNo&&l.lotNo.startsWith('RET-')&&l.note&&l.note.includes(o.id));
+    if(existingReturnLots.length>0){
+      showToast('Đơn '+o.id+' đã được nhập kho trả hàng trước đó','warning');
+    } else {
+      const lots=H5C.get('lots')||[];
+      const history=H5C.get('wh_history')||[];
+      const lotNo='RET-'+today.replace(/-/g,'')+'-'+Date.now().toString(36).slice(-3).toUpperCase();
+      returnItems.forEach(item=>{
+        const lotId='LOT'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();
+        lots.push({
+          id:lotId,lotNo,date:today,type:'nhap',
+          skuId:item.productId||'',warehouseId:whId,giaoTrucTiep:false,
+          qty:item.returnQty,qtyRemain:item.returnQty,price:item.costPerUnit||0,
+          mfgDate:null,bestBeforeMonths:null,supplierId:null,location:null,
+          payStatus:'paid',paidAmount:null,dueDate:null,
+          user:state.user.name,note:'Trả hàng từ đơn '+o.id+'. Lý do: '+reason
+        });
+        history.push({
+          id:'H'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(),
+          date:today,type:'nhap',lotNo,skuId:item.productId||'',
+          warehouseId:whId,qty:item.returnQty,price:item.costPerUnit||0,
+          user:state.user.name,note:'Trả hàng từ đơn '+o.id
+        });
       });
-      history.push({
-        id:'H'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(),
-        date:today,type:'nhap',lotNo,skuId:item.productId||'',
-        warehouseId:whId,qty:item.returnQty,price:item.costPerUnit||0,
-        user:state.user.name,note:'Trả hàng từ đơn '+o.id
-      });
-    });
-    H5C.set('lots',lots);H5C.set('wh_history',history);
-    showToast('Đã nhập kho '+returnItems.length+' SP trả hàng','info');
+      H5C.set('lots',lots);H5C.set('wh_history',history);
+      showToast('Đã nhập kho '+returnItems.length+' SP trả hàng','info');
+    }
   }
 
   // 3. Update order status
-  o.status='returned';
+  o.status=H5C_CONST.ORDER_STATUS.RETURNED;
   o._returnedAt=today;
   o._returnReason=reason;
   o._returnItems=returnItems.map(it=>({productId:it.productId,name:it.name,returnQty:it.returnQty}));
   o.statusLog=o.statusLog||[];
-  o.statusLog.push({status:'returned',note:'Trả hàng: '+reason,by:state.user.name,at:today});
+  o.statusLog.push({status:H5C_CONST.ORDER_STATUS.RETURNED,note:'Trả hàng: '+reason,by:state.user.name,at:today});
   H5C.set('orders',ORDERS);
 
   // 4. Cancel related shipments/expenses if still pending
@@ -2773,20 +2780,27 @@ function _autoCancelCascade(order){
   // 4. Clear stock flag + release reservedQty on lots
   delete order._stockReserved;
   delete order._stockReservedAt;
-  const _lots=H5C.get('lots')||[];
+  const _snap=H5C_LOT.read();
+  const _lots=_snap.lots;
+  const _modifiedIds=[];
   let _lotsChanged=false;
   _lots.forEach(lot=>{
     if(lot._reservedOrders&&lot._reservedOrders.length){
       const before=lot._reservedOrders.length;
       const released=lot._reservedOrders.filter(r=>r.orderId===order.id);
       if(released.length){
-        released.forEach(r=>{lot.reservedQty=Math.max(0,(lot.reservedQty||0)-r.qty);});
+        const totalReleased=released.reduce((sum,r)=>sum+r.qty,0);
+        lot.reservedQty=Math.max(0,(lot.reservedQty||0)-totalReleased);
+        lot.qtyRemain=Math.min(lot.qty,(lot.qtyRemain||0)+totalReleased);
         lot._reservedOrders=lot._reservedOrders.filter(r=>r.orderId!==order.id);
+        _modifiedIds.push(lot.id);
         _lotsChanged=true;
       }
     }
   });
-  if(_lotsChanged)H5C.set('lots',_lots);
+  if(_lotsChanged){
+    if(!H5C_LOT.save(_snap,_modifiedIds))return msgs;
+  }
 
   if(msgs.length)showToast('Đã hủy liên kết: '+msgs.join(', '),'info');
 }
@@ -2803,7 +2817,7 @@ function submitCancelRequest(){
   if(idx>-1){
     // If user can approve directly, cancel immediately
     if(canApproveCancel()){
-      ORDERS[idx].status='cancelled';
+      ORDERS[idx].status=H5C_CONST.ORDER_STATUS.CANCELLED;
       ORDERS[idx].cancelledAt=new Date().toISOString().split('T')[0];
       ORDERS[idx].cancelledBy=state.user.name;
       ORDERS[idx].cancelReason=reason;
@@ -2839,7 +2853,7 @@ function submitRestoreRequest(){
 function approveCancelRequest(id){
   const idx=ORDERS.findIndex(o=>o.id===id);
   if(idx>-1&&ORDERS[idx].pendingCancel){
-    ORDERS[idx].status='cancelled';
+    ORDERS[idx].status=H5C_CONST.ORDER_STATUS.CANCELLED;
     ORDERS[idx].cancelledAt=new Date().toISOString().split('T')[0];
     ORDERS[idx].cancelledBy=state.user.name+' (duyệt YC từ '+ORDERS[idx].pendingCancel.requestedBy+')';
     ORDERS[idx].cancelReason=ORDERS[idx].pendingCancel.reason;
@@ -2858,7 +2872,7 @@ function rejectCancelRequest(id){
 function approveRestoreRequest(id){
   const idx=ORDERS.findIndex(o=>o.id===id);
   if(idx>-1&&ORDERS[idx].pendingRestore){
-    ORDERS[idx].status=ORDERS[idx].pendingRestore.restoreStatus||'confirmed';
+    ORDERS[idx].status=ORDERS[idx].pendingRestore.restoreStatus||H5C_CONST.ORDER_STATUS.CONFIRMED;
     ORDERS[idx].restoredAt=new Date().toISOString().split('T')[0];
     ORDERS[idx].restoredBy=state.user.name;
     ORDERS[idx].restoreReason=ORDERS[idx].pendingRestore.reason;
@@ -2881,7 +2895,7 @@ function rejectRestoreRequest(id){
 // ════════════════════════════════════════════════════════════════
 function renderHistory(){
   const scope=_canScope('orders.view');
-  const all=ORDERS.filter(o=>o.status!=='cancelled'&&(scope==='all'||o.sales===state.user.name));
+  const all=ORDERS.filter(o=>o.status!==H5C_CONST.ORDER_STATUS.CANCELLED&&(scope==='all'||o.sales===state.user.name));
   const dates=all.map(o=>o.createdAt).filter(Boolean).sort();
   const absFirst=dates[0]?dates[0].substring(0,7):'2025-01';
   const nowYM=new Date().toISOString().substring(0,7);
@@ -2901,6 +2915,9 @@ function renderHistory(){
     <button class="range-preset-btn${isP(p6s,nowYM)?' active':''}" onclick="setHistRange('${p6s}','${nowYM}')">6 tháng</button>
     <button class="range-preset-btn${isP(thisYear,nowYM)?' active':''}" onclick="setHistRange('${thisYear}','${nowYM}')">Năm nay</button>
     <button class="range-preset-btn${isP(absFirst,nowYM)?' active':''}" onclick="setHistRange('${absFirst}','${nowYM}')">Tất cả</button>
+    <div style="margin-left:16px;display:flex;gap:5px">
+      ${['all','le','buon'].map(v=>`<button class="btn-${state.historyCustType===v?'add':'secondary'}" style="padding:8px 12px;font-size:11px" onclick="state.historyCustType='${v}';render()">${v==='all'?'Tất cả':v==='le'?'Lẻ':'Buôn'}</button>`).join('')}
+    </div>
   </div><div id="historyTableContainer"></div>`;
 }
 function setHistRange(f,t){state.historyFrom=f;state.historyTo=t;const hf=document.getElementById('historyFrom');const ht=document.getElementById('historyTo');if(hf)hf.value=f;if(ht)ht.value=t;renderHistoryTable();}
@@ -2908,12 +2925,13 @@ function renderHistoryTable(){
   const cont=document.getElementById('historyTableContainer');
   if(!cont)return;
   const scope=_canScope('orders.view');
-  const all=ORDERS.filter(o=>o.status!=='cancelled'&&(scope==='all'||o.sales===state.user.name));
+  const all=ORDERS.filter(o=>o.status!==H5C_CONST.ORDER_STATUS.CANCELLED&&(scope==='all'||o.sales===state.user.name));
   const f=state.historyFrom,t=state.historyTo;
   const months=[];let cur=new Date(f+'-01');const toD=new Date(t+'-01');
   while(cur<=toD){months.push(cur.toISOString().substring(0,7));cur.setMonth(cur.getMonth()+1);}
+  const filteredByType=state.historyCustType==='all'?all:all.filter(o=>(o.custType||'le')===state.historyCustType);
   const custMap={};
-  all.forEach(o=>{const key=o.phone.trim();if(!custMap[key])custMap[key]={customer:o.customer,phone:o.phone,custType:o.custType||'le',orders:[]};custMap[key].orders.push(o);});
+  filteredByType.forEach(o=>{const key=o.phone.trim();if(!custMap[key])custMap[key]={customer:o.customer,phone:o.phone,custType:o.custType||'le',orders:[]};custMap[key].orders.push(o);});
   const custs=Object.values(custMap).filter(c=>c.orders.some(o=>{const m=o.createdAt&&o.createdAt.substring(0,7);return m>=f&&m<=t;})).sort((a,b)=>a.customer.localeCompare(b.customer,'vi'));
   if(!custs.length){cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--h5c-text-secondary)">Không có dữ liệu</div>';return;}
   const rows=custs.map((c,i)=>{

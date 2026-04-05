@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .ac-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -166,7 +167,7 @@
         </tr></thead>
         <tbody id="jeLinesBody"></tbody>
       </table>
-      <button type="button" class="btn secondary" onclick="addJeLine(null)" style="font-size:12px;padding:6px 14px">+ Thêm dòng</button>
+      <button type="button" class="modal-btn cancel" onclick="addJeLine(null)" style="font-size:12px;padding:6px 14px">+ Thêm dòng</button>
       <div class="je-balance-row">
         <span>Tổng Nợ: <strong id="jeTotalDebit">0đ</strong></span>
         <span>Tổng Có: <strong id="jeTotalCredit">0đ</strong></span>
@@ -209,9 +210,6 @@ const H5C=window.H5C||{
 // ════════════════════════════════════════════════════════════════
 // CONSTANTS & HELPERS
 // ════════════════════════════════════════════════════════════════
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 
 const TYPE_LABELS={asset:'Tài sản',liability:'Nợ phải trả',equity:'Vốn chủ sở hữu',revenue:'Doanh thu',expense:'Chi phí'};
@@ -419,7 +417,7 @@ function renderAccounts(){
         ${Object.entries(TYPE_LABELS).map(([k,v])=>`<option value="${k}"${state.acFilterType===k?' selected':''}>${v}</option>`).join('')}
       </select>
     </div>
-    ${_can('accounting.create')?'<button class="btn primary" onclick="openAccountModal()">+ Thêm tài khoản</button>':''}
+    ${_can('accounting.create')?'<button class="btn-add" onclick="openAccountModal()">+ Thêm tài khoản</button>':''}
   </div>`;
 
   if(!filtered.length){
@@ -472,7 +470,7 @@ function renderJournal(){
       <input type="date" class="filter-input" value="${state.jeDateFrom}" onchange="state.jeDateFrom=this.value;render()" title="Từ ngày">
       <input type="date" class="filter-input" value="${state.jeDateTo}" onchange="state.jeDateTo=this.value;render()" title="Đến ngày">
     </div>
-    ${_can('accounting.create')?'<button class="btn primary" onclick="openJeModal()">+ Tạo bút toán</button>':''}
+    ${_can('accounting.create')?'<button class="btn-add" onclick="openJeModal()">+ Tạo bút toán</button>':''}
   </div>`;
 
   if(!filtered.length){
@@ -682,7 +680,7 @@ function renderReports(){
       <tr><td colspan="2" style="height:8px"></td></tr>
       <tr class="total-row">
         <td>TỔNG NỢ + VCSH (B+C)</td>
-        <td style="text-align:right;font-family:monospace" class="${Math.abs(totalAssets-(totalLiabilities+totalEquity))<1?'positive':'negative'}">${fmt(totalLiabilities+totalEquity)}đ</td>
+        <td style="text-align:right;font-family:monospace" class="${Math.abs(totalAssets-(totalLiabilities+totalEquity))<0.01?'positive':'negative'}">${fmt(totalLiabilities+totalEquity)}đ</td>
       </tr>
       </table>
     </div>
@@ -723,7 +721,7 @@ function saveAccount(ev){
     name:document.getElementById('accountName').value.trim(),
     type:document.getElementById('accountType').value,
     parent:document.getElementById('accountParent').value.trim(),
-    openingBalance:parseInt(document.getElementById('accountBalance').value)||0,
+    openingBalance:parseFloat(document.getElementById('accountBalance').value)||0,
     note:document.getElementById('accountNote').value.trim()
   };
   if(origCode){
@@ -797,7 +795,7 @@ function updateJeBalance(){
   document.getElementById('jeTotalDebit').textContent=fmt(totalD)+'đ';
   document.getElementById('jeTotalCredit').textContent=fmt(totalC)+'đ';
   const balEl=document.getElementById('jeBalanceStatus');
-  if(totalD>0&&Math.abs(totalD-totalC)<1){
+  if(totalD>0&&Math.abs(totalD-totalC)<0.01){
     balEl.textContent='Cân bằng ✓';balEl.className='balanced';
   }else{
     balEl.textContent='Chưa cân bằng';balEl.className='unbalanced';
@@ -817,7 +815,7 @@ function saveJournalEntry(ev){
   if(!lines.length){alert('Vui lòng nhập ít nhất một dòng bút toán.');return;}
   const totalD=lines.reduce((s,l)=>s+(l.debit||0),0);
   const totalC=lines.reduce((s,l)=>s+(l.credit||0),0);
-  if(Math.abs(totalD-totalC)>0.5){alert('Bút toán chưa cân bằng!\nTổng Nợ: '+fmt(totalD)+'đ\nTổng Có: '+fmt(totalC)+'đ\nChênh lệch: '+fmt(Math.abs(totalD-totalC))+'đ');return;}
+  if(Math.round(totalD)!==Math.round(totalC)){alert('Bút toán chưa cân bằng!\nTổng Nợ: '+fmt(totalD)+'đ\nTổng Có: '+fmt(totalC)+'đ\nChênh lệch: '+fmt(Math.abs(totalD-totalC))+'đ');return;}
 
   const id=document.getElementById('jeId').value;
   const data={

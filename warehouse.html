@@ -200,6 +200,7 @@
 @media(max-width:768px){.stats-row{grid-template-columns:repeat(2,1fr)}.modal-row,.modal-row.three,.modal-row.four{grid-template-columns:1fr}.comm-rule-box{grid-template-columns:1fr 1fr}.bulk-input-area{grid-template-columns:1fr}.wh-tab-bar{gap:8px}}
 </style>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 </head>
 <body>
@@ -652,9 +653,8 @@ function _sortArr(arr,field,getter){
   });
 }
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtM=n=>{if(!n)return'0';if(n>=1e9)return(n/1e9).toFixed(1)+'tỷ';if(n>=1e6)return(n/1e6).toFixed(0)+'tr';return fmt(n);}
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear()};
+// fmt, fmtB, formatDate provided by constants.js
+const fmtM = fmtB;
 const getInitials=n=>n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
 const isCLevel=()=>state.user&&state.user.role==='C_LEVEL';
 
@@ -674,11 +674,11 @@ function _excelDateToISO(val){
   if(dmy)return dmy[3]+'-'+String(dmy[2]).padStart(2,'0')+'-'+String(dmy[1]).padStart(2,'0');
   return s||null;
 }
-function getExpiredLots(){return LOTS.filter(l=>l.type==='nhap'&&l.qtyRemain>0&&_hasValidSku(l)&&l.mfgDate&&l.bestBeforeMonths&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)>=100);}
-function getSoonExpiringLots(){return LOTS.filter(l=>l.type==='nhap'&&l.qtyRemain>0&&_hasValidSku(l)&&l.mfgDate&&l.bestBeforeMonths&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)>=66&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)<100);}
+function getExpiredLots(){return LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.qtyRemain>0&&_hasValidSku(l)&&l.mfgDate&&l.bestBeforeMonths&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)>=100);}
+function getSoonExpiringLots(){return LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.qtyRemain>0&&_hasValidSku(l)&&l.mfgDate&&l.bestBeforeMonths&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)>=66&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)<100);}
 function generateLotNo(type, dateStr){
   const d = dateStr ? new Date(dateStr) : new Date();
-  const prefix=type==='nhap'?'PO':'EX';
+  const prefix=type===H5C_CONST.LOT_TYPE.NHAP?'PO':'EX';
   const ds=d.getFullYear().toString()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
   const pfx=prefix+'-'+ds;
   const existing=Math.max(
@@ -689,8 +689,8 @@ function generateLotNo(type, dateStr){
 }
 function regenImpLotNo(){const d=document.getElementById('impDate'),el=document.getElementById('impLotNo');if(d&&el)el.value=generateLotNo('nhap',d.value);}
 function regenExpLotNo(){const d=document.getElementById('expDate'),el=document.getElementById('expLotNo');if(d&&el)el.value=generateLotNo('xuat',d.value);}
-function getStockByLots(skuId,whId){return LOTS.filter(l=>l.type==='nhap'&&l.skuId===skuId&&l.warehouseId===whId&&l.qtyRemain>0).reduce((a,l)=>a+l.qtyRemain,0);}
-function getTotalStock(skuId){return LOTS.filter(l=>l.type==='nhap'&&l.skuId===skuId&&l.qtyRemain>0).reduce((a,l)=>a+l.qtyRemain,0);}
+function getStockByLots(skuId,whId){return LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.skuId===skuId&&l.warehouseId===whId&&l.qtyRemain>0).reduce((a,l)=>a+l.qtyRemain,0);}
+function getTotalStock(skuId){return LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.skuId===skuId&&l.qtyRemain>0).reduce((a,l)=>a+l.qtyRemain,0);}
 
 // Lấy giá buôn theo tier (dùng costEmployee cho sales, costReal cho C-level)
 function getWholesaleTier(sku, qty){
@@ -767,10 +767,28 @@ function _filterLots(filter){
 
 function _cleanOrphanLots(){
   const skuIds=new Set(SKUS.map(s=>s.id));
-  const orphans=LOTS.filter(l=>l.type==='nhap'&&l.qtyRemain>0&&!skuIds.has(l.skuId));
+  const orphans=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.qtyRemain>0&&!skuIds.has(l.skuId));
   if(!orphans.length){alert('Không có lô mồ côi!');return;}
   if(!confirm('Xóa '+orphans.length+' lô hàng ('+orphans.reduce((a,l)=>a+l.qtyRemain,0)+' đơn vị) thuộc SKU đã bị xóa?\n\nHành động này không thể hoàn tác.')){return;}
+  // Snapshot versions before modification
+  const _orphanSnap={};
+  orphans.forEach(l=>{_orphanSnap[l.id]=l._version||0;});
   orphans.forEach(l=>{l.qtyRemain=0;});
+  // Optimistic lock check
+  const _freshLots=H5C.get('lots')||[];
+  let _versionConflict=false;
+  for(const[id,ver]of Object.entries(_orphanSnap)){
+    const cur=_freshLots.find(l=>l.id===id);
+    if(cur&&(cur._version||0)!==ver){_versionConflict=true;break;}
+  }
+  if(_versionConflict){
+    showToast('Dữ liệu tồn kho đã thay đổi, vui lòng thử lại','warning');
+    LOTS.splice(0,LOTS.length,..._freshLots);
+    render();
+    return;
+  }
+  const _now=Date.now();
+  orphans.forEach(l=>{l._version=_now;});
   H5C.set('lots',LOTS);
   render();
 }
@@ -811,8 +829,8 @@ function render(){
   // Stats — only count lots whose SKU still exists
   const totalSKU=SKUS.length,totalWH=WAREHOUSES.length;
   const skuIds=new Set(SKUS.map(s=>s.id));
-  const validLots=LOTS.filter(l=>l.type==='nhap'&&l.qtyRemain>0&&skuIds.has(l.skuId));
-  const orphanLots=LOTS.filter(l=>l.type==='nhap'&&l.qtyRemain>0&&!skuIds.has(l.skuId));
+  const validLots=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.qtyRemain>0&&skuIds.has(l.skuId));
+  const orphanLots=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.qtyRemain>0&&!skuIds.has(l.skuId));
   const totalStockQty=validLots.reduce((a,l)=>a+l.qtyRemain,0);
   const totalStockVal=validLots.reduce((a,l)=>a+(l.qtyRemain*(l.price||0)),0);
   const orphanQty=orphanLots.reduce((a,l)=>a+l.qtyRemain,0);
@@ -840,7 +858,7 @@ function render(){
   }
 
   // Cảnh báo đơn hàng chờ xuất kho
-  const _pendingStockOrders=(H5C.get('orders')||[]).filter(o=>o._stockReserved&&!o._stockExported&&o.status!=='cancelled');
+  const _pendingStockOrders=(H5C.get('orders')||[]).filter(o=>o._stockReserved&&!o._stockExported&&o.status!==H5C_CONST.ORDER_STATUS.CANCELLED);
   if(_pendingStockOrders.length){
     h+=`<div class="alert-banner" style="border-left:4px solid var(--h5c-amber);background:var(--h5c-amber-light);margin-bottom:16px">
       <div class="icon">📦</div>
@@ -905,7 +923,7 @@ function renderStockOverview(){
   
   skuList.forEach(sku=>{
     const total=getTotalStock(sku.id);
-    const reserved=LOTS.filter(l=>l.type==='nhap'&&l.skuId===sku.id&&(l.reservedQty||0)>0).reduce((a,l)=>a+(l.reservedQty||0),0);
+    const reserved=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.skuId===sku.id&&(l.reservedQty||0)>0).reduce((a,l)=>a+(l.reservedQty||0),0);
     const available=total-reserved;
     let st='ok',stxt='OK';if(total===0){st='out';stxt='Hết';}else if(available<=0){st='low';stxt='Giữ hết';}else if(total<=sku.minStock){st='low';stxt='Thấp';}
     h+=`<tr><td><strong>${sku.code}</strong></td><td>${sku.name}</td><td><span class="type-badge ${sku.type}">${TYPE_LABELS[sku.type]}</span></td><td>${UNIT_LABELS[sku.unit]||sku.unit}</td>`;
@@ -930,7 +948,7 @@ function renderStockOverview(){
 }
 function renderWarehouseDetail(whId){
   const wh=WAREHOUSES.find(w=>w.id===whId);
-  const lots=LOTS.filter(l=>l.type==='nhap'&&l.warehouseId===whId&&l.qtyRemain>0&&_hasValidSku(l));
+  const lots=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.warehouseId===whId&&l.qtyRemain>0&&_hasValidSku(l));
   lots.sort((a,b)=>{const ea=getExpiryDate(a.mfgDate,a.bestBeforeMonths),eb=getExpiryDate(b.mfgDate,b.bestBeforeMonths);if(!ea)return 1;if(!eb)return-1;return ea-eb;});
   const totalVal=lots.reduce((a,l)=>a+(l.qtyRemain*l.price),0);
   let h=`<div class="section-header"><div class="section-title">📦 ${wh.name} — Giá trị: ${fmt(totalVal)}đ</div></div>`;
@@ -1124,8 +1142,8 @@ function removeTier(type,idx){
 }
 
 function calcRetailGM(){
-  const imp=parseInt(document.getElementById('retailImportPrice').value)||0;
-  const sell=parseInt(document.getElementById('retailSellPrice').value)||0;
+  const imp=parseFloat(document.getElementById('retailImportPrice').value)||0;
+  const sell=parseFloat(document.getElementById('retailSellPrice').value)||0;
   const previewEl=document.getElementById('retailGMPreview');
   const formulaEl=document.getElementById('retailGMFormula');
   if(imp&&sell){
@@ -1211,9 +1229,9 @@ function saveSKU(e){
     wholesaleTiers.push({
       minQty:parseInt(r.minQty||emp.minQty||sell.minQty||0),
       maxQty:r.maxQty!==undefined&&r.maxQty!==null?parseInt(r.maxQty)||null:(emp.maxQty!==null?parseInt(emp.maxQty)||null:null),
-      costReal:parseInt(r.costReal)||0,
-      costEmployee:parseInt(emp.costEmployee)||0,
-      sellPrice:parseInt(sell.sellPrice)||0
+      costReal:parseFloat(r.costReal)||0,
+      costEmployee:parseFloat(emp.costEmployee)||0,
+      sellPrice:parseFloat(sell.sellPrice)||0
     });
   }
 
@@ -1226,8 +1244,8 @@ function saveSKU(e){
     minStock:parseInt(document.getElementById('skuMinStock').value)||10,
     bestBeforeMonths:parseInt(document.getElementById('skuBestBefore').value)||null,
     note:document.getElementById('skuNote').value,
-    retailImportPrice:parseInt(document.getElementById('retailImportPrice').value)||0,
-    retailSellPrice:parseInt(document.getElementById('retailSellPrice').value)||0,
+    retailImportPrice:parseFloat(document.getElementById('retailImportPrice').value)||0,
+    retailSellPrice:parseFloat(document.getElementById('retailSellPrice').value)||0,
     wholesaleTiers
   };
 
@@ -1252,7 +1270,7 @@ function renderOpeningBalance(){
   const skuId=document.getElementById('skuId').value;
   
   // Find existing opening lots for this SKU
-  const openingLots=skuId?LOTS.filter(l=>l.type==='nhap'&&l.lotNo==='DU_DAU_KY'&&l.skuId===skuId):[];
+  const openingLots=skuId?LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.lotNo==='DU_DAU_KY'&&l.skuId===skuId):[];
   
   let h='<div style="display:grid;grid-template-columns:2fr 100px 100px;gap:6px;margin-bottom:6px;font-size:10px;font-weight:700;color:var(--brown-m);text-transform:uppercase;padding:0 2px"><div>Kho</div><div>Số lượng</div><div>Đơn giá</div></div>';
   
@@ -1279,7 +1297,7 @@ function _updateObTotal(){
   let totalQty=0,totalVal=0;
   WAREHOUSES.forEach(wh=>{
     const qty=parseInt(document.getElementById('ob_qty_'+wh.id)?.value)||0;
-    const price=parseInt(document.getElementById('ob_price_'+wh.id)?.value)||0;
+    const price=parseFloat(document.getElementById('ob_price_'+wh.id)?.value)||0;
     totalQty+=qty;
     totalVal+=qty*price;
   });
@@ -1294,12 +1312,20 @@ function _updateObTotal(){
 function _saveOpeningBalance(skuId){
   // UPDATE existing OB lots, create new where needed, zero-out removed
   // NEVER delete old lots — preserves lot ID references in HISTORY
+  // Snapshot versions of existing lots before modification
+  const _obSnap={};
+  const _obModifiedIds=[];
   WAREHOUSES.forEach(wh=>{
-    const qty=parseInt(document.getElementById('ob_qty_'+wh.id)?.value)||0;
-    const price=parseInt(document.getElementById('ob_price_'+wh.id)?.value)||0;
     const lotId='OB_'+skuId+'_'+wh.id;
     const existing=LOTS.find(l=>l.id===lotId&&l.lotNo==='DU_DAU_KY');
-    
+    if(existing){_obSnap[existing.id]=existing._version||0;}
+  });
+  WAREHOUSES.forEach(wh=>{
+    const qty=parseInt(document.getElementById('ob_qty_'+wh.id)?.value)||0;
+    const price=parseFloat(document.getElementById('ob_price_'+wh.id)?.value)||0;
+    const lotId='OB_'+skuId+'_'+wh.id;
+    const existing=LOTS.find(l=>l.id===lotId&&l.lotNo==='DU_DAU_KY');
+
     if(existing){
       // Guard: don't allow qty below what's already been exported
       const consumed=existing.qty-existing.qtyRemain;
@@ -1312,22 +1338,43 @@ function _saveOpeningBalance(skuId){
       existing.qty=qty;
       existing.qtyRemain=Math.max(0,existing.qtyRemain+diff);
       existing.price=price;
+      _obModifiedIds.push(existing.id);
     }else if(qty>0){
       // Create new OB lot
-      LOTS.push({
+      const _newOBLot={
         id:lotId,
         lotNo:'DU_DAU_KY',
         date:new Date().toISOString().split('T')[0],
-        type:'nhap', skuId, warehouseId:wh.id,
+        type:H5C_CONST.LOT_TYPE.NHAP, skuId, warehouseId:wh.id,
         qty, qtyRemain:qty, price,
         mfgDate:null, bestBeforeMonths:null,
         supplierId:null, location:null,
-        payStatus:'paid', dueDate:null,
+        payStatus:H5C_CONST.PAYMENT_STATUS.PAID, dueDate:null,
         user:state.user?.name||'System',
         note:'Số dư đầu kỳ'
-      });
+      };
+      H5C_LOT.stamp(_newOBLot);
+      LOTS.push(_newOBLot);
     }
   });
+  // Optimistic lock check for modified existing lots
+  if(_obModifiedIds.length){
+    const _freshLots=H5C.get('lots')||[];
+    let _versionConflict=false;
+    for(const[id,ver]of Object.entries(_obSnap)){
+      if(!_obModifiedIds.includes(id))continue;
+      const cur=_freshLots.find(l=>l.id===id);
+      if(cur&&(cur._version||0)!==ver){_versionConflict=true;break;}
+    }
+    if(_versionConflict){
+      showToast('Dữ liệu tồn kho đã thay đổi, vui lòng thử lại','warning');
+      LOTS.splice(0,LOTS.length,..._freshLots);
+      render();
+      return;
+    }
+    const _now=Date.now();
+    _obModifiedIds.forEach(id=>{const lot=LOTS.find(l=>l.id===id);if(lot)lot._version=_now;});
+  }
   H5C.set('lots',LOTS);
 }
 // ═══ END OPENING BALANCE ═══
@@ -1458,7 +1505,7 @@ function renderCommission(){
   // Group orders by salesperson for selected month
   const monthOrders = orders.filter(o=>{
     const d=(o.date||o.createdAt||'').slice(0,7);
-    return d===state.commMonth && o.status!=='cancelled';
+    return d===state.commMonth && o.status!==H5C_CONST.ORDER_STATUS.CANCELLED;
   });
 
   if(!monthOrders.length){
@@ -1884,7 +1931,7 @@ function renderInOut(){
         <div class="modal-group"><label class="modal-label">Đến hạn TT</label><input type="date" id="impDueDate" class="modal-input"></div>
       </div>
       <div class="modal-group"><label class="modal-label">Ghi chú</label><input type="text" id="impNote" class="modal-input"></div>
-      <button type="submit" class="btn-add" style="width:100%">📥 Nhập kho</button>
+      <button type="submit" class="modal-btn primary" style="width:100%">📥 Nhập kho</button>
     </form>
   </div>`;
 
@@ -1921,7 +1968,7 @@ function renderInOut(){
       </div>
 
       <div class="modal-group"><label class="modal-label">Ghi chú</label><input type="text" id="expNote" class="modal-input" placeholder="Lý do xuất, khách hàng..."></div>
-      <button type="submit" class="btn-add" style="width:100%;background:var(--red);color:#fff">📤 Xuất kho</button>
+      <button type="submit" class="modal-btn danger" style="width:100%">📤 Xuất kho</button>
     </form>
   </div>`;
 
@@ -1945,7 +1992,7 @@ function _fillExpTradeType(orderId){
 
 function _buildOrderOptions(selectedId){
   const orders=H5C.get('orders')||[];
-  const linkableStatuses=['confirmed','producing','produced','shipping'];
+  const linkableStatuses=[H5C_CONST.ORDER_STATUS.CONFIRMED,H5C_CONST.ORDER_STATUS.PRODUCING,H5C_CONST.ORDER_STATUS.PRODUCED,H5C_CONST.ORDER_STATUS.SHIPPING];
   let html='<option value="">-- Không liên kết --</option>';
   orders.filter(o=>linkableStatuses.includes(o.status)||(selectedId&&o.id===selectedId)).forEach(o=>{
     const prods=(o.products||[]).map(function(p){return p.name+'×'+p.qty;}).join(', ');
@@ -2002,14 +2049,14 @@ function _convertYCToOrder(ycId,sourceType,sourceCode){
     address:req.address||'',
     sales:req.requestedBy||'',
     channel:req.channel||'truc_tiep',
-    status:'confirmed',
-    payment:'unpaid',
+    status:H5C_CONST.ORDER_STATUS.CONFIRMED,
+    payment:H5C_CONST.PAYMENT_STATUS.UNPAID,
     products:req.products||[],
     total:0,
     createdAt:today,
     fromYCId:ycId,
-    stockSource:sourceType==='xuat'?'ton_kho':'dat_rieng',
-    maXuat:sourceType==='xuat'?sourceCode:'',
+    stockSource:sourceType===H5C_CONST.LOT_TYPE.XUAT?'ton_kho':'dat_rieng',
+    maXuat:sourceType===H5C_CONST.LOT_TYPE.XUAT?sourceCode:'',
     maNhap:sourceType==='po'?sourceCode:'',
     note:'[Từ '+ycId+'] '+(req.note||''),
   };
@@ -2100,7 +2147,7 @@ function doImport(e){
   const date=document.getElementById('impDate').value;
   const supplierId=document.getElementById('impSupplier').value||null;
   const payStatus=document.getElementById('impPayStatus').value;
-  const paidAmount=parseInt(document.getElementById('impPaidAmount')?.value)||0;
+  const paidAmount=parseFloat(document.getElementById('impPaidAmount')?.value)||0;
   const dueDate=document.getElementById('impDueDate').value||null;
   const note=document.getElementById('impNote').value;
   
@@ -2113,28 +2160,30 @@ function doImport(e){
     const idx=row.dataset.impRow;
     const skuId=document.getElementById('impSku_'+idx)?.value;
     const qty=parseInt(document.getElementById('impQty_'+idx)?.value)||0;
-    const price=parseInt(document.getElementById('impPrice_'+idx)?.value)||0;
+    const price=parseFloat(document.getElementById('impPrice_'+idx)?.value)||0;
     const mfgDate=document.getElementById('impMfg_'+idx)?.value||null;
     const bb=parseInt(document.getElementById('impBB_'+idx)?.value)||null;
     const location=document.getElementById('impLoc_'+idx)?.value||null;
     
     if(!skuId||qty<=0)return;
     
-    LOTS.push({
+    const _newLot={
       id:'LOT'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(),
-      lotNo, date, type:'nhap', skuId,
+      lotNo, date, type:H5C_CONST.LOT_TYPE.NHAP, skuId,
       warehouseId:isGTT?null:whId,
       giaoTrucTiep:isGTT,
       qty, qtyRemain:isGTT?0:qty, price,
       mfgDate, bestBeforeMonths:bb,
-      supplierId, location, payStatus, paidAmount:payStatus==='partial'?paidAmount:null, dueDate,
+      supplierId, location, payStatus, paidAmount:payStatus===H5C_CONST.PAYMENT_STATUS.PARTIAL?paidAmount:null, dueDate,
       user:state.user.name, note
-    });
+    };
+    H5C_LOT.stamp(_newLot);
+    LOTS.push(_newLot);
     
     // Ghi lịch sử nhập
     HISTORY.push({
       id:'H'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(),
-      date, type:'nhap', lotNo,
+      date, type:H5C_CONST.LOT_TYPE.NHAP, lotNo,
       skuId, warehouseId:isGTT?null:whId,
       qty, price,
       user:state.user.name, note
@@ -2189,7 +2238,7 @@ function updateExpLotOptions(idx){
   const sel=document.getElementById('expLot_'+idx);
   if(!sel)return;
   if(skuId&&whId){
-    const lots=LOTS.filter(l=>l.type==='nhap'&&l.skuId===skuId&&l.warehouseId===whId&&l.qtyRemain>0);
+    const lots=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.skuId===skuId&&l.warehouseId===whId&&l.qtyRemain>0);
     lots.sort((a,b)=>new Date(a.date)-new Date(b.date));
     sel.innerHTML=lots.length
       ?lots.map(l=>`<option value="${l.id}">${l.lotNo} | Còn:${l.qtyRemain} | ${formatDate(l.date)}</option>`).join('')
@@ -2232,7 +2281,7 @@ function doExport(e){
     const skuId=document.getElementById('expSku_'+idx)?.value;
     const fromLotId=document.getElementById('expLot_'+idx)?.value;
     const qty=parseInt(document.getElementById('expQty_'+idx)?.value)||0;
-    const price=parseInt(document.getElementById('expPrice_'+idx)?.value)||0;
+    const price=parseFloat(document.getElementById('expPrice_'+idx)?.value)||0;
     
     if(!skuId||!fromLotId||qty<=0){hasError=true;return;}
     
@@ -2251,19 +2300,40 @@ function doExport(e){
   const tradeType=document.getElementById('expTradeType')?.value||'noi_dia';
   const _expLinkedOrderId=document.getElementById('expLinkedOrder')?.value||'';
 
+  // Snapshot versions before modification
+  const _exportSnap={};
+  items.forEach(item=>{const lot=LOTS.find(l=>l.id===item.fromLotId);_exportSnap[lot.id]=lot._version||0;});
+
   // Execute all exports
   items.forEach(item=>{
     const lot=LOTS.find(l=>l.id===item.fromLotId);
     lot.qtyRemain-=item.qty;
     HISTORY.push({
       id:'H'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(),
-      date, type:'xuat', lotNo, fromLotNo:item.fromLotNo, fromLotId:item.fromLotId,
+      date, type:H5C_CONST.LOT_TYPE.XUAT, lotNo, fromLotNo:item.fromLotNo, fromLotId:item.fromLotId,
       skuId:item.skuId, warehouseId:whId,
       qty:item.qty, price:item.price,
       user:state.user.name, note, tradeType, orderId:_expLinkedOrderId
     });
   });
-  
+
+  // Optimistic lock check
+  const _freshLotsExp=H5C.get('lots')||[];
+  let _versionConflictExp=false;
+  for(const[id,ver]of Object.entries(_exportSnap)){
+    const cur=_freshLotsExp.find(l=>l.id===id);
+    if(cur&&(cur._version||0)!==ver){_versionConflictExp=true;break;}
+  }
+  if(_versionConflictExp){
+    showToast('Dữ liệu tồn kho đã thay đổi, vui lòng thử lại','warning');
+    LOTS.splice(0,LOTS.length,..._freshLotsExp);
+    render();
+    return;
+  }
+  // Stamp versions on modified lots
+  const _expNow=Date.now();
+  items.forEach(item=>{const lot=LOTS.find(l=>l.id===item.fromLotId);if(lot)lot._version=_expNow;});
+
   H5C.set('lots',LOTS);
   H5C.set('wh_history',HISTORY);
 
@@ -2273,7 +2343,7 @@ function doExport(e){
     const _orders=H5C.get('orders')||[];
     const _ord=_orders.find(o=>o.id===_linkedOrderId);
     if(_ord){
-      _ord.status='produced';
+      _ord.status=H5C_CONST.ORDER_STATUS.PRODUCED;
       _ord.stockSource='ton_kho';
       _ord.maXuat=lotNo;
       items.forEach(function(item){
@@ -2283,17 +2353,51 @@ function doExport(e){
       _ord._stockExported=true;
       delete _ord._stockReserved;
       delete _ord._stockReservedAt;
-      // Clear reservedQty from lots for this order
+      // Clear reservedQty from lots for this order (release ALL entries matching orderId)
+      // Snapshot versions of lots that will be modified by reservation release
+      const _resSnap={};
+      LOTS.forEach(function(lot){
+        if(lot._reservedOrders&&lot._reservedOrders.length){
+          var hasMatch=lot._reservedOrders.some(function(r){return r.orderId===_linkedOrderId;});
+          if(hasMatch)_resSnap[lot.id]=lot._version||0;
+        }
+      });
       LOTS.forEach(function(lot){
         if(lot._reservedOrders&&lot._reservedOrders.length){
           var released=lot._reservedOrders.filter(function(r){return r.orderId===_linkedOrderId;});
-          released.forEach(function(r){lot.reservedQty=Math.max(0,(lot.reservedQty||0)-r.qty);});
-          lot._reservedOrders=lot._reservedOrders.filter(function(r){return r.orderId!==_linkedOrderId;});
+          if(released.length){
+            var totalReleased=released.reduce(function(sum,r){return sum+r.qty;},0);
+            lot.reservedQty=Math.max(0,(lot.reservedQty||0)-totalReleased);
+            lot.qtyRemain=Math.min(lot.qty,(lot.qtyRemain||0)+totalReleased);
+            lot._reservedOrders=lot._reservedOrders.filter(function(r){return r.orderId!==_linkedOrderId;});
+          }
         }
       });
+      // Optimistic lock check for reservation release
+      if(Object.keys(_resSnap).length){
+        var _freshLotsRes=H5C.get('lots')||[];
+        var _resConflict=false;
+        for(var _rid in _resSnap){
+          if(!_resSnap.hasOwnProperty(_rid))continue;
+          var _rcur=_freshLotsRes.find(function(l){return l.id===_rid;});
+          if(_rcur&&(_rcur._version||0)!==_resSnap[_rid]){_resConflict=true;break;}
+        }
+        if(_resConflict){
+          showToast('Dữ liệu tồn kho đã thay đổi, vui lòng thử lại','warning');
+          LOTS.splice(0,LOTS.length,..._freshLotsRes);
+          render();
+          return;
+        }
+        var _resNow=Date.now();
+        for(var _sid in _resSnap){
+          if(!_resSnap.hasOwnProperty(_sid))continue;
+          var _slot=LOTS.find(function(l){return l.id===_sid;});
+          if(_slot)_slot._version=_resNow;
+        }
+      }
       H5C.set('lots',LOTS);
       if(!_ord.statusLog)_ord.statusLog=[];
-      _ord.statusLog.push({status:'produced',at:new Date().toISOString().split('T')[0],by:state.user.name,note:'Phiếu xuất '+lotNo});
+      _ord.statusLog.push({status:H5C_CONST.ORDER_STATUS.PRODUCED,at:new Date().toISOString().split('T')[0],by:state.user.name,note:'Phiếu xuất '+lotNo});
       H5C.set('orders',_orders);
     }
   }
@@ -2321,7 +2425,7 @@ function renderLots(){
   </div>${activeFilter?'<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--cream);border-radius:6px;font-size:11px;color:var(--brown-m);margin-left:8px">🔍 Đang lọc <button onclick="state.lotFilter=\'all\';render()" style="border:none;background:none;cursor:pointer;font-size:12px;color:var(--red)">✕</button></div>':''}</div>`;
   const whF=document.getElementById('fLotWh')?.value||'all';
   const stF=activeFilter||document.getElementById('fLotSt')?.value||'all';
-  let lots=LOTS.filter(l=>l.type==='nhap'&&l.qtyRemain>0&&_hasValidSku(l));
+  let lots=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.qtyRemain>0&&_hasValidSku(l));
   if(whF!=='all')lots=lots.filter(l=>l.warehouseId===whF);
   if(stF==='exp')lots=lots.filter(l=>l.mfgDate&&l.bestBeforeMonths&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)>=66&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)<100);
   if(stF==='out')lots=lots.filter(l=>l.mfgDate&&l.bestBeforeMonths&&getElapsedPct(l.mfgDate,l.bestBeforeMonths)>=100);
@@ -2362,9 +2466,9 @@ function renderHistory(){
   list.forEach(l=>{
     const sku=SKUS.find(s=>s.id===l.skuId),wh=WAREHOUSES.find(w=>w.id===l.warehouseId);
     const isFirst=!seenLotNos.has(l.lotNo);seenLotNos.add(l.lotNo);
-    const misaBtn=isFirst&&l.type==='xuat'?`<button class="action-btn" title="Xuất Misa" style="background:#E8F5E9;color:#2E7D32" onclick="exportMisaFromEX('${l.lotNo}')">M</button>`:'';
-    const actionBtns=isFirst?`<div class="action-btns"><button class="action-btn" title="Xuất phiếu Excel" style="background:#E3F2FD;color:#1565C0" onclick="${l.type==='nhap'?`exportPhieuNhap('${l.lotNo}')`:`exportPhieuXuat('${l.lotNo}')`}">📄</button>${misaBtn}<button class="action-btn" title="Sửa phiếu" onclick="editLotHistory('${l.lotNo}')">✏️</button><button class="action-btn" title="Xóa phiếu" onclick="deleteLotHistory('${l.lotNo}','${l.type}')">🗑️</button></div>`:'';
-    h+=`<tr><td>${formatDate(l.date)}</td><td><span class="action-badge ${l.type}">${l.type==='nhap'?'Nhập':'Xuất'}</span></td><td><strong>${l.lotNo}</strong></td><td>${sku?sku.name:'—'}</td><td><span class="wh-badge">${wh?wh.code:'—'}</span></td><td>${l.type==='nhap'?'+':'-'}${l.qty}</td><td>${fmt(l.price)}đ</td><td>${fmt((l.qty||0)*(l.price||0))}đ</td><td>${l.user||'—'}</td><td>${l.note||'—'}</td><td>${actionBtns}</td></tr>`;
+    const misaBtn=isFirst&&l.type===H5C_CONST.LOT_TYPE.XUAT?`<button class="action-btn" title="Xuất Misa" style="background:#E8F5E9;color:#2E7D32" onclick="exportMisaFromEX('${l.lotNo}')">M</button>`:'';
+    const actionBtns=isFirst?`<div class="action-btns"><button class="action-btn" title="Xuất phiếu Excel" style="background:#E3F2FD;color:#1565C0" onclick="${l.type===H5C_CONST.LOT_TYPE.NHAP?`exportPhieuNhap('${l.lotNo}')`:`exportPhieuXuat('${l.lotNo}')`}">📄</button>${misaBtn}<button class="action-btn" title="Sửa phiếu" onclick="editLotHistory('${l.lotNo}')">✏️</button><button class="action-btn" title="Xóa phiếu" onclick="deleteLotHistory('${l.lotNo}','${l.type}')">🗑️</button></div>`:'';
+    h+=`<tr><td>${formatDate(l.date)}</td><td><span class="action-badge ${l.type}">${l.type===H5C_CONST.LOT_TYPE.NHAP?'Nhập':'Xuất'}</span></td><td><strong>${l.lotNo}</strong></td><td>${sku?sku.name:'—'}</td><td><span class="wh-badge">${wh?wh.code:'—'}</span></td><td>${l.type===H5C_CONST.LOT_TYPE.NHAP?'+':'-'}${l.qty}</td><td>${fmt(l.price)}đ</td><td>${fmt((l.qty||0)*(l.price||0))}đ</td><td>${l.user||'—'}</td><td>${l.note||'—'}</td><td>${actionBtns}</td></tr>`;
   });
   h+='</tbody></table></div>';
   return h;
@@ -2392,7 +2496,7 @@ function editLotHistory(lotNo){
   modal.className='modal-overlay';
   modal.id='editHistModal';
   modal.innerHTML=`<div class="modal-box" style="max-width:480px">
-    <div class="modal-title">Sửa phiếu ${type==='nhap'?'nhập':'xuất'}: ${lotNo}</div>
+    <div class="modal-title">Sửa phiếu ${type===H5C_CONST.LOT_TYPE.NHAP?'nhập':'xuất'}: ${lotNo}</div>
     <div style="margin-bottom:12px">
       <label class="modal-label">Ngày</label>
       <input type="date" id="editHistDate" class="modal-input" value="${first.date}">
@@ -2416,7 +2520,7 @@ function saveLotHistoryEdit(lotNo){
   const note=document.getElementById('editHistNote').value;
   const priceInputs=document.querySelectorAll('.edit-h-price');
   const priceMap={};
-  priceInputs.forEach(inp=>{priceMap[inp.dataset.histId]=parseInt(inp.value)||0;});
+  priceInputs.forEach(inp=>{priceMap[inp.dataset.histId]=parseFloat(inp.value)||0;});
 
   HISTORY.forEach(h=>{
     if(h.lotNo!==lotNo)return;
@@ -2425,7 +2529,7 @@ function saveLotHistoryEdit(lotNo){
     if(priceMap[h.id]!==undefined)h.price=priceMap[h.id];
   });
   // Sync date to the import lot record too
-  if(HISTORY.find(h=>h.lotNo===lotNo&&h.type==='nhap')){
+  if(HISTORY.find(h=>h.lotNo===lotNo&&h.type===H5C_CONST.LOT_TYPE.NHAP)){
     const lot=LOTS.find(l=>l.lotNo===lotNo);
     if(lot)lot.date=date;
     H5C.set('lots',LOTS);
@@ -2442,7 +2546,7 @@ function renderWarehouses(){
   let h='<div class="section-header"><div></div><button class="btn-add" onclick="openWarehouseModal()">➕ Thêm kho</button></div>';
   h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã</th><th>Tên kho</th><th>Địa chỉ</th><th>Số SKU</th><th>Tổng tồn</th><th>Giá trị</th><th></th></tr></thead><tbody>';
   WAREHOUSES.forEach(w=>{
-    const lots=LOTS.filter(l=>l.type==='nhap'&&l.warehouseId===w.id&&l.qtyRemain>0);
+    const lots=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.warehouseId===w.id&&l.qtyRemain>0);
     const skuC=[...new Set(lots.map(l=>l.skuId))].length;
     const totalQ=lots.reduce((a,l)=>a+l.qtyRemain,0);
     const totalV=lots.reduce((a,l)=>a+(l.qtyRemain*l.price),0);
@@ -2468,8 +2572,11 @@ function renderSuppliers(){
   let h='<div class="section-header"><div></div><button class="btn-add" onclick="openSupplierModal()">➕ Thêm NCC</button></div>';
   h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã</th><th>Tên</th><th>Loại</th><th>Liên hệ</th><th>Quan hệ</th><th>ĐK TT</th><th>Hạn mức</th><th>Đã nhập</th><th>Đã TT</th><th>Còn nợ</th><th></th></tr></thead><tbody>';
   SUPPLIERS.forEach(s=>{
-    const debt=s.totalPurchased-s.totalPaid;
-    h+=`<tr><td><strong>${s.code}</strong></td><td>${s.name}</td><td>${SUPPLIER_TYPE_LABELS[s.type]||s.type}</td><td>${s.contact||'—'}<br><small style="color:var(--brown-m)">${s.phone||''}</small></td><td><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:var(--cream-d);color:var(--brown-m)">${RELATION_LABELS[s.relation]||s.relation}</span></td><td>${s.paymentTerms||'—'}</td><td>${fmt(s.creditLimit)}</td><td>${fmt(s.totalPurchased)}</td><td>${fmt(s.totalPaid)}</td><td style="font-weight:800;color:${debt>0?'var(--red)':'var(--green)'}">${fmt(debt)}</td><td><div class="action-btns"><button class="action-btn" onclick="editSupplier('${s.id}')">✏️</button><button class="action-btn" onclick="deleteSupplier('${s.id}')">🗑️</button></div></td></tr>`;
+    const supLots=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.supplierId===s.id&&l.price&&l.qty);
+    const totalPurchased=supLots.reduce((a,l)=>a+(l.price||0)*(l.qty||0),0);
+    const totalPaid=supLots.reduce((a,l)=>{const tot=(l.price||0)*(l.qty||0);if(l.payStatus===H5C_CONST.PAYMENT_STATUS.PAID)return a+tot;if(l.payStatus===H5C_CONST.PAYMENT_STATUS.PARTIAL)return a+(l.paidAmount||0);return a;},0);
+    const debt=totalPurchased-totalPaid;
+    h+=`<tr><td><strong>${s.code}</strong></td><td>${s.name}</td><td>${SUPPLIER_TYPE_LABELS[s.type]||s.type}</td><td>${s.contact||'—'}<br><small style="color:var(--brown-m)">${s.phone||''}</small></td><td><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:var(--cream-d);color:var(--brown-m)">${RELATION_LABELS[s.relation]||s.relation}</span></td><td>${s.paymentTerms||'—'}</td><td>${fmt(s.creditLimit)}</td><td>${fmt(totalPurchased)}</td><td>${fmt(totalPaid)}</td><td style="font-weight:800;color:${debt>0?'var(--red)':'var(--green)'}">${fmt(debt)}</td><td><div class="action-btns"><button class="action-btn" onclick="editSupplier('${s.id}')">✏️</button><button class="action-btn" onclick="deleteSupplier('${s.id}')">🗑️</button></div></td></tr>`;
   });
   h+='</tbody></table></div>';
   return h;
@@ -2497,12 +2604,12 @@ function deleteSupplier(id){const s=SUPPLIERS.find(x=>x.id===id);state.deleteTyp
 // AP NCC
 // ══════════════════════════════════════════════════════════════
 function renderAPNCC(){
-  const lots=LOTS.filter(l=>l.type==='nhap'&&l.supplierId&&l.price&&l.qty);
+  const lots=LOTS.filter(l=>l.type===H5C_CONST.LOT_TYPE.NHAP&&l.supplierId&&l.price&&l.qty);
   if(!lots.length)return '<div style="text-align:center;padding:40px;color:var(--brown-m)">Chưa có lô nhập nào có NCC và giá</div>';
   let grandTotal=0,grandPaid=0,grandDebt=0;
-  lots.forEach(l=>{const tot=(l.price||0)*(l.qty||0);const paid=l.payStatus==='paid'?tot:l.payStatus==='partial'?(l.paidAmount||Math.round(tot*0.5)):0;grandTotal+=tot;grandPaid+=paid;grandDebt+=(tot-paid);});
+  lots.forEach(l=>{const tot=(l.price||0)*(l.qty||0);const paid=l.payStatus===H5C_CONST.PAYMENT_STATUS.PAID?tot:l.payStatus===H5C_CONST.PAYMENT_STATUS.PARTIAL?(l.paidAmount||0):0;grandTotal+=tot;grandPaid+=paid;grandDebt+=(tot-paid);});
   const supMap={};
-  lots.forEach(l=>{const key=l.supplierId;if(!supMap[key])supMap[key]={sup:SUPPLIERS.find(s=>s.id===key),lots:[],total:0,paid:0,debt:0};const lt=(l.price||0)*(l.qty||0);const lp=l.payStatus==='paid'?lt:l.payStatus==='partial'?(l.paidAmount||Math.round(lt*0.5)):0;supMap[key].lots.push(l);supMap[key].total+=lt;supMap[key].paid+=lp;supMap[key].debt+=(lt-lp);});
+  lots.forEach(l=>{const key=l.supplierId;if(!supMap[key])supMap[key]={sup:SUPPLIERS.find(s=>s.id===key),lots:[],total:0,paid:0,debt:0};const lt=(l.price||0)*(l.qty||0);const lp=l.payStatus===H5C_CONST.PAYMENT_STATUS.PAID?lt:l.payStatus===H5C_CONST.PAYMENT_STATUS.PARTIAL?(l.paidAmount||0):0;supMap[key].lots.push(l);supMap[key].total+=lt;supMap[key].paid+=lp;supMap[key].debt+=(lt-lp);});
   const groups=Object.values(supMap).sort((a,b)=>b.debt-a.debt);
   const paidPct=grandTotal>0?Math.round(grandPaid/grandTotal*100):0;
   let h=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
@@ -2515,8 +2622,8 @@ function renderAPNCC(){
     const pct=g.total>0?Math.round(g.paid/g.total*100):0;
     const supId=g.sup?g.sup.id:'unknown';
     const lotRows=g.lots.sort((a,b)=>new Date(a.date)-new Date(b.date)).map(l=>{
-      const lotTotal=(l.price||0)*(l.qty||0);const lotPaid=l.payStatus==='paid'?lotTotal:l.payStatus==='partial'?Math.round(lotTotal*0.5):0;const lotDebt=lotTotal-lotPaid;
-      const today=new Date();today.setHours(0,0,0,0);const refDate=l.dueDate||l.date;const days=refDate?Math.round((today-new Date(refDate))/86400000):null;const overdue=days!==null&&days>0&&l.payStatus!=='paid';
+      const lotTotal=(l.price||0)*(l.qty||0);const lotPaid=l.payStatus===H5C_CONST.PAYMENT_STATUS.PAID?lotTotal:l.payStatus===H5C_CONST.PAYMENT_STATUS.PARTIAL?(l.paidAmount||0):0;const lotDebt=lotTotal-lotPaid;
+      const today=new Date();today.setHours(0,0,0,0);const refDate=l.dueDate||l.date;const days=refDate?Math.round((today-new Date(refDate))/86400000):null;const overdue=days!==null&&days>0&&l.payStatus!==H5C_CONST.PAYMENT_STATUS.PAID;
       const sku=SKUS.find(s=>s.id===l.skuId);
       const PAY={unpaid:'Chưa TT',partial:'Một phần',paid:'Đã TT'};
       return `<tr>
@@ -2528,7 +2635,7 @@ function renderAPNCC(){
         <td style="font-weight:800">${fmt(lotTotal)}đ</td>
         <td><span class="pay-status-badge ${l.payStatus||'unpaid'}">${PAY[l.payStatus||'unpaid']}</span></td>
         <td style="font-weight:800;color:${lotDebt>0?'#C62828':'#2E7D32'}">${lotDebt>0?fmt(lotDebt)+'đ':'✅'}</td>
-        <td>${l.payStatus!=='paid'?`<button class="mark-paid-btn" onclick="markLotPaid('${l.id}')">✓ Đã TT</button>`:''}</td>
+        <td>${l.payStatus!==H5C_CONST.PAYMENT_STATUS.PAID?`<button class="mark-paid-btn" onclick="markLotPaid('${l.id}')">✓ Đã TT</button>`:''}</td>
       </tr>`;
     }).join('');
     h+=`<div class="ap-supplier-card">
@@ -2556,7 +2663,7 @@ function renderAPNCC(){
   return h;
 }
 function toggleAPCard(id){const c=document.getElementById('apcard_'+id),a=document.getElementById('arrow_'+id);if(!c)return;const o=c.style.display!=='none';c.style.display=o?'none':'block';if(a)a.textContent=o?'▼':'▲';}
-function markLotPaid(lotId){const idx=LOTS.findIndex(l=>l.id===lotId);if(idx===-1)return;LOTS[idx].payStatus='paid';H5C.set('lots',LOTS);render();}
+function markLotPaid(lotId){const idx=LOTS.findIndex(l=>l.id===lotId);if(idx===-1)return;LOTS[idx].payStatus=H5C_CONST.PAYMENT_STATUS.PAID;H5C.set('lots',LOTS);render();}
 
 // ══════════════════════════════════════════════════════════════
 // DELETE
@@ -2565,7 +2672,7 @@ function deleteLotHistory(lotNo, type) {
   state.deleteType = 'history_lot';
   state.deleteId   = lotNo;
   state.deleteLotType = type;
-  const label = type === 'nhap' ? 'phiếu nhập' : 'phiếu xuất';
+  const label = type === H5C_CONST.LOT_TYPE.NHAP ? 'phiếu nhập' : 'phiếu xuất';
   document.getElementById('deleteMsg').textContent = `Xóa ${label} "${lotNo}"? Thao tác không thể hoàn tác.`;
   document.getElementById('deleteModal').classList.remove('hidden');
 }
@@ -2576,10 +2683,10 @@ function confirmDelete(){
   else if(state.deleteType==='supplier'){const i=SUPPLIERS.findIndex(s=>s.id===state.deleteId);if(i!==-1)SUPPLIERS.splice(i,1);H5C.set('suppliers',SUPPLIERS);}
   else if(state.deleteType==='history_lot'){
     const lotNo=state.deleteId, type=state.deleteLotType;
-    if(type==='xuat'){
+    if(type===H5C_CONST.LOT_TYPE.XUAT){
       // Thu thập các import lot bị ảnh hưởng trước khi xóa (dùng ID để tránh nhầm lô DU_DAU_KY)
       const affectedLotIds=new Set();
-      HISTORY.filter(h=>h.lotNo===lotNo&&h.type==='xuat').forEach(h=>{
+      HISTORY.filter(h=>h.lotNo===lotNo&&h.type===H5C_CONST.LOT_TYPE.XUAT).forEach(h=>{
         if(h.fromLotId){
           affectedLotIds.add(h.fromLotId);
         } else {
@@ -2594,7 +2701,7 @@ function confirmDelete(){
       affectedLotIds.forEach(lotId=>{
         const lot=LOTS.find(l=>l.id===lotId);
         if(!lot)return;
-        const totalExported=HISTORY.filter(h=>h.type==='xuat'&&
+        const totalExported=HISTORY.filter(h=>h.type===H5C_CONST.LOT_TYPE.XUAT&&
           (h.fromLotId===lotId||(!h.fromLotId&&h.fromLotNo===lot.lotNo&&h.skuId===lot.skuId&&h.warehouseId===lot.warehouseId)))
           .reduce((s,h)=>s+(h.qty||0),0);
         lot.qtyRemain=(lot.qty||0)-totalExported;
@@ -2627,11 +2734,11 @@ let POS = [
   {id:'PO-001',code:'PO-202503-001',supplierId:'SUP01',orderDate:'2025-03-10',expectedDate:'2025-03-20',status:'received',
    linkedOrderId:'ORD-B001',
    products:[{skuId:'SKU001',qty:200,unitPrice:148000}],
-   note:'Đặt riêng cho đại lý Minh Phát',payStatus:'partial'},
+   note:'Đặt riêng cho đại lý Minh Phát',payStatus:H5C_CONST.PAYMENT_STATUS.PARTIAL},
   {id:'PO-002',code:'PO-202503-002',supplierId:'SUP02',orderDate:'2025-03-12',expectedDate:'2025-03-25',status:'ordered',
    linkedOrderId:'',
    products:[{skuId:'SKU003',qty:500,unitPrice:124000}],
-   note:'Gift set tháng 4',payStatus:'unpaid'}
+   note:'Gift set tháng 4',payStatus:H5C_CONST.PAYMENT_STATUS.UNPAID}
 ];
 
 const PO_STATUS_LABELS={draft:'Nháp',ordered:'Đã đặt NCC',received:'Đã nhận hàng',paid:'Đã TT NCC'};
@@ -2745,7 +2852,7 @@ function openPOModal(id){
           ${_buildOrderOptions(po?po.linkedOrderId:'')}
         </select>
       </div>
-      <div><label class="modal-label">TT thanh toán NCC</label><select id="poPayStatus" class="modal-input"><option value="unpaid" ${(!po||po.payStatus==='unpaid')?'selected':''}>Chưa TT</option><option value="partial" ${po&&po.payStatus==='partial'?'selected':''}>Một phần</option><option value="paid" ${po&&po.payStatus==='paid'?'selected':''}>Đã TT</option></select></div>
+      <div><label class="modal-label">TT thanh toán NCC</label><select id="poPayStatus" class="modal-input"><option value="unpaid" ${(!po||po.payStatus===H5C_CONST.PAYMENT_STATUS.UNPAID)?'selected':''}>Chưa TT</option><option value="partial" ${po&&po.payStatus===H5C_CONST.PAYMENT_STATUS.PARTIAL?'selected':''}>Một phần</option><option value="paid" ${po&&po.payStatus===H5C_CONST.PAYMENT_STATUS.PAID?'selected':''}>Đã TT</option></select></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
       <div><label class="modal-label">Phân loại</label><select id="poTradeType" class="modal-input"><option value="noi_dia" ${po&&po.tradeType==='noi_dia'?'selected':(!po?'selected':'')}>Nội địa</option><option value="xuat_khau" ${po&&po.tradeType==='xuat_khau'?'selected':''}>Xuất khẩu</option></select></div>
@@ -2756,8 +2863,8 @@ function openPOModal(id){
     <button type="button" style="width:100%;padding:7px;border:1px dashed var(--cream-b);border-radius:6px;background:transparent;color:var(--brown-m);font-size:11px;cursor:pointer;margin-bottom:12px" onclick="addPOProductRow()">+ Thêm sản phẩm</button>
     <div><label class="modal-label">Ghi chú</label><input type="text" id="poNote" class="modal-input" value="${po?po.note||'':''}"></div>
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button style="flex:1;padding:10px;border-radius:8px;background:var(--cream-d);color:var(--brown-m);font-size:12px;font-weight:700;cursor:pointer;border:none" onclick="document.getElementById('poModal').remove()">Hủy</button>
-      <button style="flex:1;padding:10px;border-radius:8px;background:var(--brown);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;border:none" onclick="savePO()">💾 Lưu PO</button>
+      <button class="modal-btn cancel" style="flex:1" onclick="document.getElementById('poModal').remove()">Hủy</button>
+      <button class="modal-btn primary" style="flex:1" onclick="savePO()">💾 Lưu PO</button>
     </div>
   </div></div>`;
 
@@ -2779,7 +2886,7 @@ function renderPOProductRows(){
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;background:var(--cream);border-radius:7px;padding:8px">
       <select class="modal-input" style="font-size:11px" onchange="_poProducts[${i}].skuId=this.value">${skuOpts.replace('value="'+pr.skuId+'"','value="'+pr.skuId+'" selected')}</select>
       <input type="number" class="modal-input" value="${pr.qty}" placeholder="SL" style="font-size:11px" oninput="_poProducts[${i}].qty=parseInt(this.value)||0" onchange="_updatePOTotal()">
-      <input type="number" class="modal-input" value="${pr.unitPrice}" placeholder="Đơn giá" style="font-size:11px" oninput="_poProducts[${i}].unitPrice=parseInt(this.value)||0" onchange="_updatePOTotal()">
+      <input type="number" class="modal-input" value="${pr.unitPrice}" placeholder="Đơn giá" style="font-size:11px" oninput="_poProducts[${i}].unitPrice=parseFloat(this.value)||0" onchange="_updatePOTotal()">
       <button style="width:28px;height:28px;border:none;border-radius:5px;background:#FFEBEE;color:var(--red);cursor:pointer;font-size:12px" onclick="_poProducts.splice(${i},1);renderPOProductRows()">&times;</button>
     </div>`).join('');
   _updatePOTotal();
@@ -2836,7 +2943,7 @@ function savePO(){
     const _orders=H5C.get('orders')||[];
     const _ord=_orders.find(o=>o.id===linkedOrderId);
     if(_ord){
-      _ord.status='producing';
+      _ord.status=H5C_CONST.ORDER_STATUS.PRODUCING;
       _ord.stockSource='dat_rieng';
       _ord.maNhap=d.id;
       d.products.forEach(function(poP){
@@ -2844,7 +2951,7 @@ function savePO(){
         if(prod)prod.costPerUnit=poP.unitPrice;
       });
       if(!_ord.statusLog)_ord.statusLog=[];
-      _ord.statusLog.push({status:'producing',at:new Date().toISOString().split('T')[0],by:state.user.name,note:'PO '+d.code});
+      _ord.statusLog.push({status:H5C_CONST.ORDER_STATUS.PRODUCING,at:new Date().toISOString().split('T')[0],by:state.user.name,note:'PO '+d.code});
       H5C.set('orders',_orders);
     }
   }
@@ -3035,7 +3142,7 @@ function exportPhieuNhap(lotNo) {
 
 function exportPhieuXuat(lotNo) {
   try {
-    const records = HISTORY.filter(h => h.lotNo === lotNo && h.type === 'xuat');
+    const records = HISTORY.filter(h => h.lotNo === lotNo && h.type === H5C_CONST.LOT_TYPE.XUAT);
     if (!records.length) { alert('Không tìm thấy phiếu xuất ' + lotNo + '!'); return; }
     const rec0 = records[0];
     const allOrders  = typeof ORDERS !== 'undefined' ? ORDERS : [];
@@ -3181,9 +3288,9 @@ const BULK_CONFIGS={
           wholesaleTiers.push({
             minQty,
             maxQty:maxQtyRaw||null,
-            costReal:parseInt(r[base+2])||0,
-            costEmployee:parseInt(r[base+3])||0,
-            sellPrice:parseInt(r[base+4])||0
+            costReal:parseFloat(r[base+2])||0,
+            costEmployee:parseFloat(r[base+3])||0,
+            sellPrice:parseFloat(r[base+4])||0
           });
         }
         SKUS.push({
@@ -3192,8 +3299,8 @@ const BULK_CONFIGS={
           type:typeMap[rawType]||rawType||'single_origin',
           unit:unitMap[rawUnit]||rawUnit||'tui',
           minStock:parseInt(r[4])||10,
-          retailImportPrice:parseInt(r[5])||0,
-          retailSellPrice:parseInt(r[6])||0,
+          retailImportPrice:parseFloat(r[5])||0,
+          retailSellPrice:parseFloat(r[6])||0,
           bestBeforeMonths:parseInt(r[22])||null,
           note:r[23]||'',
           wholesaleTiers
@@ -3225,21 +3332,21 @@ const BULK_CONFIGS={
         const sku=SKUS.find(s=>s.code===r[0].trim());
         const wh=WAREHOUSES.find(w=>w.code===r[1].trim()||w.name===r[1].trim());
         const qty=parseInt(r[2])||0;
-        const price=parseInt(r[3])||0;
+        const price=parseFloat(r[3])||0;
         const supplierId=r[6]?((SUPPLIERS.find(s=>s.name===r[6].trim()||s.code===r[6].trim()))||{}).id||null:null;
         LOTS.push({
           id:'LOT'+Date.now().toString(36).toUpperCase()+(++_bulkSeq).toString(36).padStart(3,'0').toUpperCase(),
-          lotNo, date:today, type:'nhap',
+          lotNo, date:today, type:H5C_CONST.LOT_TYPE.NHAP,
           skuId:sku.id, warehouseId:wh.id,
           qty, qtyRemain:qty, price,
           mfgDate:r[4]||null, bestBeforeMonths:parseInt(r[5])||null,
           supplierId, location:r[7]||null,
-          payStatus:'unpaid', dueDate:null,
+          payStatus:H5C_CONST.PAYMENT_STATUS.UNPAID, dueDate:null,
           user:state.user.name, note:r[8]||'Nhập từ Excel'
         });
         HISTORY.push({
           id:'H'+Date.now().toString(36).toUpperCase()+(++_bulkSeq).toString(36).padStart(3,'0').toUpperCase(),
-          date:today, type:'nhap', lotNo,
+          date:today, type:H5C_CONST.LOT_TYPE.NHAP, lotNo,
           skuId:sku.id, warehouseId:wh.id,
           qty, price, user:state.user.name, note:'Nhập từ Excel'
         });
@@ -3280,14 +3387,14 @@ const BULK_CONFIGS={
         const sku=SKUS.find(s=>s.code===r[0].trim());
         const wh=WAREHOUSES.find(w=>w.code===r[1].trim()||w.name===r[1].trim());
         const qty=parseInt(r[2])||0;
-        const price=parseInt(r[3])||0;
+        const price=parseFloat(r[3])||0;
         const lotId='OB_'+sku.id+'_'+wh.id;
         const existing=LOTS.find(l=>l.id===lotId&&l.lotNo==='DU_DAU_KY');
         if(existing){
           const diff=qty-existing.qty;
           existing.qty=qty; existing.qtyRemain=Math.max(0,existing.qtyRemain+diff); existing.price=price;
         }else{
-          LOTS.push({id:lotId,lotNo:'DU_DAU_KY',date:today,type:'nhap',skuId:sku.id,warehouseId:wh.id,qty,qtyRemain:qty,price,mfgDate:null,bestBeforeMonths:null,supplierId:null,location:null,payStatus:'paid',dueDate:null,user:state.user?.name||'System',note:'Dư đầu kỳ (Excel)'});
+          LOTS.push({id:lotId,lotNo:'DU_DAU_KY',date:today,type:H5C_CONST.LOT_TYPE.NHAP,skuId:sku.id,warehouseId:wh.id,qty,qtyRemain:qty,price,mfgDate:null,bestBeforeMonths:null,supplierId:null,location:null,payStatus:H5C_CONST.PAYMENT_STATUS.PAID,dueDate:null,user:state.user?.name||'System',note:'Dư đầu kỳ (Excel)'});
         }
       });
       H5C.set('lots',LOTS);
@@ -3467,7 +3574,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 // XUẤT MẪU BÁN HÀNG CHUẨN MISA (57 cột)
 // ══════════════════════════════════════════════════════════════
 function exportMisaFromEX(lotNo){
-  const records=HISTORY.filter(h=>h.lotNo===lotNo&&h.type==='xuat');
+  const records=HISTORY.filter(h=>h.lotNo===lotNo&&h.type===H5C_CONST.LOT_TYPE.XUAT);
   if(!records.length){alert('Không tìm thấy phiếu xuất '+lotNo+'!');return;}
   const rec0=records[0];
   const allOrders=H5C.get('orders')||[];

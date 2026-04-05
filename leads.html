@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>/* Leads page-specific overrides */
 
@@ -655,13 +656,13 @@ function hideCountryDropdown(e) {
 }
 
 let LEADS = [
-  {id:'LEAD001',company:'Chuỗi Phúc Long Coffee',representative:'Nguyễn Thị Lan',repTitle:'Trưởng phòng mua hàng',phone:'0901234501',email:'lan.mh@phuclong.vn',address:'Q.3, TP.HCM',type:'noi_dia',channel:'telesales',country:'vietnam',countryLabel:'Việt Nam',portrait:'buon',pipeline:'chot_don',potential:'A',issue:'Đã chốt đơn đầu, cần theo sát lô hàng',startDate:'2026-01-05',lastContact:'2026-03-10',estimatedValue:480000000,estimatedCurrency:'VND',sales:'Trần Minh Sales',note:'Khách lớn, cần báo giá sỉ cả năm',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'},{productId:'SKU002',name:'Blend Espresso 1kg'}],contactLogs:[],creditLimit:100000000,creditDays:30},
-  {id:'LEAD002',company:'Kim Sang Coffee Korea',representative:'Kim Sang Ho',repTitle:'CEO',phone:'+821012345678',email:'kimsh@kimsangcoffee.kr',address:'Seoul, Hàn Quốc',type:'xuat_khau',channel:'linkedin',country:'korea',countryLabel:'Hàn Quốc',portrait:'xuat_khau',pipeline:'bao_gia',potential:'A',issue:'Chờ xác nhận giá xuất khẩu',startDate:'2026-01-20',lastContact:'2026-02-28',estimatedValue:1200000000,estimatedCurrency:'VND',sales:'Trần Minh Sales',note:'Cần cấp chứng nhận xuất xứ + UTZ',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'}],contactLogs:[],creditLimit:0,creditDays:0},
-  {id:'LEAD003',company:'Siêu thị Mega Market',representative:'Trần Văn Bình',repTitle:'Buyer',phone:'0912345602',email:'binh.buyer@megamarket.vn',address:'Hà Nội',type:'noi_dia',channel:'website',country:'vietnam',countryLabel:'Việt Nam',portrait:'sieu_thi',pipeline:'gui_sample',potential:'B',issue:'Đang chờ phản hồi sample',startDate:'2026-02-05',lastContact:'2026-03-01',estimatedValue:150000000,estimatedCurrency:'VND',sales:'Nguyễn Sales 2',note:'Yêu cầu sample 3 loại',interestedProducts:[{productId:'SKU003',name:'100% Robusta natural 1kg'},{productId:'SKU004',name:'100% Robusta 500g'}],contactLogs:[],creditLimit:0,creditDays:0},
-  {id:'LEAD004',company:'PT Nusantara Coffee Indonesia',representative:'Budi Santoso',repTitle:'Purchasing Manager',phone:'+6281234567890',email:'budi@nusantara.co.id',address:'Jakarta, Indonesia',type:'xuat_khau',channel:'hoi_cho',country:'other',countryLabel:'Indonesia',portrait:'xuat_khau',pipeline:'deal',potential:'A',issue:'Đang đàm phán giá và điều khoản giao hàng',startDate:'2026-02-15',lastContact:'2026-03-15',estimatedValue:2500000000,estimatedCurrency:'VND',sales:'Trần Minh Sales',note:'Gặp tại Hội chợ Café Show 2026',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'},{productId:'SKU003',name:'100% Robusta natural 1kg'}],contactLogs:[],creditLimit:0,creditDays:0},
-  {id:'LEAD005',company:'Cà Phê Bản Giốc Cao Bằng',representative:'Lưu Văn Hùng',repTitle:'Giám đốc',phone:'0978123456',email:'hung@bangiocc.vn',address:'Cao Bằng',type:'noi_dia',channel:'duoc_gioi_thieu',country:'vietnam',countryLabel:'Việt Nam',portrait:'buon',pipeline:'lead',potential:'C',issue:'Mới liên hệ, chưa có nhu cầu rõ ràng',startDate:'2026-03-01',lastContact:'2026-03-01',estimatedValue:30000000,estimatedCurrency:'VND',sales:'Nguyễn Sales 2',note:'Được giới thiệu qua Phúc Long',interestedProducts:[{productId:'SKU002',name:'Blend Espresso 1kg'}],contactLogs:[],creditLimit:0,creditDays:0},
-  {id:'LEAD006',company:'Singalong Trading Pte Ltd',representative:'David Tan',repTitle:'Director',phone:'+6591234567',email:'david@singalong.sg',address:'Singapore',type:'xuat_khau',channel:'google_ads',country:'singapore',countryLabel:'Singapore',portrait:'xuat_khau',pipeline:'deal',potential:'B',issue:'Cần xác nhận MOQ và thời gian giao hàng',startDate:'2025-11-10',lastContact:'2026-01-20',estimatedValue:800000000,estimatedCurrency:'VND',sales:'Trần Minh Sales',note:'',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'}],contactLogs:[],creditLimit:0,creditDays:0},
-  {id:'LEAD007',company:'Coffee Lab Hà Nội',representative:'Phạm Thu Hà',repTitle:'Founder',phone:'0967123456',email:'ha@coffeelab.vn',address:'Tây Hồ, Hà Nội',type:'noi_dia',channel:'instagram',country:'vietnam',countryLabel:'Việt Nam',portrait:'rang_thu_cong',pipeline:'quay_lai',potential:'B',issue:'Khách cũ quay lại sau 3 tháng',startDate:'2026-03-10',lastContact:'2026-03-18',estimatedValue:60000000,estimatedCurrency:'VND',sales:'Nguyễn Sales 2',note:'Cần tư vấn thêm về rang mộc',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'},{productId:'SKU005',name:'100% Arabica Cầu Đất 500g'}],contactLogs:[],creditLimit:0,creditDays:0},
+  {id:'LEAD001',company:'Chuỗi Phúc Long Coffee',representative:'Nguyễn Thị Lan',repTitle:'Trưởng phòng mua hàng',phone:'0901234501',email:'lan.mh@phuclong.vn',address:'Q.3, TP.HCM',type:'noi_dia',channel:'telesales',country:'vietnam',countryLabel:'Việt Nam',portrait:'buon',pipeline:H5C_CONST.LEAD_PIPELINE.CHOT_DON,potential:'A',issue:'Đã chốt đơn đầu, cần theo sát lô hàng',startDate:'2026-01-05',lastContact:'2026-03-10',estimatedValue:480000000,estimatedCurrency:'VND',sales:'Trần Minh Sales',note:'Khách lớn, cần báo giá sỉ cả năm',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'},{productId:'SKU002',name:'Blend Espresso 1kg'}],contactLogs:[],creditLimit:100000000,creditDays:30},
+  {id:'LEAD002',company:'Kim Sang Coffee Korea',representative:'Kim Sang Ho',repTitle:'CEO',phone:'+821012345678',email:'kimsh@kimsangcoffee.kr',address:'Seoul, Hàn Quốc',type:'xuat_khau',channel:'linkedin',country:'korea',countryLabel:'Hàn Quốc',portrait:'xuat_khau',pipeline:H5C_CONST.LEAD_PIPELINE.BAO_GIA,potential:'A',issue:'Chờ xác nhận giá xuất khẩu',startDate:'2026-01-20',lastContact:'2026-02-28',estimatedValue:1200000000,estimatedCurrency:'VND',sales:'Trần Minh Sales',note:'Cần cấp chứng nhận xuất xứ + UTZ',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'}],contactLogs:[],creditLimit:0,creditDays:0},
+  {id:'LEAD003',company:'Siêu thị Mega Market',representative:'Trần Văn Bình',repTitle:'Buyer',phone:'0912345602',email:'binh.buyer@megamarket.vn',address:'Hà Nội',type:'noi_dia',channel:'website',country:'vietnam',countryLabel:'Việt Nam',portrait:'sieu_thi',pipeline:H5C_CONST.LEAD_PIPELINE.GUI_SAMPLE,potential:'B',issue:'Đang chờ phản hồi sample',startDate:'2026-02-05',lastContact:'2026-03-01',estimatedValue:150000000,estimatedCurrency:'VND',sales:'Nguyễn Sales 2',note:'Yêu cầu sample 3 loại',interestedProducts:[{productId:'SKU003',name:'100% Robusta natural 1kg'},{productId:'SKU004',name:'100% Robusta 500g'}],contactLogs:[],creditLimit:0,creditDays:0},
+  {id:'LEAD004',company:'PT Nusantara Coffee Indonesia',representative:'Budi Santoso',repTitle:'Purchasing Manager',phone:'+6281234567890',email:'budi@nusantara.co.id',address:'Jakarta, Indonesia',type:'xuat_khau',channel:'hoi_cho',country:'other',countryLabel:'Indonesia',portrait:'xuat_khau',pipeline:H5C_CONST.LEAD_PIPELINE.DEAL,potential:'A',issue:'Đang đàm phán giá và điều khoản giao hàng',startDate:'2026-02-15',lastContact:'2026-03-15',estimatedValue:2500000000,estimatedCurrency:'VND',sales:'Trần Minh Sales',note:'Gặp tại Hội chợ Café Show 2026',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'},{productId:'SKU003',name:'100% Robusta natural 1kg'}],contactLogs:[],creditLimit:0,creditDays:0},
+  {id:'LEAD005',company:'Cà Phê Bản Giốc Cao Bằng',representative:'Lưu Văn Hùng',repTitle:'Giám đốc',phone:'0978123456',email:'hung@bangiocc.vn',address:'Cao Bằng',type:'noi_dia',channel:'duoc_gioi_thieu',country:'vietnam',countryLabel:'Việt Nam',portrait:'buon',pipeline:H5C_CONST.LEAD_PIPELINE.LEAD,potential:'C',issue:'Mới liên hệ, chưa có nhu cầu rõ ràng',startDate:'2026-03-01',lastContact:'2026-03-01',estimatedValue:30000000,estimatedCurrency:'VND',sales:'Nguyễn Sales 2',note:'Được giới thiệu qua Phúc Long',interestedProducts:[{productId:'SKU002',name:'Blend Espresso 1kg'}],contactLogs:[],creditLimit:0,creditDays:0},
+  {id:'LEAD006',company:'Singalong Trading Pte Ltd',representative:'David Tan',repTitle:'Director',phone:'+6591234567',email:'david@singalong.sg',address:'Singapore',type:'xuat_khau',channel:'google_ads',country:'singapore',countryLabel:'Singapore',portrait:'xuat_khau',pipeline:H5C_CONST.LEAD_PIPELINE.DEAL,potential:'B',issue:'Cần xác nhận MOQ và thời gian giao hàng',startDate:'2025-11-10',lastContact:'2026-01-20',estimatedValue:800000000,estimatedCurrency:'VND',sales:'Trần Minh Sales',note:'',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'}],contactLogs:[],creditLimit:0,creditDays:0},
+  {id:'LEAD007',company:'Coffee Lab Hà Nội',representative:'Phạm Thu Hà',repTitle:'Founder',phone:'0967123456',email:'ha@coffeelab.vn',address:'Tây Hồ, Hà Nội',type:'noi_dia',channel:'instagram',country:'vietnam',countryLabel:'Việt Nam',portrait:'rang_thu_cong',pipeline:H5C_CONST.LEAD_PIPELINE.QUAY_LAI,potential:'B',issue:'Khách cũ quay lại sau 3 tháng',startDate:'2026-03-10',lastContact:'2026-03-18',estimatedValue:60000000,estimatedCurrency:'VND',sales:'Nguyễn Sales 2',note:'Cần tư vấn thêm về rang mộc',interestedProducts:[{productId:'SKU001',name:'100% Arabica Sơn La 1kg'},{productId:'SKU005',name:'100% Arabica Cầu Đất 500g'}],contactLogs:[],creditLimit:0,creditDays:0},
 ];
 
 const NAV_ITEMS = [
@@ -761,11 +762,7 @@ const fmtUSD=(n)=>'$'+new Intl.NumberFormat('en-US',{minimumFractionDigits:0,max
 // ══════════════════════════════════════════════════════════════
 // UTILITIES
 // ══════════════════════════════════════════════════════════════
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB = (n) => {if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return(n/1e6).toFixed(0)+' tr';return fmt(n);};
-const fmtCurrency = (n, currency) => currency==='USD' ? '$'+new Intl.NumberFormat('en-US',{minimumFractionDigits:0,maximumFractionDigits:2}).format(n||0) : fmt(n)+'đ';
 const getInitials = (name) => name.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
-const formatDate = (d) => {if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const generateLeadId = () => {let id;do{id='LD'+Date.now().toString(36).toUpperCase();}while(LEADS.find(x=>x.id===id));return id;};
 
 // ══════════════════════════════════════════════════════════════
@@ -889,12 +886,12 @@ function renderLeads() {
 
   // Calculate pipeline counts
   const pipelineCounts = {
-    lead:       scopedLeads.filter(l => l.pipeline === 'lead').length,
-    bao_gia:    scopedLeads.filter(l => l.pipeline === 'bao_gia').length,
-    gui_sample: scopedLeads.filter(l => l.pipeline === 'gui_sample').length,
-    deal:       scopedLeads.filter(l => l.pipeline === 'deal').length,
-    chot_don:   scopedLeads.filter(l => l.pipeline === 'chot_don').length,
-    quay_lai:   scopedLeads.filter(l => l.pipeline === 'quay_lai').length
+    lead:       scopedLeads.filter(l => l.pipeline === H5C_CONST.LEAD_PIPELINE.LEAD).length,
+    bao_gia:    scopedLeads.filter(l => l.pipeline === H5C_CONST.LEAD_PIPELINE.BAO_GIA).length,
+    gui_sample: scopedLeads.filter(l => l.pipeline === H5C_CONST.LEAD_PIPELINE.GUI_SAMPLE).length,
+    deal:       scopedLeads.filter(l => l.pipeline === H5C_CONST.LEAD_PIPELINE.DEAL).length,
+    chot_don:   scopedLeads.filter(l => l.pipeline === H5C_CONST.LEAD_PIPELINE.CHOT_DON).length,
+    quay_lai:   scopedLeads.filter(l => l.pipeline === H5C_CONST.LEAD_PIPELINE.QUAY_LAI).length
   };
 
   const total      = scopedLeads.length;
@@ -951,7 +948,7 @@ function renderLeads() {
   };
 
   const highPotential = scopedLeads.filter(l => l.potential === 'cao').length;
-  const inPipelineCount = scopedLeads.filter(l => ['lead','bao_gia','gui_sample','deal'].includes(l.pipeline)).length;
+  const inPipelineCount = scopedLeads.filter(l => [H5C_CONST.LEAD_PIPELINE.LEAD,H5C_CONST.LEAD_PIPELINE.BAO_GIA,H5C_CONST.LEAD_PIPELINE.GUI_SAMPLE,H5C_CONST.LEAD_PIPELINE.DEAL].includes(l.pipeline)).length;
 
   let html = `<div class="fade">
     <!-- Tỉ giá widget -->
@@ -1032,10 +1029,14 @@ function renderLeads() {
                 <span class="ps-check">${state.pipelineSalesFilter.length===0?'✓':''}</span> Toàn công ty
               </div>
               <div class="pipeline-sales-divider"></div>
-              ${allSalesNames.map(name => `
+              ${allSalesNames.map(name => {
+                const _emp = (H5C.get('employees')||[]).find(e=>e.name===name);
+                const _deptLabel = _emp && _emp.dept ? (_DEPT_LABELS[_emp.dept]||_emp.dept) : '';
+                const _displayName = _deptLabel ? name + ' - ' + _deptLabel : name;
+                return `
               <div class="pipeline-sales-option" data-sales-name="${name}" onclick="togglePipelineSales('${name}')" style="font-weight:${state.pipelineSalesFilter.includes(name)?'700':'400'};color:${state.pipelineSalesFilter.includes(name)?'var(--green-d)':'var(--brown)'}">
-                <span class="ps-check">${state.pipelineSalesFilter.includes(name)?'✓':''}</span> ${name}
-              </div>`).join('')}
+                <span class="ps-check">${state.pipelineSalesFilter.includes(name)?'✓':''}</span> ${_displayName}
+              </div>`;}).join('')}
             </div>
           </div>
           ${state.pipelineSalesFilter.length > 0 ? `<span class="pipeline-sales-filter-info">→ đang lọc: <strong>${state.pipelineSalesFilter.join(', ')}</strong> <span class="pipeline-sales-filter-clear" onclick="setPipelineSalesFilter([])">✕</span></span>` : ''}
@@ -1048,7 +1049,7 @@ function renderLeads() {
       </div>
 
       <div class="funnel-stages">
-        <div class="funnel-stage lead" onclick="_filterByPipeline('lead')" title="Bấm để lọc">
+        <div class="funnel-stage lead" onclick="_filterByPipeline('${H5C_CONST.LEAD_PIPELINE.LEAD}')" title="Bấm để lọc">
           <div class="funnel-stage-box">
             <div class="funnel-count">${pipelineCounts.lead}</div>
             <div class="funnel-label">Lead</div>
@@ -1058,7 +1059,7 @@ function renderLeads() {
           <div class="funnel-arrow-icon">→</div>
           <div class="funnel-conversion ${getConversionClass(rates.to_baogia)}">${rates.to_baogia}%</div>
         </div>
-        <div class="funnel-stage bao_gia" onclick="_filterByPipeline('bao_gia')" title="Bấm để lọc">
+        <div class="funnel-stage bao_gia" onclick="_filterByPipeline('${H5C_CONST.LEAD_PIPELINE.BAO_GIA}')" title="Bấm để lọc">
           <div class="funnel-stage-box">
             <div class="funnel-count">${pipelineCounts.bao_gia}</div>
             <div class="funnel-label">Báo giá</div>
@@ -1068,7 +1069,7 @@ function renderLeads() {
           <div class="funnel-arrow-icon">→</div>
           <div class="funnel-conversion ${getConversionClass(rates.to_sample)}">${rates.to_sample}%</div>
         </div>
-        <div class="funnel-stage gui_sample" onclick="_filterByPipeline('gui_sample')" title="Bấm để lọc">
+        <div class="funnel-stage gui_sample" onclick="_filterByPipeline('${H5C_CONST.LEAD_PIPELINE.GUI_SAMPLE}')" title="Bấm để lọc">
           <div class="funnel-stage-box">
             <div class="funnel-count">${pipelineCounts.gui_sample}</div>
             <div class="funnel-label">Gửi sample</div>
@@ -1078,7 +1079,7 @@ function renderLeads() {
           <div class="funnel-arrow-icon">→</div>
           <div class="funnel-conversion ${getConversionClass(rates.to_deal)}">${rates.to_deal}%</div>
         </div>
-        <div class="funnel-stage deal" onclick="_filterByPipeline('deal')" title="Bấm để lọc">
+        <div class="funnel-stage deal" onclick="_filterByPipeline('${H5C_CONST.LEAD_PIPELINE.DEAL}')" title="Bấm để lọc">
           <div class="funnel-stage-box">
             <div class="funnel-count">${pipelineCounts.deal}</div>
             <div class="funnel-label">Deal</div>
@@ -1088,7 +1089,7 @@ function renderLeads() {
           <div class="funnel-arrow-icon">→</div>
           <div class="funnel-conversion ${getConversionClass(rates.to_chot)}">${rates.to_chot}%</div>
         </div>
-        <div class="funnel-stage chot_don" onclick="_filterByPipeline('chot_don')" title="Bấm để lọc">
+        <div class="funnel-stage chot_don" onclick="_filterByPipeline('${H5C_CONST.LEAD_PIPELINE.CHOT_DON}')" title="Bấm để lọc">
           <div class="funnel-stage-box">
             <div class="funnel-count">${pipelineCounts.chot_don}</div>
             <div class="funnel-label">Chốt đơn</div>
@@ -1098,7 +1099,7 @@ function renderLeads() {
           <div class="funnel-arrow-icon">→</div>
           <div class="funnel-conversion ${getConversionClass(rates.to_quaylai)}">${rates.to_quaylai}%</div>
         </div>
-        <div class="funnel-stage quay_lai" onclick="_filterByPipeline('quay_lai')" title="Bấm để lọc">
+        <div class="funnel-stage quay_lai" onclick="_filterByPipeline('${H5C_CONST.LEAD_PIPELINE.QUAY_LAI}')" title="Bấm để lọc">
           <div class="funnel-stage-box">
             <div class="funnel-count">${pipelineCounts.quay_lai}</div>
             <div class="funnel-label">Quay lại</div>
@@ -1138,6 +1139,7 @@ function renderLeads() {
       <table class="data-table leads-table">
         <thead>
           <tr>
+            <th style="width:50px;text-align:center">STT</th>
             <th>Công ty</th>
             <th class="th-filter" onclick="toggleColumnFilter(event,'type')">
               Loại <span class="th-filter-icon">▼</span>
@@ -1317,12 +1319,13 @@ function renderLeadsTable() {
   }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">📭</div><div class="title">Không có lead nào</div><div class="text">Thử thay đổi bộ lọc hoặc thêm lead mới</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="icon">📭</div><div class="title">Không có lead nào</div><div class="text">Thử thay đổi bộ lọc hoặc thêm lead mới</div></div></td></tr>`;
     return;
   }
 
-  tbody.innerHTML = filtered.map(lead => `
+  tbody.innerHTML = filtered.map((lead,idx) => `
     <tr onclick="viewLead('${lead.id}')" style="cursor:pointer">
+      <td style="text-align:center;font-weight:700;color:var(--h5c-text-secondary)">${idx+1}</td>
       <td><div class="lead-company">${lead.company}</div><div class="lead-contact">${lead.phone}</div></td>
       <td><span class="type-badge ${lead.type}">${LEAD_TYPE_LABELS[lead.type]}</span></td>
       <td><span class="pipeline-badge ${lead.pipeline}">${PIPELINE_LABELS[lead.pipeline]}</span></td>
@@ -1369,7 +1372,12 @@ const FILTER_OPTIONS = {
     const names = emps.filter(e => e.status !== 'inactive').map(e => e.name);
     // Merge với tên đã có trong leads (backward compat)
     const fromLeads = LEADS.map(l => l.sales).filter(Boolean);
-    return [...new Set([...names, ...fromLeads])].map(s => ({value:s, label:s}));
+    const empMap = {};
+    emps.forEach(e => { empMap[e.name] = e.dept; });
+    return [...new Set([...names, ...fromLeads])].map(s => {
+      const dept = empMap[s] ? (_DEPT_LABELS[empMap[s]] || empMap[s]) : '';
+      return {value:s, label: dept ? s + ' - ' + dept : s};
+    });
   }
 };
 
@@ -1568,7 +1576,7 @@ function renderCharts() {
   // Doughnut: pipeline distribution
   const pipelineCtx = document.getElementById('pipelineChart');
   if (pipelineCtx) {
-    const stages = ['lead','bao_gia','gui_sample','deal','chot_don','quay_lai'];
+    const stages = [H5C_CONST.LEAD_PIPELINE.LEAD,H5C_CONST.LEAD_PIPELINE.BAO_GIA,H5C_CONST.LEAD_PIPELINE.GUI_SAMPLE,H5C_CONST.LEAD_PIPELINE.DEAL,H5C_CONST.LEAD_PIPELINE.CHOT_DON,H5C_CONST.LEAD_PIPELINE.QUAY_LAI];
     const stageColors = ['#3949AB','#1565C0','#EF6C00','#7B1FA2','#2E7D32','#00838F'];
     const stageCounts = stages.map(s => data.filter(l => l.pipeline === s).length);
     if (stageCounts.some(c => c > 0)) {
@@ -1621,10 +1629,14 @@ function _populateLeadSalesSelect(selected) {
     names = [state.user.name];
   }
 
+  const _emps = H5C.get('employees') || [];
   sel.innerHTML = '<option value="">-- Chọn Sales --</option>' +
-    [...new Set(names)].map(n =>
-      `<option value="${n}"${n === selected ? ' selected' : ''}>${n}</option>`
-    ).join('');
+    [...new Set(names)].map(n => {
+      const _e = _emps.find(e=>e.name===n);
+      const _d = _e && _e.dept ? (_DEPT_LABELS[_e.dept]||_e.dept) : '';
+      const _dl = _d ? n + ' - ' + _d : n;
+      return `<option value="${n}"${n === selected ? ' selected' : ''}>${_dl}</option>`;
+    }).join('');
 }
 
 function openLeadModal(leadId = null) {
@@ -1678,7 +1690,7 @@ function openLeadModal(leadId = null) {
 function closeLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
 
 // ── Credit / Công nợ helpers ──────────────────────────────
-const CREDIT_PIPELINES = ['chot_don', 'quay_lai'];
+const CREDIT_PIPELINES = [H5C_CONST.LEAD_PIPELINE.CHOT_DON, H5C_CONST.LEAD_PIPELINE.QUAY_LAI];
 
 function onLeadPipelineChange() {
   const pipeline = document.getElementById('leadPipeline').value;
@@ -1697,7 +1709,7 @@ function onLeadPipelineChange() {
 function getLeadOutstanding(lead) {
   const orders = H5C.get('orders') || [];
   return orders
-    .filter(o => o.status !== 'cancelled' && o.payment !== 'paid' && o.payment !== 'da_thanh_toan'
+    .filter(o => o.status !== H5C_CONST.ORDER_STATUS.CANCELLED && o.payment !== H5C_CONST.PAYMENT_STATUS.PAID && o.payment !== 'da_thanh_toan'
               && (o.customer === lead.company || o.phone === lead.phone))
     .reduce((s, o) => s + Math.max(0, (o.total || 0) - (o.paidAmount || 0)), 0);
 }
@@ -1706,7 +1718,7 @@ function getLeadOutstanding(lead) {
 function getLeadDueDate(lead) {
   if (!lead.creditDays) return null;
   const orders = H5C.get('orders') || [];
-  const unpaid = orders.filter(o => o.status !== 'cancelled' && o.payment !== 'paid' && o.payment !== 'da_thanh_toan'
+  const unpaid = orders.filter(o => o.status !== H5C_CONST.ORDER_STATUS.CANCELLED && o.payment !== H5C_CONST.PAYMENT_STATUS.PAID && o.payment !== 'da_thanh_toan'
     && (o.customer === lead.company || o.phone === lead.phone));
   if (!unpaid.length) return null;
   const oldest = unpaid.sort((a,b)=>new Date(a.createdAt||a.date||0)-new Date(b.createdAt||b.date||0))[0];
@@ -2046,7 +2058,7 @@ function viewLead(leadId) {
     })()}
   `;
   const lead4btn = LEADS.find(l => l.id === state.currentLeadId);
-  const showOrderBtn = lead4btn && ['chot_don','deal','quay_lai'].includes(lead4btn.pipeline);
+  const showOrderBtn = lead4btn && [H5C_CONST.LEAD_PIPELINE.CHOT_DON,H5C_CONST.LEAD_PIPELINE.DEAL,H5C_CONST.LEAD_PIPELINE.QUAY_LAI].includes(lead4btn.pipeline);
   document.getElementById('createOrderBtnWrap').classList.toggle('hidden', !showOrderBtn);
   document.getElementById('leadDetailModal').classList.remove('hidden');
 }

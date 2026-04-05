@@ -6,6 +6,7 @@
 <title>Hello 5 Coffee — Khách hàng</title>
 <link rel="stylesheet" href="h5c-design.css?v=3"/>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
 .cust-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -148,6 +149,9 @@ th.sorted .sort-icon{opacity:1;color:var(--h5c-copper)}
       <button type="button" class="modal-btn cancel" onclick="closeModal('custModal')">Hủy</button>
       <button type="submit" class="modal-btn primary">Lưu</button>
     </div>
+    <div style="margin-top:12px;padding:10px 14px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);font-size:12px;color:var(--h5c-text-secondary);line-height:1.5">
+      💡 Khách hàng sẽ tự động được tạo khi Lead chuyển sang trạng thái Chốt đơn / Quay lại / Đặt đơn
+    </div>
   </form>
 </div>
 </div>
@@ -196,9 +200,6 @@ const TYPE_LABELS={dai_ly:'Đại lý',ban_buon:'Bán buôn',ban_le:'Bán lẻ',
 const STATUS_LABELS={active:'Hoạt động',inactive:'Ngừng HĐ'};
 const AVATAR_COLORS=['#4A7A4D','#4A7FB5','#D4851A','#7B5EA7','#C44536','#38261C','#2A8A7A','#8A6B2A'];
 
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
-const fmtB=n=>{if(n>=1e9)return(n/1e9).toFixed(1)+' tỷ';if(n>=1e6)return Math.round(n/1e6)+' tr';return fmt(n);};
-const formatDate=d=>{if(!d)return'—';const dt=new Date(d);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();};
 const getInitials=n=>n?n.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():'?';
 const isCLevel=()=>state.user&&state.user.role==='C_LEVEL';
 
@@ -351,9 +352,9 @@ function render(){
             <option value="inactive"${state.filterStatus==='inactive'?' selected':''}>Ngừng HĐ</option>
           </select>
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn secondary" onclick="exportCSV()">📥 Xuất Excel</button>
-          ${_can('customers.create')?'<button class="btn primary" onclick="openCreateModal()">+ Thêm KH</button>':''}
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-secondary" onclick="exportCSV()">📥 Xuất Excel</button>
+          ${_can('customers.create')?'<button class="btn-add" onclick="openCreateModal()">+ Thêm KH</button>':''}
         </div>
       </div>
       ${renderTable(custRevMap)}
@@ -362,6 +363,20 @@ function render(){
 }
 
 function renderTable(custRevMap){
+  // Pre-build order stats per customer (load once, reuse for all rows)
+  const allOrders=H5C.get('orders')||[];
+  const custOrderStats={};// key=custId → {count, lastDate}
+  CUSTOMERS.forEach(c=>{
+    const matched=allOrders.filter(o=>{
+      if(c.code&&o.custCode&&o.custCode===c.code) return true;
+      if(c.phone&&o.phone&&o.phone.replace(/\s/g,'')===c.phone.replace(/\s/g,'')) return true;
+      return (o.customer||'').trim().toLowerCase()===(c.name||'').trim().toLowerCase();
+    });
+    let lastDate=null;
+    matched.forEach(o=>{if(o.createdAt&&(!lastDate||o.createdAt>lastDate))lastDate=o.createdAt;});
+    custOrderStats[c.id]={count:matched.length,lastDate};
+  });
+
   let filtered=[...CUSTOMERS];
   // Filter
   if(state.search){
@@ -373,7 +388,10 @@ function renderTable(custRevMap){
 
   // Sort
   filtered.sort((a,b)=>{
-    let va=a[state.sortField]||'',vb=b[state.sortField]||'';
+    let va,vb;
+    if(state.sortField==='_orderCount'){va=custOrderStats[a.id].count;vb=custOrderStats[b.id].count;}
+    else if(state.sortField==='_lastOrder'){va=custOrderStats[a.id].lastDate||'';vb=custOrderStats[b.id].lastDate||'';}
+    else{va=a[state.sortField]||'';vb=b[state.sortField]||'';}
     if(typeof va==='string')va=va.toLowerCase();
     if(typeof vb==='string')vb=vb.toLowerCase();
     if(va<vb)return state.sortDir==='asc'?-1:1;
@@ -400,6 +418,8 @@ function renderTable(custRevMap){
       <th>SĐT</th>
       <th>Tỉnh/TP</th>
       <th class="${thClass('_revenue')}" onclick="toggleSort('_revenue')">Doanh thu ${sortIcon('_revenue')}</th>
+      <th class="${thClass('_orderCount')}" onclick="toggleSort('_orderCount')">Số đơn ${sortIcon('_orderCount')}</th>
+      <th class="${thClass('_lastOrder')}" onclick="toggleSort('_lastOrder')">Đặt gần nhất ${sortIcon('_lastOrder')}</th>
       <th>Trạng thái</th>
       <th class="${thClass('createdAt')}" onclick="toggleSort('createdAt')">Ngày tạo ${sortIcon('createdAt')}</th>
       <th>Thao tác</th>
@@ -418,6 +438,8 @@ function renderTable(custRevMap){
       <td>${c.phone||'—'}</td>
       <td style="font-size:12px">${c.city||'—'}</td>
       <td style="font-weight:700;color:var(--h5c-sage)">${rev?fmt(rev)+'đ':'—'}</td>
+      <td style="text-align:center;font-weight:600">${custOrderStats[c.id].count||'—'}</td>
+      <td style="font-size:12px">${custOrderStats[c.id].lastDate?formatDate(custOrderStats[c.id].lastDate):'—'}</td>
       <td><span class="status-dot ${c.status}"></span>${STATUS_LABELS[c.status]||c.status}</td>
       <td style="font-size:12px">${formatDate(c.createdAt)}</td>
       <td onclick="event.stopPropagation()"><div class="action-btns">

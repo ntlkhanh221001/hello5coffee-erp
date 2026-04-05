@@ -49,11 +49,17 @@
   let _writeQueue    = [];
   let _firebaseReady = false;
 
+  // Track local modification timestamps per sync key
+  let _localTimestamps = {};
+  // Track last known remote timestamps per sync key
+  let _remoteTimestamps = {};
+
   localStorage.setItem = function(key, value) {
     _origSetItem(key, value);
     if (!key.startsWith(LS_PREFIX)) return;
     const syncKey = key.slice(LS_PREFIX.length);
     if (!SYNC_KEYS.includes(syncKey)) return;
+    _localTimestamps[syncKey] = Date.now();
     if (_firebaseReady && _db) {
       _pushToFirestore(syncKey, _safeParse(value));
     } else {
@@ -139,6 +145,7 @@
     attempt = attempt || 1;
     _db.collection(FIRESTORE_COLLECTION).doc(key).set({
       value: value,
+      _lastModified: _localTimestamps[key] || Date.now(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: _getCurrentUserName()
     }).then(() => {
@@ -184,6 +191,7 @@
           const data = doc.data().value;
           if (data !== undefined && data !== null) {
             _origSetItem(LS_PREFIX + key, JSON.stringify(data));
+            _remoteTimestamps[key] = doc.data()._lastModified || 0;
             pulled.push(key);
           }
         }
@@ -206,9 +214,63 @@
         const key = change.doc.id;
         if (!SYNC_KEYS.includes(key)) return;
         if (change.type === 'modified' || change.type === 'added') {
-          const newVal = JSON.stringify(change.doc.data().value);
+          const docData = change.doc.data();
+          const remoteModified = docData._lastModified || 0;
+          const localModified = _localTimestamps[key] || 0;
+          const lastRemote = _remoteTimestamps[key] || 0;
+
+          const newVal = JSON.stringify(docData.value);
           const curVal = localStorage.getItem(LS_PREFIX + key);
-          if (newVal !== curVal) { _origSetItem(LS_PREFIX + key, newVal); changed = true; }
+
+          // Same data — no action needed
+          if (newVal === curVal) {
+            _remoteTimestamps[key] = remoteModified;
+            return;
+          }
+
+          // Check if local has unsync'd changes (local modified AFTER last known remote)
+          const localHasChanges = localModified > lastRemote && localModified > 0 && lastRemote > 0;
+          // Check if remote has new changes
+          const remoteHasChanges = remoteModified > lastRemote || lastRemote === 0;
+
+          if (localHasChanges && remoteHasChanges && remoteModified !== localModified) {
+            // ── TRUE CONFLICT: both sides changed independently ──
+            // Keep local data but flag as conflicted
+            console.warn('H5C Sync: CONFLICT detected for "' + key + '" — local=' + localModified + ', remote=' + remoteModified);
+            // Merge: store local version but mark conflicted in metadata
+            try {
+              var localData = _safeParse(curVal);
+              // If array, try to merge by adding remote-only items
+              if (Array.isArray(localData) && Array.isArray(docData.value)) {
+                var localIds = new Set(localData.map(function(item) { return item.id; }).filter(Boolean));
+                var remoteOnly = docData.value.filter(function(item) { return item.id && !localIds.has(item.id); });
+                if (remoteOnly.length) {
+                  remoteOnly.forEach(function(item) { localData.push(item); });
+                  _origSetItem(LS_PREFIX + key, JSON.stringify(localData));
+                }
+              }
+            } catch(e) {}
+            // Flag conflict for this key
+            _origSetItem(LS_PREFIX + '_conflict_' + key, JSON.stringify({
+              detectedAt: Date.now(),
+              localModified: localModified,
+              remoteModified: remoteModified
+            }));
+            if (typeof window.showToast === 'function') {
+              window.showToast('Có xung đột dữ liệu [' + key + '], vui lòng kiểm tra', 'warning', 5000);
+            }
+            changed = true;
+          } else if (localHasChanges && localModified > remoteModified) {
+            // ── LOCAL IS NEWER: keep local, push to remote ──
+            console.log('H5C Sync: Local newer for "' + key + '", pushing local → remote');
+            _pushToFirestore(key, _safeParse(curVal));
+          } else {
+            // ── REMOTE IS NEWER (or first sync): apply remote ──
+            _origSetItem(LS_PREFIX + key, newVal);
+            changed = true;
+          }
+
+          _remoteTimestamps[key] = remoteModified;
         } else if (change.type === 'removed') {
           _origRemoveItem(LS_PREFIX + key); changed = true;
         }

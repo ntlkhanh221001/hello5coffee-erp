@@ -90,10 +90,21 @@
 .bulk-stat-pill.ok{background:var(--h5c-sage-light);color:var(--h5c-sage)}
 .bulk-stat-pill.err{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
 .bulk-stat-pill.total{background:var(--h5c-bg);color:var(--h5c-text-secondary)}
+.invoice-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.invoice-badge.co{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.invoice-badge.khong{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.fund-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.fund-badge.cong_ty{background:var(--h5c-bg-subtle);color:var(--h5c-text-secondary)}
+.fund-badge.ca_nhan{background:#F3E5F5;color:#7B1FA2}
+.reimburse-badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.reimburse-badge.done{background:var(--h5c-sage-light);color:var(--h5c-sage)}
+.reimburse-badge.pending{background:var(--h5c-terracotta-light);color:var(--h5c-terracotta)}
+.reimburse-badge.processing{background:var(--h5c-amber-light);color:var(--h5c-amber)}
 @media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)!important}}
 @media(max-width:900px){.modal-row,.modal-row.three{grid-template-columns:1fr}}
 </style>
 <script src="core.js?v=3"></script>
+<script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 </head>
 <body>
@@ -149,7 +160,7 @@
   </main>
 </div>
 
-<div id="expenseModal" class="modal-overlay hidden"><div class="modal"><div class="modal-title" id="expenseModalTitle">Thêm chi phí</div><form id="expenseForm" onsubmit="saveExpense(event)"><input type="hidden" id="expenseId"><div class="modal-row"><div class="modal-group"><label class="modal-label">Ngày *</label><input type="date" id="expenseDate" class="modal-input" required></div><div class="modal-group"><label class="modal-label">Số tiền (VNĐ) *</label><input type="number" id="expenseAmount" class="modal-input" required min="1"></div></div><div class="modal-group"><label class="modal-label">Mô tả *</label><input type="text" id="expenseDesc" class="modal-input" required></div><div class="modal-row three"><div class="modal-group"><label class="modal-label">Nhóm *</label><select id="expenseCategory" class="modal-input" required><option value="luong">Lương</option><option value="nguyen_lieu">Nguyên liệu</option><option value="van_hanh">Vận hành</option><option value="marketing">Marketing</option><option value="logistics">Logistics</option><option value="khac">Khác</option></select></div><div class="modal-group"><label class="modal-label">Phòng ban *</label><select id="expenseDept" class="modal-input" required><option value="kinh_doanh">Kinh doanh</option><option value="san_xuat">Sản xuất</option><option value="ke_toan">Kế toán</option><option value="hr">HR</option><option value="marketing">Marketing</option><option value="ban_giam_doc">Ban GĐ</option><option value="khac">Khác</option></select></div><div class="modal-group"><label class="modal-label">Loại *</label><select id="expenseType" class="modal-input" required><option value="dinh_phi">Định phí</option><option value="bien_phi">Biến phí</option></select></div></div><div class="modal-row"><div class="modal-group"><label class="modal-label">Trạng thái</label><select id="expenseStatus" class="modal-input"><option value="cho_duyet">Chờ duyệt</option><option value="da_duyet">Đã duyệt</option><option value="tu_choi">Từ chối</option></select></div><div class="modal-group"><label class="modal-label">Tình trạng chi</label><select id="expensePayment" class="modal-input"><option value="chua_thanh_toan">Chưa thanh toán</option><option value="da_thanh_toan">Đã thanh toán</option><option value="mot_phan">Một phần</option></select></div></div><div class="modal-group"><label class="modal-label">Đính kèm</label><div class="file-upload" onclick="document.getElementById('expenseFile').click()"><div class="file-upload-icon">📎</div><div class="file-upload-text">Click để chọn file</div></div><input type="file" id="expenseFile" style="display:none" onchange="handleFileSelect(event)"><div id="filePreview"></div></div><div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="expenseNote" class="modal-input" rows="2"></textarea></div><div class="modal-btns"><button type="button" class="modal-btn cancel" onclick="closeExpenseModal()">Hủy</button><button type="submit" class="modal-btn primary">Lưu</button></div></form></div></div>
+<div id="expenseModal" class="modal-overlay hidden"><div class="modal"><div class="modal-title" id="expenseModalTitle">Thêm chi phí</div><form id="expenseForm" onsubmit="saveExpense(event)"><input type="hidden" id="expenseId"><div class="modal-row"><div class="modal-group"><label class="modal-label">Ngày *</label><input type="date" id="expenseDate" class="modal-input" required></div><div class="modal-group"><label class="modal-label">Số tiền (VNĐ) *</label><input type="number" id="expenseAmount" class="modal-input" required min="1"></div></div><div class="modal-group"><label class="modal-label">Mô tả *</label><input type="text" id="expenseDesc" class="modal-input" required></div><div class="modal-row three"><div class="modal-group"><label class="modal-label">Nhóm *</label><select id="expenseCategory" class="modal-input" required><option value="luong">Lương</option><option value="nguyen_lieu">Nguyên liệu</option><option value="van_hanh">Vận hành</option><option value="marketing">Marketing</option><option value="logistics">Logistics</option><option value="khac">Khác</option></select></div><div class="modal-group"><label class="modal-label">Phòng ban *</label><select id="expenseDept" class="modal-input" required><option value="kinh_doanh">Kinh doanh</option><option value="san_xuat">Sản xuất</option><option value="ke_toan">Kế toán</option><option value="hr">HR</option><option value="marketing">Marketing</option><option value="ban_giam_doc">Ban GĐ</option><option value="khac">Khác</option></select></div><div class="modal-group"><label class="modal-label">Loại *</label><select id="expenseType" class="modal-input" required><option value="dinh_phi">Định phí</option><option value="bien_phi">Biến phí</option></select></div></div><div class="modal-row"><div class="modal-group"><label class="modal-label">Trạng thái</label><select id="expenseStatus" class="modal-input"><option value="cho_duyet">Chờ duyệt</option><option value="da_duyet">Đã duyệt</option><option value="tu_choi">Từ chối</option></select></div><div class="modal-group"><label class="modal-label">Tình trạng chi</label><select id="expensePayment" class="modal-input"><option value="chua_thanh_toan">Chưa thanh toán</option><option value="da_thanh_toan">Đã thanh toán</option><option value="mot_phan">Một phần</option></select></div></div><div class="modal-row three"><div class="modal-group"><label class="modal-label">Hóa đơn</label><select id="expenseInvoice" class="modal-input"><option value="co">Có hóa đơn</option><option value="khong">Không có hóa đơn</option></select></div><div class="modal-group"><label class="modal-label">Nguồn tiền</label><select id="expenseFundSource" class="modal-input" onchange="onFundSourceChange()"><option value="cong_ty">Công ty</option><option value="ca_nhan">Cá nhân ứng trước</option></select></div><div class="modal-group"><label class="modal-label">Tình trạng hoàn ứng</label><select id="expenseReimburse" class="modal-input"><option value="done">Hoàn thành</option><option value="pending">Chưa hoàn ứng</option><option value="processing">Đang xử lý</option></select></div></div><div class="modal-group"><label class="modal-label">Đính kèm</label><div class="file-upload" onclick="document.getElementById('expenseFile').click()"><div class="file-upload-icon">📎</div><div class="file-upload-text">Click để chọn file</div></div><input type="file" id="expenseFile" style="display:none" onchange="handleFileSelect(event)"><div id="filePreview"></div></div><div class="modal-group"><label class="modal-label">Ghi chú</label><textarea id="expenseNote" class="modal-input" rows="2"></textarea></div><div class="modal-btns"><button type="button" class="modal-btn cancel" onclick="closeExpenseModal()">Hủy</button><button type="submit" class="modal-btn primary">Lưu</button></div></form></div></div>
 
 <div id="expenseDetailModal" class="modal-overlay hidden"><div class="modal"><div class="modal-title">Chi tiết chi phí</div><div id="expenseDetailContent"></div><div class="modal-btns"><button class="modal-btn cancel" onclick="closeExpenseDetailModal()">Đóng</button><button class="modal-btn primary" onclick="editFromDetail()">Sửa</button></div></div></div>
 
@@ -190,24 +201,22 @@ const EXPENSE_TYPE_LABELS={dinh_phi:'Định phí',bien_phi:'Biến phí'};
 const CATEGORY_COLORS={luong:PALETTE[0],nguyen_lieu:PALETTE[1],van_hanh:PALETTE[2],marketing:PALETTE[5],logistics:PALETTE[7],khac:PALETTE[8]};
 const DEPT_COLORS={kinh_doanh:PALETTE[2],san_xuat:PALETTE[0],ke_toan:PALETTE[4],hr:PALETTE[5],marketing:PALETTE[3],ban_giam_doc:PALETTE[1],khac:PALETTE[8]};
 const EXPENSE_TYPE_COLORS={dinh_phi:PALETTE[4],bien_phi:PALETTE[6]};
+const INVOICE_LABELS={co:'Có hóa đơn',khong:'Không HĐ'};
+const FUND_LABELS={cong_ty:'Công ty',ca_nhan:'Cá nhân ứng trước'};
+const REIMBURSE_LABELS={done:'Hoàn thành',pending:'Chưa hoàn ứng',processing:'Đang xử lý'};
 
 let state={user:null,lang:'vi',page:'expenses',currentExpenseId:null,selectedFile:null,selectedFileData:null,charts:{},chartType:'category',activeFilter:null};
 
+function onFundSourceChange(){
+  const fs=document.getElementById('expenseFundSource').value;
+  const rb=document.getElementById('expenseReimburse');
+  if(fs==='cong_ty'){rb.value='done';rb.disabled=true;}
+  else{rb.disabled=false;if(rb.value==='done')rb.value='pending';}
+}
+
 // ═══ Permission Engine — uses window._can / window._canScope from core.js ═══
 
-// Format số đầy đủ với dấu chấm
-const fmt=(n)=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0));
 const getInitials=(name)=>name.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase();
-
-// Format ngày DD/MM/YYYY
-const formatDate=(d)=>{
-  if(!d)return '—';
-  const date=new Date(d);
-  const dd=String(date.getDate()).padStart(2,'0');
-  const mm=String(date.getMonth()+1).padStart(2,'0');
-  const yyyy=date.getFullYear();
-  return dd+'/'+mm+'/'+yyyy;
-};
 
 // Format tháng MM/YYYY
 const formatMonth=(d)=>{
@@ -329,7 +338,7 @@ function renderExpenses(){
   html+='<input type="text" class="filter-input" id="filterSearch" placeholder="🔍 Tìm..." onkeyup="filterExpenses()">';
   html+='</div>'+(_can('expenses.create')?'<button class="btn-add" onclick="openExpenseModal()">Thêm chi phí</button><button class="btn-secondary" onclick="openBulkExpense()" style="margin-left:6px">Nhập từ Excel</button>':'')+'</div>';
 
-  html+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Ngày</th><th>Mô tả</th><th>Nhóm</th><th>Loại</th><th>Phòng ban</th><th>Số tiền</th><th>Trạng thái</th><th>Tình trạng chi</th><th>📎</th><th>Người tạo</th><th>Thao tác</th></tr></thead><tbody id="expenseTableBody"></tbody></table></div>';
+  html+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Ngày</th><th>Mô tả</th><th>Nhóm</th><th>Loại</th><th>Phòng ban</th><th>Số tiền</th><th>Trạng thái</th><th>Tình trạng chi</th><th>Hóa đơn</th><th>Nguồn tiền</th><th>Hoàn ứng</th><th>📎</th><th>Người tạo</th><th>Thao tác</th></tr></thead><tbody id="expenseTableBody"></tbody></table></div>';
   html+='</div>';
   content.innerHTML=html;
 
@@ -430,11 +439,14 @@ function renderExpenseTable(){
 
   filtered.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-  if(filtered.length===0){tbody.innerHTML='<tr><td colspan="11"><div class="empty-state"><div class="icon">📭</div><div class="title">Không có dữ liệu</div></div></td></tr>';return;}
+  if(filtered.length===0){tbody.innerHTML='<tr><td colspan="14"><div class="empty-state"><div class="icon">📭</div><div class="title">Không có dữ liệu</div></div></td></tr>';return;}
 
   tbody.innerHTML=filtered.map(e=>{
+    const inv=e.expenseInvoice||'co';
+    const fund=e.expenseFundSource||'cong_ty';
+    const reimb=e.expenseReimburse||(fund==='cong_ty'?'done':'done');
     const fileIcon=e.file?((e.fileUrl||e.fileData)?'<span title="'+e.file+'" style="cursor:pointer" onclick="event.stopPropagation();viewExpense(\''+e.id+'\')">📎</span>':'<span title="'+e.file+' (chỉ tên)" style="color:var(--h5c-border)">📄</span>'):'';
-    return '<tr onclick="viewExpense(\''+e.id+'\')" style="cursor:pointer"><td>'+formatDate(e.date)+'</td><td><span class="expense-desc" title="'+e.desc+'">'+e.desc+'</span></td><td><span class="badge '+e.category+'">'+CATEGORY_LABELS[e.category]+'</span></td><td><span class="type-badge '+e.expenseType+'">'+EXPENSE_TYPE_LABELS[e.expenseType]+'</span></td><td><span class="dept-badge">'+DEPT_LABELS[e.dept]+'</span></td><td><span class="expense-amount">'+fmt(e.amount)+'đ</span></td><td><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></td><td><span class="payment-badge '+e.payment+'">'+PAYMENT_LABELS[e.payment]+'</span></td><td style="text-align:center">'+fileIcon+'</td><td>'+e.creator+'</td><td onclick="event.stopPropagation()"><div class="action-btns">'+(_can('expenses.edit')?'<button class="action-btn edit" title="Sửa" onclick="editExpense(\''+e.id+'\')">✏️</button>':'')+''+(e.status==='cho_duyet'?(_can('expenses.approve')?'<button class="action-btn approve" title="Duyệt" onclick="openApproveModal(\''+e.id+'\')">✅</button>':''):'')+''+(_can('expenses.delete')?'<button class="action-btn delete" title="Xóa" onclick="deleteExpense(\''+e.id+'\')">🗑️</button>':'')+'</div></td></tr>';
+    return '<tr onclick="viewExpense(\''+e.id+'\')" style="cursor:pointer"><td>'+formatDate(e.date)+'</td><td><span class="expense-desc" title="'+e.desc+'">'+e.desc+'</span></td><td><span class="badge '+e.category+'">'+CATEGORY_LABELS[e.category]+'</span></td><td><span class="type-badge '+e.expenseType+'">'+EXPENSE_TYPE_LABELS[e.expenseType]+'</span></td><td><span class="dept-badge">'+DEPT_LABELS[e.dept]+'</span></td><td><span class="expense-amount">'+fmt(e.amount)+'đ</span></td><td><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></td><td><span class="payment-badge '+e.payment+'">'+PAYMENT_LABELS[e.payment]+'</span></td><td><span class="invoice-badge '+inv+'">'+(INVOICE_LABELS[inv]||'Có hóa đơn')+'</span></td><td><span class="fund-badge '+fund+'">'+(FUND_LABELS[fund]||'Công ty')+'</span></td><td><span class="reimburse-badge '+reimb+'">'+(REIMBURSE_LABELS[reimb]||'Hoàn thành')+'</span></td><td style="text-align:center">'+fileIcon+'</td><td>'+e.creator+'</td><td onclick="event.stopPropagation()"><div class="action-btns">'+(_can('expenses.edit')?'<button class="action-btn edit" title="Sửa" onclick="editExpense(\''+e.id+'\')">✏️</button>':'')+''+(e.status==='cho_duyet'?(_can('expenses.approve')?'<button class="action-btn approve" title="Duyệt" onclick="openApproveModal(\''+e.id+'\')">✅</button>':''):'')+''+(_can('expenses.delete')?'<button class="action-btn delete" title="Xóa" onclick="deleteExpense(\''+e.id+'\')">🗑️</button>':'')+'</div></td></tr>';
   }).join('');
 }
 
@@ -444,8 +456,8 @@ function openExpenseModal(id){
   const modal=document.getElementById('expenseModal');
   const title=document.getElementById('expenseModalTitle');
   state.selectedFile=null;state.selectedFileData=null;state._pendingFileObj=null;document.getElementById('filePreview').innerHTML='';
-  if(id){const e=EXPENSES.find(x=>x.id===id);if(!e)return;title.textContent='Sửa chi phí';document.getElementById('expenseId').value=e.id;document.getElementById('expenseDate').value=e.date;document.getElementById('expenseAmount').value=e.amount;document.getElementById('expenseDesc').value=e.desc;document.getElementById('expenseCategory').value=e.category;document.getElementById('expenseDept').value=e.dept;document.getElementById('expenseType').value=e.expenseType;document.getElementById('expenseStatus').value=e.status;document.getElementById('expensePayment').value=e.payment;document.getElementById('expenseNote').value=e.note||'';if(e.file){state.selectedFile=e.file;const hasFile=!!(e.fileUrl||e.fileData);document.getElementById('filePreview').innerHTML='<div class="file-preview"><span class="file-preview-name">📎 '+e.file+(hasFile?' ✅':' ⚠️')+'</span><span class="file-preview-remove" onclick="removeFile()">✕</span></div>';}}
-  else{title.textContent='Thêm chi phí';document.getElementById('expenseForm').reset();document.getElementById('expenseId').value='';document.getElementById('expenseDate').value=new Date().toISOString().split('T')[0];document.getElementById('expenseStatus').value='cho_duyet';document.getElementById('expensePayment').value='chua_thanh_toan';document.getElementById('expenseType').value='bien_phi';}
+  if(id){const e=EXPENSES.find(x=>x.id===id);if(!e)return;title.textContent='Sửa chi phí';document.getElementById('expenseId').value=e.id;document.getElementById('expenseDate').value=e.date;document.getElementById('expenseAmount').value=e.amount;document.getElementById('expenseDesc').value=e.desc;document.getElementById('expenseCategory').value=e.category;document.getElementById('expenseDept').value=e.dept;document.getElementById('expenseType').value=e.expenseType;document.getElementById('expenseStatus').value=e.status;document.getElementById('expensePayment').value=e.payment;document.getElementById('expenseInvoice').value=e.expenseInvoice||'co';document.getElementById('expenseFundSource').value=e.expenseFundSource||'cong_ty';document.getElementById('expenseReimburse').value=e.expenseReimburse||(e.expenseFundSource==='ca_nhan'?'pending':'done');onFundSourceChange();document.getElementById('expenseNote').value=e.note||'';if(e.file){state.selectedFile=e.file;const hasFile=!!(e.fileUrl||e.fileData);document.getElementById('filePreview').innerHTML='<div class="file-preview"><span class="file-preview-name">📎 '+e.file+(hasFile?' ✅':' ⚠️')+'</span><span class="file-preview-remove" onclick="removeFile()">✕</span></div>';}}
+  else{title.textContent='Thêm chi phí';document.getElementById('expenseForm').reset();document.getElementById('expenseId').value='';document.getElementById('expenseDate').value=new Date().toISOString().split('T')[0];document.getElementById('expenseStatus').value='cho_duyet';document.getElementById('expensePayment').value='chua_thanh_toan';document.getElementById('expenseType').value='bien_phi';document.getElementById('expenseInvoice').value='co';document.getElementById('expenseFundSource').value='cong_ty';document.getElementById('expenseReimburse').value='done';onFundSourceChange();}
   modal.classList.remove('hidden');
 }
 function closeExpenseModal(){document.getElementById('expenseModal').classList.add('hidden');}
@@ -468,7 +480,8 @@ function saveExpense(e){
   const isEdit=!!id;
   const oldExpense=isEdit?EXPENSES.find(x=>x.id===id):null;
 
-  const data={id:isEdit?id:generateExpenseId(),date:document.getElementById('expenseDate').value,amount:parseInt(document.getElementById('expenseAmount').value)||0,desc:document.getElementById('expenseDesc').value,category:document.getElementById('expenseCategory').value,dept:document.getElementById('expenseDept').value,expenseType:document.getElementById('expenseType').value,status:document.getElementById('expenseStatus').value,payment:document.getElementById('expensePayment').value,note:document.getElementById('expenseNote').value,file:state.selectedFile,fileUrl:oldExpense?oldExpense.fileUrl:null,filePath:oldExpense?oldExpense.filePath:null,fileData:null,creator:isEdit?oldExpense?.creator:state.user.name};
+  const fundSrc=document.getElementById('expenseFundSource').value;
+  const data={id:isEdit?id:generateExpenseId(),date:document.getElementById('expenseDate').value,amount:parseInt(document.getElementById('expenseAmount').value)||0,desc:document.getElementById('expenseDesc').value,category:document.getElementById('expenseCategory').value,dept:document.getElementById('expenseDept').value,expenseType:document.getElementById('expenseType').value,status:document.getElementById('expenseStatus').value,payment:document.getElementById('expensePayment').value,expenseInvoice:document.getElementById('expenseInvoice').value,expenseFundSource:fundSrc,expenseReimburse:fundSrc==='cong_ty'?'done':document.getElementById('expenseReimburse').value,note:document.getElementById('expenseNote').value,file:state.selectedFile,fileUrl:oldExpense?oldExpense.fileUrl:null,filePath:oldExpense?oldExpense.filePath:null,fileData:null,creator:isEdit?oldExpense?.creator:state.user.name};
 
   // If there's a new file to upload
   if(state._pendingFileObj && window.H5CStorage && H5CStorage.ready){
@@ -535,7 +548,8 @@ function viewExpense(id){
       fileHtml='<div class="detail-section"><div class="detail-title">Đính kèm</div><p style="font-size:12px;color:var(--h5c-text-secondary)">'+e.file+' <span style="color:var(--h5c-amber)">(file cũ — chỉ có tên)</span></p></div>';
     }
   }
-  document.getElementById('expenseDetailContent').innerHTML='<div class="detail-section"><div class="detail-title">Thông tin</div><div class="detail-grid"><div class="detail-item"><span class="detail-label">Mã</span><span class="detail-value">'+e.id+'</span></div><div class="detail-item"><span class="detail-label">Ngày</span><span class="detail-value">'+formatDate(e.date)+'</span></div><div class="detail-item" style="grid-column:span 2"><span class="detail-label">Mô tả</span><span class="detail-value">'+e.desc+'</span></div><div class="detail-item"><span class="detail-label">Số tiền</span><span class="detail-value" style="color:var(--h5c-terracotta);font-weight:900">'+fmt(e.amount)+'đ</span></div><div class="detail-item"><span class="detail-label">Loại</span><span class="detail-value"><span class="type-badge '+e.expenseType+'">'+EXPENSE_TYPE_LABELS[e.expenseType]+'</span></span></div><div class="detail-item"><span class="detail-label">Nhóm</span><span class="detail-value"><span class="badge '+e.category+'">'+CATEGORY_LABELS[e.category]+'</span></span></div><div class="detail-item"><span class="detail-label">Phòng ban</span><span class="detail-value"><span class="dept-badge">'+DEPT_LABELS[e.dept]+'</span></span></div></div></div><div class="detail-section"><div class="detail-title">Trạng thái</div><div class="detail-grid"><div class="detail-item"><span class="detail-label">Duyệt</span><span class="detail-value"><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></span></div><div class="detail-item"><span class="detail-label">Thanh toán</span><span class="detail-value"><span class="payment-badge '+e.payment+'">'+PAYMENT_LABELS[e.payment]+'</span></span></div></div></div>'+fileHtml+(e.note?'<div class="detail-section"><div class="detail-title">Ghi chú</div><p>'+e.note+'</p></div>':'');
+  const _inv=e.expenseInvoice||'co';const _fund=e.expenseFundSource||'cong_ty';const _reimb=e.expenseReimburse||(_fund==='cong_ty'?'done':'done');
+  document.getElementById('expenseDetailContent').innerHTML='<div class="detail-section"><div class="detail-title">Thông tin</div><div class="detail-grid"><div class="detail-item"><span class="detail-label">Mã</span><span class="detail-value">'+e.id+'</span></div><div class="detail-item"><span class="detail-label">Ngày</span><span class="detail-value">'+formatDate(e.date)+'</span></div><div class="detail-item" style="grid-column:span 2"><span class="detail-label">Mô tả</span><span class="detail-value">'+e.desc+'</span></div><div class="detail-item"><span class="detail-label">Số tiền</span><span class="detail-value" style="color:var(--h5c-terracotta);font-weight:900">'+fmt(e.amount)+'đ</span></div><div class="detail-item"><span class="detail-label">Loại</span><span class="detail-value"><span class="type-badge '+e.expenseType+'">'+EXPENSE_TYPE_LABELS[e.expenseType]+'</span></span></div><div class="detail-item"><span class="detail-label">Nhóm</span><span class="detail-value"><span class="badge '+e.category+'">'+CATEGORY_LABELS[e.category]+'</span></span></div><div class="detail-item"><span class="detail-label">Phòng ban</span><span class="detail-value"><span class="dept-badge">'+DEPT_LABELS[e.dept]+'</span></span></div></div></div><div class="detail-section"><div class="detail-title">Trạng thái & Tài chính</div><div class="detail-grid"><div class="detail-item"><span class="detail-label">Duyệt</span><span class="detail-value"><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></span></div><div class="detail-item"><span class="detail-label">Thanh toán</span><span class="detail-value"><span class="payment-badge '+e.payment+'">'+PAYMENT_LABELS[e.payment]+'</span></span></div><div class="detail-item"><span class="detail-label">Hóa đơn</span><span class="detail-value"><span class="invoice-badge '+_inv+'">'+(INVOICE_LABELS[_inv]||'Có hóa đơn')+'</span></span></div><div class="detail-item"><span class="detail-label">Nguồn tiền</span><span class="detail-value"><span class="fund-badge '+_fund+'">'+(FUND_LABELS[_fund]||'Công ty')+'</span></span></div><div class="detail-item"><span class="detail-label">Hoàn ứng</span><span class="detail-value"><span class="reimburse-badge '+_reimb+'">'+(REIMBURSE_LABELS[_reimb]||'Hoàn thành')+'</span></span></div></div></div>'+fileHtml+(e.note?'<div class="detail-section"><div class="detail-title">Ghi chú</div><p>'+e.note+'</p></div>':'');
   document.getElementById('expenseDetailModal').classList.remove('hidden');
 }
 function closeExpenseDetailModal(){document.getElementById('expenseDetailModal').classList.add('hidden');}
@@ -644,9 +658,9 @@ function openBulkExpense(){
 function _downloadExpTemplate(){
   const wb=XLSX.utils.book_new();
   const data=[
-    ['Ngày (YYYY-MM-DD)','Số tiền','Mô tả','Nhóm','Phòng ban','Loại','Trạng thái','Tình trạng chi','Ghi chú'],
-    ['2025-04-01','5500000','Tiền điện tháng 3','van_hanh','san_xuat','dinh_phi','da_duyet','da_thanh_toan',''],
-    ['2025-04-02','25000000','Nhập nguyên liệu','nguyen_lieu','san_xuat','bien_phi','cho_duyet','chua_thanh_toan','Robusta G1'],
+    ['Ngày (YYYY-MM-DD)','Số tiền','Mô tả','Nhóm','Phòng ban','Loại','Trạng thái','Tình trạng chi','Hóa đơn (co/khong)','Nguồn tiền (cong_ty/ca_nhan)','Hoàn ứng (done/pending/processing)','Ghi chú'],
+    ['2025-04-01','5500000','Tiền điện tháng 3','van_hanh','san_xuat','dinh_phi','da_duyet','da_thanh_toan','co','cong_ty','done',''],
+    ['2025-04-02','25000000','Nhập nguyên liệu','nguyen_lieu','san_xuat','bien_phi','cho_duyet','chua_thanh_toan','co','ca_nhan','pending','Robusta G1'],
   ];
   const ws=XLSX.utils.aoa_to_sheet(data);
   ws['!cols']=data[0].map(()=>({wch:18}));
@@ -737,7 +751,7 @@ function _parseExpData(rows){
 }
 
 function _renderExpPreview(){
-  const cols=['Ngày','Số tiền','Mô tả','Nhóm','Phòng ban','Loại','TT duyệt','TT chi','Ghi chú'];
+  const cols=['Ngày','Số tiền','Mô tả','Nhóm','Phòng ban','Loại','TT duyệt','TT chi','Hóa đơn','Nguồn tiền','Hoàn ứng','Ghi chú'];
   let h='<div style="font-size:11px;font-weight:800;color:var(--h5c-text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px">Xem trước dữ liệu</div><div class="bulk-preview"><table><thead><tr><th style="width:30px">#</th>';
   cols.forEach(c=>h+='<th>'+c+'</th>');
   h+='<th style="width:100px">Trạng thái</th></tr></thead><tbody>';
@@ -751,7 +765,7 @@ function _renderExpPreview(){
   });
   h+='</tbody></table></div>';
   document.getElementById('bulkExpPreview').innerHTML=h;
-  document.getElementById('bulkExpStats').innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md)"><span class="bulk-stat-pill ok">Hợp lệ: ${ok}</span><span class="bulk-stat-pill err">Lỗi: ${err}</span><span class="bulk-stat-pill total">Tổng: ${_bulkExpParsed.length} dòng</span><span style="flex:1"></span><button onclick="_clearBulkExpData()" class="btn-secondary" style="font-size:10px">Xóa & nhập lại</button></div>`;
+  document.getElementById('bulkExpStats').innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md)"><span class="bulk-stat-pill ok">Hợp lệ: ${ok}</span><span class="bulk-stat-pill err">Lỗi: ${err}</span><span class="bulk-stat-pill total">Tổng: ${_bulkExpParsed.length} dòng</span><span style="flex:1"></span><button onclick="_clearBulkExpData()" class="modal-btn cancel" style="font-size:10px">Xóa & nhập lại</button></div>`;
   document.getElementById('bulkExpActions').style.display=ok>0?'block':'none';
 }
 
@@ -769,7 +783,13 @@ function _confirmBulkExpense(){
   if(!valid.length)return;
   if(!confirm('Nhập '+valid.length+' khoản chi phí?'))return;
   valid.forEach(r=>{
-    const amount=parseInt(String(r[1]).replace(/[.,]/g,''))||0;
+    const amount=parseFloat(String(r[1]).replace(/[.,]/g,''))||0;
+    const _invVal=(r[8]||'').trim().toLowerCase();
+    const _fundVal=(r[9]||'').trim().toLowerCase();
+    const _reimbVal=(r[10]||'').trim().toLowerCase();
+    const invKey=_invVal==='khong'?'khong':'co';
+    const fundKey=_fundVal==='ca_nhan'?'ca_nhan':'cong_ty';
+    const reimbKey=fundKey==='cong_ty'?'done':(['done','pending','processing'].includes(_reimbVal)?_reimbVal:'pending');
     EXPENSES.unshift({
       id:'CP'+Date.now().toString(36).toUpperCase()+(++_bulkExpSeq).toString(36).padStart(3,'0').toUpperCase(),
       date:r[0], amount, desc:r[2],
@@ -778,7 +798,10 @@ function _confirmBulkExpense(){
       expenseType:_normalizeExpVal(r[5],_EXP_TYPE_MAP)||'bien_phi',
       status:_normalizeExpVal(r[6],_EXP_STATUS_MAP)||'cho_duyet',
       payment:_normalizeExpVal(r[7],_EXP_PAY_MAP)||'chua_thanh_toan',
-      note:r[8]||'Nhập từ Excel', file:null,
+      expenseInvoice:invKey,
+      expenseFundSource:fundKey,
+      expenseReimburse:reimbKey,
+      note:r[11]||'Nhập từ Excel', file:null,
       creator:state.user.name
     });
   });
@@ -807,7 +830,7 @@ EXPENSES = H5C.init('expenses', EXPENSES);
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--h5c-border)">
       <div class="modal-title" style="margin-bottom:0">Nhập chi phí từ Excel</div>
       <div style="display:flex;gap:8px">
-        <button onclick="_downloadExpTemplate()" class="btn-secondary">Tải file mẫu</button>
+        <button onclick="_downloadExpTemplate()" class="modal-btn cancel">Tải file mẫu</button>
         <button onclick="document.getElementById('bulkExpModal').classList.add('hidden')" style="border:none;background:none;font-size:18px;color:var(--h5c-text-secondary);cursor:pointer;padding:4px 8px">✕</button>
       </div>
     </div>
@@ -837,7 +860,7 @@ EXPENSES = H5C.init('expenses', EXPENSES);
     <div id="bulkExpPreview"></div>
     <div id="bulkExpStats" style="margin-top:0"></div>
     <div id="bulkExpActions" style="display:none">
-      <button onclick="_confirmBulkExpense()" class="btn-add" style="width:100%;padding:12px;margin-top:14px">Xác nhận nhập chi phí</button>
+      <button onclick="_confirmBulkExpense()" class="modal-btn primary" style="width:100%;padding:12px;margin-top:14px">Xác nhận nhập chi phí</button>
     </div>
   </div>
 </div>
