@@ -975,6 +975,10 @@
   // INIT
   // ═══════════════════════════════════════════
   function init() {
+    // Partner portal is standalone — manually add h5c-ready class
+    // (h5c-design.css sets body opacity:0, only core.js adds h5c-ready)
+    document.body.classList.add('h5c-ready');
+
     initFirebaseReadOnly();
 
     // Check existing session
