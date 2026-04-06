@@ -16,6 +16,7 @@
 .acct-role-badge.EMPLOYEE_SALES{background:#E65100;color:#fff}
 .acct-role-badge.EMPLOYEE_FINANCE{background:#4A148C;color:#fff}
 .acct-role-badge.EMPLOYEE_HR{background:#006064;color:#fff}
+.acct-role-badge.BARISTA_PARTNER{background:#795548;color:#fff}
 .acct-role-badge.CUSTOM{background:#37474F;color:#fff}
 .perm-modal{max-width:780px}
 .perm-section{margin-bottom:16px}
@@ -211,7 +212,7 @@
           <div class="modal-group"><label class="modal-label">Mật khẩu *</label><div class="pw-toggle"><input type="password" id="empLoginPw" class="modal-input" placeholder="Tối thiểu 6 ký tự" required style="margin-bottom:0"><button type="button" class="pw-toggle-btn" onclick="const i=this.previousElementSibling;i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'">👁</button></div></div>
         </div>
         <div class="modal-row">
-          <div class="modal-group"><label class="modal-label">Vai trò (Role)</label><select id="empRole" class="modal-input"><option value="C_LEVEL">C-Level / Admin</option><option value="MANAGER">Quản lý</option><option value="EMPLOYEE_SALES">Nhân viên Sales</option><option value="EMPLOYEE_FINANCE">Nhân viên Kế toán</option><option value="EMPLOYEE_HR">Nhân viên HR</option></select></div>
+          <div class="modal-group"><label class="modal-label">Vai trò (Role)</label><select id="empRole" class="modal-input"><option value="C_LEVEL">C-Level / Admin</option><option value="MANAGER">Quản lý</option><option value="EMPLOYEE_SALES">Nhân viên Sales</option><option value="EMPLOYEE_FINANCE">Nhân viên Kế toán</option><option value="EMPLOYEE_HR">Nhân viên HR</option><option value="BARISTA_PARTNER">Đối tác Takeaway</option></select></div>
           <div class="modal-group" style="display:flex;align-items:flex-end"><div class="acct-hint">Sau khi tạo, vào tab <strong>Tài khoản &amp; Quyền</strong> để phân quyền chi tiết</div></div>
         </div>
       </div>
@@ -534,6 +535,11 @@ const BUILTIN_TEMPLATES = {
     p['ann.view']=true; p['ann.create']=true; p['ann.edit']='own';
     return p;
   })()},
+  BARISTA_PARTNER: {label:'Đối tác Takeaway', perms:(()=>{
+    const p = _allPerms(false);
+    p['tw.view']=true; p['tw.manage_orders']=true; p['tw.manage_stock']=true; p['tw.view_reports']=true;
+    return p;
+  })()},
 };
 
 // Custom templates from localStorage
@@ -771,7 +777,7 @@ h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã</th><th
 list.forEach(e=>{
 const mgr=EMPLOYEES.find(x=>x.id===e.managedBy);
 const acc=getAccounts().find(a=>a.empId===e.id);
-const ROLE_SHORT={C_LEVEL:'Admin',MANAGER:'QL',EMPLOYEE_SALES:'Sales',EMPLOYEE_FINANCE:'KT',EMPLOYEE_HR:'HR'};
+const ROLE_SHORT={C_LEVEL:'Admin',MANAGER:'QL',EMPLOYEE_SALES:'Sales',EMPLOYEE_FINANCE:'KT',EMPLOYEE_HR:'HR',BARISTA_PARTNER:'Partner'};
 const loginInfo=acc?'<div style="font-size:11px">'+acc.email+'</div><div><span class="acct-role-badge '+(acc.role)+'" style="font-size:8px;padding:1px 5px">'+(ROLE_SHORT[acc.role]||acc.role)+'</span></div>':'<span style="color:#D4851A;font-size:10px">Chưa có TK</span>';
 const bdayDisplay=e.birthday?_formatBirthday(e.birthday):'<span style="color:#6B5B4E">—</span>';
 h+='<tr><td><strong>'+e.code+'</strong></td><td><div style="display:flex;align-items:center;gap:8px"><div class="user-avatar">'+getInitials(e.name)+'</div>'+e.name+'</div></td><td><span class="dept-badge '+e.dept+'">'+DEPT_LABELS[e.dept]+'</span></td><td>'+e.position+'</td><td>'+(e.phone||'-')+'</td><td>'+bdayDisplay+'</td><td>'+loginInfo+'</td><td>'+formatDate(e.startDate)+'</td><td>'+fmt(e.salary)+'đ</td><td style="font-size:11px">'+(mgr?'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;background:#F0EAE2;color:#6B5B4E">'+mgr.name+'</span>':'<span style="color:#6B5B4E">—</span>')+'</td><td><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></td><td><div class="action-btns"><button class="action-btn" onclick="openEmpModal(\''+e.id+'\')">✏️</button><button class="action-btn" onclick="deleteEmp(\''+e.id+'\')">🗑️</button></div></td></tr>';
@@ -1032,7 +1038,7 @@ function renderAccounts() {
     return '<div class="empty-state">Chỉ Admin mới có quyền truy cập</div>';
   }
   const accounts = getAccounts();
-  const ROLE_LABELS = {C_LEVEL:'C-Level',MANAGER:'Quản lý',EMPLOYEE_SALES:'Sales',EMPLOYEE_FINANCE:'Kế toán',EMPLOYEE_HR:'HR',CUSTOM:'Tùy chỉnh'};
+  const ROLE_LABELS = {C_LEVEL:'C-Level',MANAGER:'Quản lý',EMPLOYEE_SALES:'Sales',EMPLOYEE_FINANCE:'Kế toán',EMPLOYEE_HR:'HR',BARISTA_PARTNER:'Đối tác TW',CUSTOM:'Tùy chỉnh'};
 
   let h = '<div class="section-header"><div style="font-size:13px;font-weight:700;color:#6B5B4E">'+EMPLOYEES.length+' nhân viên · '+accounts.length+' tài khoản</div></div>';
 
@@ -1092,7 +1098,7 @@ function renderAccounts() {
 function openAccountModal(email) {
   const accounts = getAccounts();
   const acc = email ? accounts.find(a => a.email === email) : null;
-  const ROLE_LABELS = {C_LEVEL:'C-Level / Admin',MANAGER:'Quản lý',EMPLOYEE_SALES:'Nhân viên Sales',EMPLOYEE_FINANCE:'Nhân viên Kế toán',EMPLOYEE_HR:'Nhân viên HR'};
+  const ROLE_LABELS = {C_LEVEL:'C-Level / Admin',MANAGER:'Quản lý',EMPLOYEE_SALES:'Nhân viên Sales',EMPLOYEE_FINANCE:'Nhân viên Kế toán',EMPLOYEE_HR:'Nhân viên HR',BARISTA_PARTNER:'Đối tác Takeaway'};
   const empOptions = EMPLOYEES.map(e => '<option value="'+e.id+'"'+(acc&&acc.empId===e.id?' selected':'')+'>'+e.name+' ('+e.code+')</option>').join('');
   const roleOptions = Object.entries(ROLE_LABELS).map(([k,v])=>'<option value="'+k+'"'+(acc&&acc.role===k?' selected':'')+'>'+v+'</option>').join('');
 
