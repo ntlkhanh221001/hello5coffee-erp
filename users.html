@@ -186,10 +186,13 @@
         <div class="modal-group"><label class="modal-label">Mã NV *</label><input type="text" id="empCode" class="modal-input" required></div>
         <div class="modal-group"><label class="modal-label">Họ tên *</label><input type="text" id="empName" class="modal-input" required></div>
       </div>
+      <div class="modal-row" style="margin-bottom:0">
+        <div class="modal-group"><label class="modal-label">Mảng *</label><select id="empDivision" class="modal-input" onchange="window._onDivisionChange&&_onDivisionChange()"><option value="cafe">☕ Cafe</option><option value="takeaway">🥤 Takeaway</option></select></div>
+        <div class="modal-group"><label class="modal-label">Trạng thái</label><select id="empStatus" class="modal-input"><option value="active">Chính thức</option><option value="probation">Thử việc</option><option value="handover">Đang bàn giao</option><option value="inactive">Nghỉ việc</option></select></div>
+      </div>
       <div class="modal-row three">
         <div class="modal-group"><label class="modal-label">Phòng ban</label><select id="empDept" class="modal-input"><option value="kinh_doanh">Kinh doanh</option><option value="san_xuat">Sản xuất</option><option value="marketing">Marketing</option><option value="hr">HR</option><option value="ke_toan">Kế toán</option><option value="ban_gd">Ban GĐ</option><option value="it">IT</option></select></div>
         <div class="modal-group"><label class="modal-label">Chức vụ</label><input type="text" id="empPosition" class="modal-input"></div>
-        <div class="modal-group"><label class="modal-label">Trạng thái</label><select id="empStatus" class="modal-input"><option value="active">Chính thức</option><option value="probation">Thử việc</option><option value="handover">Đang bàn giao</option><option value="inactive">Nghỉ việc</option></select></div>
       </div>
       <div class="modal-row">
         <div class="modal-group"><label class="modal-label">SĐT</label><input type="text" id="empPhone" class="modal-input"></div>
@@ -770,19 +773,21 @@ return h;
 
 // ============ DANH SÁCH NV ============
 function renderEmployees(){
-let h='<div class="section-header"><div class="section-filters"><select class="filter-select" id="fDept" onchange="render()"><option value="all">Tất cả PB</option>'+Object.entries(DEPT_LABELS).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select><select class="filter-select" id="fStatus" onchange="render()"><option value="all">Tất cả TT</option>'+Object.entries(STATUS_LABELS).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select><input class="filter-input" id="fSearch" placeholder="Tìm..." onkeyup="render()"></div><button class="btn-add" onclick="openEmpModal()">Thêm NV</button></div>';
-const df=document.getElementById('fDept')?.value||'all',sf=document.getElementById('fStatus')?.value||'all',search=(document.getElementById('fSearch')?.value||'').toLowerCase();
-let list=EMPLOYEES.filter(e=>(df==='all'||e.dept===df)&&(sf==='all'||e.status===sf)&&(!search||e.name.toLowerCase().includes(search)||e.code.toLowerCase().includes(search)));
-h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã</th><th>Họ tên</th><th>Phòng ban</th><th>Chức vụ</th><th>SĐT</th><th>Sinh nhật</th><th>TK đăng nhập</th><th>Ngày vào</th><th>Mức lương</th><th>Quản lý bởi</th><th>TT</th><th></th></tr></thead><tbody>';
+const DIV_LABELS={cafe:'☕ Cafe',takeaway:'🥤 Takeaway'};
+let h='<div class="section-header"><div class="section-filters"><select class="filter-select" id="fDivision" onchange="render()"><option value="all">Tất cả mảng</option><option value="cafe">☕ Cafe</option><option value="takeaway">🥤 Takeaway</option></select><select class="filter-select" id="fDept" onchange="render()"><option value="all">Tất cả PB</option>'+Object.entries(DEPT_LABELS).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select><select class="filter-select" id="fStatus" onchange="render()"><option value="all">Tất cả TT</option>'+Object.entries(STATUS_LABELS).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select><input class="filter-input" id="fSearch" placeholder="Tìm..." onkeyup="render()"></div><button class="btn-add" onclick="openEmpModal()">Thêm NV</button></div>';
+const dvf=document.getElementById('fDivision')?.value||'all',df=document.getElementById('fDept')?.value||'all',sf=document.getElementById('fStatus')?.value||'all',search=(document.getElementById('fSearch')?.value||'').toLowerCase();
+let list=EMPLOYEES.filter(e=>(dvf==='all'||(e.division||'cafe')===dvf)&&(df==='all'||e.dept===df)&&(sf==='all'||e.status===sf)&&(!search||e.name.toLowerCase().includes(search)||e.code.toLowerCase().includes(search)));
+h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã</th><th>Họ tên</th><th>Mảng</th><th>Phòng ban</th><th>Chức vụ</th><th>SĐT</th><th>Sinh nhật</th><th>TK đăng nhập</th><th>Ngày vào</th><th>Mức lương</th><th>Quản lý bởi</th><th>TT</th><th></th></tr></thead><tbody>';
 list.forEach(e=>{
 const mgr=EMPLOYEES.find(x=>x.id===e.managedBy);
 const acc=getAccounts().find(a=>a.empId===e.id);
 const ROLE_SHORT={C_LEVEL:'Admin',MANAGER:'QL',EMPLOYEE_SALES:'Sales',EMPLOYEE_FINANCE:'KT',EMPLOYEE_HR:'HR',BARISTA_PARTNER:'Partner'};
 const loginInfo=acc?'<div style="font-size:11px">'+acc.email+'</div><div><span class="acct-role-badge '+(acc.role)+'" style="font-size:8px;padding:1px 5px">'+(ROLE_SHORT[acc.role]||acc.role)+'</span></div>':'<span style="color:#D4851A;font-size:10px">Chưa có TK</span>';
 const bdayDisplay=e.birthday?_formatBirthday(e.birthday):'<span style="color:#6B5B4E">—</span>';
-h+='<tr><td><strong>'+e.code+'</strong></td><td><div style="display:flex;align-items:center;gap:8px"><div class="user-avatar">'+getInitials(e.name)+'</div>'+e.name+'</div></td><td><span class="dept-badge '+e.dept+'">'+DEPT_LABELS[e.dept]+'</span></td><td>'+e.position+'</td><td>'+(e.phone||'-')+'</td><td>'+bdayDisplay+'</td><td>'+loginInfo+'</td><td>'+formatDate(e.startDate)+'</td><td>'+fmt(e.salary)+'đ</td><td style="font-size:11px">'+(mgr?'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;background:#F0EAE2;color:#6B5B4E">'+mgr.name+'</span>':'<span style="color:#6B5B4E">—</span>')+'</td><td><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></td><td><div class="action-btns"><button class="action-btn" onclick="openEmpModal(\''+e.id+'\')">✏️</button><button class="action-btn" onclick="deleteEmp(\''+e.id+'\')">🗑️</button></div></td></tr>';
+const divLabel=DIV_LABELS[e.division||'cafe']||'☕ Cafe';
+h+='<tr><td><strong>'+e.code+'</strong></td><td><div style="display:flex;align-items:center;gap:8px"><div class="user-avatar">'+getInitials(e.name)+'</div>'+e.name+'</div></td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+(e.division==='takeaway'?'#FFF3E0;color:#E65100':'#E8F5E9;color:#2E7D32')+'">'+divLabel+'</span></td><td><span class="dept-badge '+e.dept+'">'+DEPT_LABELS[e.dept]+'</span></td><td>'+e.position+'</td><td>'+(e.phone||'-')+'</td><td>'+bdayDisplay+'</td><td>'+loginInfo+'</td><td>'+formatDate(e.startDate)+'</td><td>'+fmt(e.salary)+'đ</td><td style="font-size:11px">'+(mgr?'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;background:#F0EAE2;color:#6B5B4E">'+mgr.name+'</span>':'<span style="color:#6B5B4E">—</span>')+'</td><td><span class="status-badge '+e.status+'">'+STATUS_LABELS[e.status]+'</span></td><td><div class="action-btns"><button class="action-btn" onclick="openEmpModal(\''+e.id+'\')">✏️</button><button class="action-btn" onclick="deleteEmp(\''+e.id+'\')">🗑️</button></div></td></tr>';
 });
-if(!list.length)h+='<tr><td colspan="12" class="empty-state">Không có dữ liệu</td></tr>';
+if(!list.length)h+='<tr><td colspan="13" class="empty-state">Không có dữ liệu</td></tr>';
 h+='</tbody></table></div>';return h;
 }
 
@@ -904,6 +909,7 @@ if(id){
   document.getElementById('empId').value=e.id;
   document.getElementById('empCode').value=e.code;
   document.getElementById('empName').value=e.name;
+  document.getElementById('empDivision').value=e.division||'cafe';
   document.getElementById('empDept').value=e.dept;
   document.getElementById('empPosition').value=e.position;
   document.getElementById('empStatus').value=e.status;
@@ -926,6 +932,7 @@ if(id){
   document.getElementById('empId').value='';
   document.getElementById('empCode').value='NV'+String(EMPLOYEES.length+1).padStart(3,'0');
   document.getElementById('empName').value='';
+  document.getElementById('empDivision').value='cafe';
   document.getElementById('empPosition').value='';
   document.getElementById('empPhone').value='';
   document.getElementById('empEmail').value='';
@@ -939,10 +946,20 @@ if(id){
   _populateManagedBySelect('');
 }
 m.classList.remove('hidden');
+// Auto-switch role when division changes
+window._onDivisionChange = function() {
+  const div = document.getElementById('empDivision').value;
+  const roleEl = document.getElementById('empRole');
+  if (div === 'takeaway') {
+    roleEl.value = 'BARISTA_PARTNER';
+  } else if (roleEl.value === 'BARISTA_PARTNER') {
+    roleEl.value = 'EMPLOYEE_SALES';
+  }
+};
 }
 function saveEmployee(e){
 e.preventDefault();const id=document.getElementById('empId').value;
-const d={id:id||(function(){let eid;do{eid='EMP'+Date.now().toString(36).toUpperCase();}while(EMPLOYEES.find(x=>x.id===eid));return eid;})(),code:document.getElementById('empCode').value,name:document.getElementById('empName').value,dept:document.getElementById('empDept').value,position:document.getElementById('empPosition').value,status:document.getElementById('empStatus').value,phone:document.getElementById('empPhone').value,email:document.getElementById('empEmail').value,birthday:document.getElementById('empBirthday').value||'',startDate:document.getElementById('empStartDate').value,salary:_parseSalary(document.getElementById('empSalary').value),dependents:parseInt(document.getElementById('empDependents').value)||0,managedBy:document.getElementById('empManagedBy')?.value||'',commType:document.getElementById('empCommType')?.value||'individual'};
+const d={id:id||(function(){let eid;do{eid='EMP'+Date.now().toString(36).toUpperCase();}while(EMPLOYEES.find(x=>x.id===eid));return eid;})(),code:document.getElementById('empCode').value,name:document.getElementById('empName').value,division:document.getElementById('empDivision').value||'cafe',dept:document.getElementById('empDept').value,position:document.getElementById('empPosition').value,status:document.getElementById('empStatus').value,phone:document.getElementById('empPhone').value,email:document.getElementById('empEmail').value,birthday:document.getElementById('empBirthday').value||'',startDate:document.getElementById('empStartDate').value,salary:_parseSalary(document.getElementById('empSalary').value),dependents:parseInt(document.getElementById('empDependents').value)||0,managedBy:document.getElementById('empManagedBy')?.value||'',commType:document.getElementById('empCommType')?.value||'individual'};
 
 // Save employee
 if(id){const i=EMPLOYEES.findIndex(x=>x.id===id);if(i>=0)EMPLOYEES[i]=d;}else EMPLOYEES.push(d);
@@ -1003,6 +1020,7 @@ function renderTeamOrg(){
             ${e.position||''} · <span style="font-size:10px">${DEPT_LABELS_LOCAL[e.dept]||e.dept}</span>
           </div>
           <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
+            <span style="background:${(e.division||'cafe')==='takeaway'?'#FFF3E0;color:#E65100':'#E8F5E9;color:#2E7D32'};padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">${(e.division||'cafe')==='takeaway'?'🥤 Takeaway':'☕ Cafe'}</span>
             <span style="background:${COMM_COLORS[commType]};color:${COMM_TEXT[commType]};padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">${COMM_TYPE_LABELS[commType]}</span>
             ${childList.length?`<span style="background:#FFF4E6;color:#D4851A;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">Quản lý ${childList.length} người</span>`:''}
           </div>
