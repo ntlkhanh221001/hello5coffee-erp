@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hello 5 Coffee — Partner Portal</title>
+<link rel="stylesheet" href="h5c-design.css?v=3"/>
+<style>
+:root{--brown:#38261C;--brown-l:#5C3D2A;--green:#8FC643;--green-d:#6FA030;--cream:#FBF6F0;--cream-d:#F0E6D8;--white:#FFF;--red:#C0392B;--orange:#D4851A;--blue:#2980B9}
+
+/* ═══ Login ═══ */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--brown) 0%,var(--brown-l) 100%)}
+.login-card{background:var(--white);border-radius:20px;padding:48px 40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center}
+.login-logo{width:72px;height:72px;background:var(--green);border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:36px}
+.login-title{font-size:20px;font-weight:800;color:var(--brown);margin-bottom:4px}
+.login-sub{font-size:13px;color:#888;margin-bottom:28px}
+.login-input{width:100%;padding:14px 16px;border:2px solid #e0e0e0;border-radius:12px;font-size:14px;margin-bottom:14px;box-sizing:border-box;transition:border .2s}
+.login-input:focus{outline:none;border-color:var(--green)}
+.login-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--green);color:var(--brown);font-size:15px;font-weight:800;cursor:pointer;transition:all .2s}
+.login-btn:hover{background:var(--green-d)}
+.login-err{color:var(--red);font-size:12px;margin-top:8px;display:none}
+
+/* ═══ Portal Layout ═══ */
+.portal{display:none;min-height:100vh;background:var(--cream)}
+.portal-topbar{background:var(--brown);color:var(--white);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.portal-brand{display:flex;align-items:center;gap:12px}
+.portal-brand .logo{width:40px;height:40px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px}
+.portal-brand .name{font-size:16px;font-weight:800}
+.portal-brand .tag{font-size:11px;color:rgba(255,255,255,.6)}
+.portal-user{display:flex;align-items:center;gap:12px;font-size:13px}
+.portal-logout{padding:8px 16px;border:1px solid rgba(255,255,255,.3);border-radius:8px;background:transparent;color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.portal-logout:hover{background:rgba(255,255,255,.1)}
+.portal-body{max-width:1200px;margin:0 auto;padding:24px}
+
+/* ═══ Tab Bar ═══ */
+.p-tab-bar{display:flex;gap:4px;background:var(--white);border-radius:14px;padding:5px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);flex-wrap:wrap}
+.p-tab{padding:10px 20px;border:none;border-radius:10px;background:transparent;font-size:13px;font-weight:700;color:#888;cursor:pointer;transition:all .2s;white-space:nowrap}
+.p-tab.active{background:var(--green);color:var(--brown)}
+.p-tab:hover:not(.active){color:var(--brown)}
+.p-panel{display:none}
+.p-panel.active{display:block}
+
+/* ═══ Cards ═══ */
+.p-card{background:var(--white);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.p-card h3{margin:0 0 16px;font-size:16px;font-weight:800;color:var(--brown)}
+
+/* ═══ KPI ═══ */
+.p-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.p-kpi{background:var(--white);border-radius:14px;padding:24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.p-kpi .icon{font-size:28px;margin-bottom:8px}
+.p-kpi .label{font-size:12px;color:#888;font-weight:600;margin-bottom:4px}
+.p-kpi .value{font-size:26px;font-weight:800;color:var(--brown)}
+.p-kpi .sub{font-size:11px;color:#aaa;margin-top:4px}
+
+/* ═══ Table ═══ */
+.p-table{width:100%;border-collapse:collapse;font-size:13px}
+.p-table th{background:var(--cream);padding:12px 14px;text-align:left;font-weight:700;color:var(--brown);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.p-table td{padding:12px 14px;border-bottom:1px solid var(--cream-d)}
+.p-table tr:hover{background:var(--cream)}
+.p-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700}
+.p-badge.green{background:#E8F5E9;color:#2E7D32}
+.p-badge.red{background:#FFEBEE;color:#C62828}
+.p-badge.orange{background:#FFF3E0;color:#E65100}
+.p-badge.gray{background:#F5F5F5;color:#757575}
+.p-badge.blue{background:#E3F2FD;color:#1565C0}
+
+/* ═══ P&L ═══ */
+.pnl-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--cream-d);font-size:14px}
+.pnl-row.sub{padding-left:24px;font-size:13px;color:#666}
+.pnl-row.total{border-top:2px solid var(--brown);border-bottom:none;font-weight:800;font-size:16px;padding-top:16px;margin-top:4px}
+.pnl-row.highlight{background:var(--cream);border-radius:10px;padding:16px;margin:8px -8px;font-size:18px;font-weight:800}
+.pnl-row .pos{color:#2E7D32}
+.pnl-row .neg{color:#C62828}
+
+/* ═══ Timeline ═══ */
+.p-timeline{display:flex;flex-direction:column;gap:12px}
+.p-timeline-item{display:flex;align-items:center;gap:16px;padding:14px 18px;background:var(--cream);border-radius:12px}
+.p-timeline-item .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.p-timeline-item .dot.green{background:#4CAF50}
+.p-timeline-item .dot.orange{background:#FF9800}
+.p-timeline-item .dot.blue{background:#2196F3}
+.p-timeline-item .info{flex:1}
+.p-timeline-item .info .title{font-size:13px;font-weight:700;color:var(--brown)}
+.p-timeline-item .info .detail{font-size:11px;color:#888;margin-top:2px}
+.p-timeline-item .amount{font-size:14px;font-weight:800;color:var(--brown)}
+
+/* ═══ Empty ═══ */
+.p-empty{text-align:center;padding:48px 20px;color:#aaa}
+.p-empty .icon{font-size:48px;margin-bottom:12px}
+
+/* ═══ Responsive ═══ */
+@media(max-width:768px){
+  .p-kpi-grid{grid-template-columns:1fr 1fr}
+  .portal-body{padding:16px}
+  .p-tab-bar{gap:2px;padding:3px}
+  .p-tab{padding:8px 12px;font-size:12px}
+  .login-card{margin:16px;padding:32px 24px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- LOGIN SCREEN                               -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">☕</div>
+    <div class="login-title">Hello 5 Coffee</div>
+    <div class="login-sub">Partner Portal — Đăng nhập để xem dữ liệu</div>
+    <input class="login-input" type="email" id="loginEmail" placeholder="Email đối tác" autocomplete="email"/>
+    <input class="login-input" type="password" id="loginPw" placeholder="Mật khẩu" autocomplete="current-password"/>
+    <button class="login-btn" onclick="partnerLogin()">Đăng nhập</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PORTAL (shown after login)                 -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="portal" id="portalScreen">
+
+  <!-- Topbar -->
+  <div class="portal-topbar">
+    <div class="portal-brand">
+      <div class="logo">☕</div>
+      <div>
+        <div class="name">Hello 5 Coffee</div>
+        <div class="tag">Partner Portal</div>
+      </div>
+    </div>
+    <div class="portal-user">
+      <span id="portalUserName"></span>
+      <button class="portal-logout" onclick="partnerLogout()">Đăng xuất</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="portal-body">
+
+    <!-- Tab Bar -->
+    <div class="p-tab-bar" id="pTabBar">
+      <button class="p-tab active" data-tab="overview" onclick="pSwitchTab('overview')">📊 Tổng quan</button>
+      <button class="p-tab" data-tab="sales" onclick="pSwitchTab('sales')">🧾 Doanh số</button>
+      <button class="p-tab" data-tab="menu-stock" onclick="pSwitchTab('menu-stock')">📋 Menu & Kho</button>
+      <button class="p-tab" data-tab="costs" onclick="pSwitchTab('costs')">💰 Chi phí</button>
+      <button class="p-tab" data-tab="settlement" onclick="pSwitchTab('settlement')">🤝 Thanh toán</button>
+    </div>
+
+    <!-- ═══ TAB: Overview ═══ -->
+    <div class="p-panel active" id="pp-overview">
+      <div class="p-kpi-grid" id="pKpiOverview"></div>
+      <div class="p-card">
+        <h3>📈 Doanh số 7 ngày gần nhất</h3>
+        <canvas id="pChart7d" height="220"></canvas>
+      </div>
+      <div class="p-card">
+        <h3>🕐 Hoạt động gần đây</h3>
+        <div id="pRecentActivity"></div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Sales ═══ -->
+    <div class="p-panel" id="pp-sales">
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        <select class="login-input" style="width:auto;margin:0;padding:10px 14px;border-radius:10px" id="pSalesBranch" onchange="pRenderSales()">
+          <option value="">Tất cả chi nhánh</option>
+        </select>
+        <input type="date" class="login-input" style="width:auto;margin:0;padding:10px 14px;border-radius:10px" id="pSalesFrom" onchange="pRenderSales()"/>
+        <span style="color:#888">→</span>
+        <input type="date" class="login-input" style="width:auto;margin:0;padding:10px 14px;border-radius:10px" id="pSalesTo" onchange="pRenderSales()"/>
+      </div>
+      <div class="p-kpi-grid" id="pKpiSales"></div>
+      <div class="p-card">
+        <h3>📋 Danh sách đơn hàng</h3>
+        <div style="overflow-x:auto">
+          <table class="p-table" id="pSalesTable">
+            <thead>
+              <tr>
+                <th>Mã đơn</th>
+                <th>Chi nhánh</th>
+                <th>Món</th>
+                <th>Tổng tiền</th>
+                <th>Thanh toán</th>
+                <th>Trạng thái</th>
+                <th>Thời gian</th>
+              </tr>
+            </thead>
+            <tbody id="pSalesBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="p-card">
+        <h3>🏆 Top sản phẩm bán chạy</h3>
+        <div id="pTopProducts"></div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Menu & Stock ═══ -->
+    <div class="p-panel" id="pp-menu-stock">
+      <div class="p-card">
+        <h3>📋 Menu hiện tại</h3>
+        <div style="overflow-x:auto">
+          <table class="p-table" id="pMenuTable">
+            <thead>
+              <tr>
+                <th>Tên món</th>
+                <th>Danh mục</th>
+                <th>Size</th>
+                <th>Giá bán</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="pMenuBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="p-card">
+        <h3>📦 Tồn kho nguyên liệu (Kho tổng)</h3>
+        <div style="overflow-x:auto">
+          <table class="p-table" id="pStockTable">
+            <thead>
+              <tr>
+                <th>Nguyên liệu</th>
+                <th>Đơn vị</th>
+                <th>Tồn kho</th>
+                <th>Mức tối thiểu</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="pStockBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="p-card">
+        <h3>📤 Lịch sử phân phối</h3>
+        <div id="pDistHistory"></div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Costs ═══ -->
+    <div class="p-panel" id="pp-costs">
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        <select class="login-input" style="width:auto;margin:0;padding:10px 14px;border-radius:10px" id="pCostType" onchange="pRenderCosts()">
+          <option value="">Tất cả loại</option>
+          <option value="ingredients">Nguyên liệu</option>
+          <option value="rent">Mặt bằng</option>
+          <option value="utilities">Điện/Nước</option>
+          <option value="staff">Nhân sự</option>
+          <option value="marketing">Marketing</option>
+          <option value="packaging">Bao bì</option>
+          <option value="maintenance">Bảo trì</option>
+          <option value="other">Khác</option>
+        </select>
+        <input type="month" class="login-input" style="width:auto;margin:0;padding:10px 14px;border-radius:10px" id="pCostMonth" onchange="pRenderCosts()"/>
+      </div>
+      <div class="p-kpi-grid" id="pKpiCosts"></div>
+      <div class="p-card">
+        <h3>📊 Chi phí theo loại</h3>
+        <div id="pCostBreakdown"></div>
+      </div>
+      <div class="p-card">
+        <h3>📋 Chi tiết chi phí</h3>
+        <div style="overflow-x:auto">
+          <table class="p-table">
+            <thead>
+              <tr>
+                <th>Mô tả</th>
+                <th>Loại</th>
+                <th>Chi nhánh</th>
+                <th>Số tiền</th>
+                <th>Ngày</th>
+              </tr>
+            </thead>
+            <tbody id="pCostBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Settlement ═══ -->
+    <div class="p-panel" id="pp-settlement">
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        <input type="month" class="login-input" style="width:auto;margin:0;padding:10px 14px;border-radius:10px" id="pSettleMonth" onchange="pRenderSettlement()"/>
+      </div>
+
+      <div class="p-card">
+        <h3>📊 Báo cáo Lãi / Lỗ (P&L)</h3>
+        <div id="pPnlReport"></div>
+      </div>
+
+      <div class="p-card">
+        <h3>🤝 Chia sẻ lợi nhuận</h3>
+        <div class="p-kpi-grid" id="pKpiSettle"></div>
+        <div id="pSettleDetail" style="margin-top:16px"></div>
+      </div>
+
+      <div class="p-card">
+        <h3>📅 Lịch sử thanh toán theo tháng</h3>
+        <div id="pSettleHistory"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase SDK + Sync (read-only for partner) -->
+<script>
+// ═══════════════════════════════════════════════════════
+// PARTNER PORTAL — Standalone Script
+// Read-only: chỉ đọc dữ liệu từ localStorage/Firebase
+// ═══════════════════════════════════════════════════════
+(function() {
+  'use strict';
+
+  const LS_PREFIX = 'h5c_v1_';
+
+  // ── Read-only helpers ──
+  function get(k) {
+    try { return JSON.parse(localStorage.getItem(LS_PREFIX + k) || 'null') || []; } catch(e) { return []; }
+  }
+  function getObj(k) {
+    try { return JSON.parse(localStorage.getItem(LS_PREFIX + k) || 'null') || {}; } catch(e) { return {}; }
+  }
+  function fmtMoney(n) { return (n||0).toLocaleString('vi-VN') + 'đ'; }
+  function fmtDate(d) { if(!d) return '—'; return new Date(d).toLocaleDateString('vi-VN'); }
+  function fmtDateTime(d) { if(!d) return '—'; const dt=new Date(d); return dt.toLocaleDateString('vi-VN')+' '+dt.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
+  function today() { return new Date().toISOString().slice(0,10); }
+  function thisMonth() { return new Date().toISOString().slice(0,7); }
+
+  const EXPENSE_LABELS = {
+    ingredients:'Nguyên liệu', rent:'Mặt bằng', utilities:'Điện/Nước',
+    staff:'Nhân sự', marketing:'Marketing', packaging:'Bao bì',
+    maintenance:'Bảo trì', other:'Khác'
+  };
+  const CATEGORY_LABELS = { coffee:'Cà phê', tea:'Trà', juice:'Nước ép', food:'Đồ ăn', other:'Khác' };
+  const STATUS_LABELS = { pending:'Chờ pha', preparing:'Đang pha', ready:'Sẵn sàng', completed:'Hoàn thành', cancelled:'Đã hủy' };
+
+  // ═══════════════════════════════════════════
+  // LOGIN / SESSION
+  // ═══════════════════════════════════════════
+  // ── Session: ưu tiên đọc từ ERP (h5c_erp_user), fallback login riêng ──
+  const ERP_SESSION_KEY = 'h5c_erp_user';
+  const PARTNER_SESSION_KEY = 'h5c_partner_session';
+  const ALLOWED_ROLES = ['BARISTA_PARTNER', 'C_LEVEL', 'MANAGER'];
+
+  function getSession() {
+    // 1. Check ERP session first (redirected from main ERP login)
+    try {
+      const erp = JSON.parse(localStorage.getItem(ERP_SESSION_KEY) || 'null');
+      if (erp && ALLOWED_ROLES.includes(erp.role)) return { ...erp, source: 'erp' };
+    } catch(e) {}
+    // 2. Fallback: partner standalone session
+    try {
+      const ps = JSON.parse(localStorage.getItem(PARTNER_SESSION_KEY) || 'null');
+      if (ps) return { ...ps, source: 'partner' };
+    } catch(e) {}
+    return null;
+  }
+
+  window.partnerLogin = function() {
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const pw = document.getElementById('loginPw').value;
+    const errEl = document.getElementById('loginErr');
+    errEl.style.display = 'none';
+
+    if (!email || !pw) { errEl.textContent = 'Vui lòng nhập email và mật khẩu'; errEl.style.display = 'block'; return; }
+
+    const accounts = get('accounts');
+    const acc = accounts.find(a => (a.email||'').toLowerCase() === email && a.pw === pw);
+
+    if (!acc) {
+      errEl.textContent = 'Email hoặc mật khẩu không đúng';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    if (!ALLOWED_ROLES.includes(acc.role)) {
+      errEl.textContent = 'Tài khoản không có quyền truy cập Partner Portal';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Save as ERP session so it's consistent across the system
+    localStorage.setItem(ERP_SESSION_KEY, JSON.stringify({
+      id: acc.empId || acc.email, name: acc.name, role: acc.role,
+      pos: acc.pos, email: acc.email, empId: acc.empId || '',
+      loginAt: Date.now()
+    }));
+    showPortal();
+  };
+
+  window.partnerLogout = function() {
+    const session = getSession();
+    localStorage.removeItem(ERP_SESSION_KEY);
+    localStorage.removeItem(PARTNER_SESSION_KEY);
+    // If logged in from ERP, redirect back to main dashboard login
+    if (session && session.source === 'erp') {
+      window.location.href = 'dashboard.html';
+      return;
+    }
+    document.getElementById('portalScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  };
+
+  function showPortal() {
+    const session = getSession();
+    if (!session) return;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('portalScreen').style.display = 'block';
+    document.getElementById('portalUserName').textContent = session.name || session.email;
+    populateDropdowns();
+    setDefaultDates();
+    pRenderOverview();
+  }
+
+  // ═══════════════════════════════════════════
+  // TAB SWITCHING
+  // ═══════════════════════════════════════════
+  window.pSwitchTab = function(tabId) {
+    document.querySelectorAll('.p-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+    document.querySelectorAll('.p-panel').forEach(p => p.classList.toggle('active', p.id === 'pp-' + tabId));
+    switch(tabId) {
+      case 'overview':   pRenderOverview(); break;
+      case 'sales':      pRenderSales(); break;
+      case 'menu-stock': pRenderMenuStock(); break;
+      case 'costs':      pRenderCosts(); break;
+      case 'settlement': pRenderSettlement(); break;
+    }
+  };
+
+  function populateDropdowns() {
+    const branches = get('tw_branches').filter(b => b.status === 'active');
+    ['pSalesBranch'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const first = el.querySelector('option');
+      el.innerHTML = '';
+      if (first) el.appendChild(first);
+      branches.forEach(b => {
+        const o = document.createElement('option');
+        o.value = b.id; o.textContent = b.name;
+        el.appendChild(o);
+      });
+    });
+  }
+
+  function setDefaultDates() {
+    const t = today();
+    const m = thisMonth();
+    const el = (id,v) => { const e=document.getElementById(id); if(e) e.value=v; };
+    el('pSalesFrom', t);
+    el('pSalesTo', t);
+    el('pCostMonth', m);
+    el('pSettleMonth', m);
+  }
+
+  // ═══════════════════════════════════════════
+  // TAB: OVERVIEW
+  // ═══════════════════════════════════════════
+  function pRenderOverview() {
+    const orders = get('tw_orders');
+    const todayStr = today();
+    const monthStr = thisMonth();
+    const todayOrders = orders.filter(o => o.date === todayStr && o.status !== 'cancelled');
+    const monthOrders = orders.filter(o => (o.date||'').startsWith(monthStr) && o.status === 'completed');
+    const todayRev = todayOrders.reduce((s,o) => s + (o.total||0), 0);
+    const monthRev = monthOrders.reduce((s,o) => s + (o.total||0), 0);
+    const branches = get('tw_branches').filter(b => b.status === 'active');
+    const config = getObj('tw_partner_config');
+
+    // Monthly P&L quick
+    const monthExp = get('tw_expenses').filter(e => (e.date||'').startsWith(monthStr));
+    const totalCosts = monthExp.reduce((s,e) => s + (e.amount||0), 0);
+    const netProfit = monthRev - totalCosts;
+    const sharePercent = config.sharePercent || 30;
+    const partnerShare = Math.round(Math.max(0, netProfit) * sharePercent / 100);
+
+    document.getElementById('pKpiOverview').innerHTML = `
+      <div class="p-kpi"><div class="icon">🧾</div><div class="label">Đơn hôm nay</div><div class="value">${todayOrders.length}</div></div>
+      <div class="p-kpi"><div class="icon">💰</div><div class="label">Doanh thu hôm nay</div><div class="value">${fmtMoney(todayRev)}</div></div>
+      <div class="p-kpi"><div class="icon">📈</div><div class="label">Doanh thu tháng</div><div class="value">${fmtMoney(monthRev)}</div></div>
+      <div class="p-kpi"><div class="icon">🏪</div><div class="label">Chi nhánh</div><div class="value">${branches.length}</div></div>
+      <div class="p-kpi"><div class="icon">🤝</div><div class="label">Phần bạn (tháng)</div><div class="value" style="color:#2E7D32">${fmtMoney(partnerShare)}</div><div class="sub">${sharePercent}% lợi nhuận ròng</div></div>
+    `;
+
+    // 7-day chart
+    pRenderChart7d(orders);
+
+    // Recent activity
+    const recent = orders.slice().sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||'')).slice(0, 10);
+    const branchList = get('tw_branches');
+    if (!recent.length) {
+      document.getElementById('pRecentActivity').innerHTML = '<div class="p-empty"><div class="icon">🕐</div><p>Chưa có hoạt động</p></div>';
+    } else {
+      document.getElementById('pRecentActivity').innerHTML = '<div class="p-timeline">' + recent.map(o => {
+        const br = branchList.find(b => b.id === o.branchId);
+        const dotClass = o.status === 'completed' ? 'green' : o.status === 'cancelled' ? 'orange' : 'blue';
+        return `<div class="p-timeline-item">
+          <div class="dot ${dotClass}"></div>
+          <div class="info">
+            <div class="title">${o.code||o.id} — ${br?br.name:''}</div>
+            <div class="detail">${STATUS_LABELS[o.status]||o.status} · ${fmtDateTime(o.createdAt)}</div>
+          </div>
+          <div class="amount">${fmtMoney(o.total)}</div>
+        </div>`;
+      }).join('') + '</div>';
+    }
+  }
+
+  function pRenderChart7d(orders) {
+    const canvas = document.getElementById('pChart7d');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.parentElement.clientWidth - 48;
+    canvas.width = w; canvas.height = 220;
+    ctx.clearRect(0, 0, w, 220);
+
+    // Last 7 days
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      days.push(d.toISOString().slice(0, 10));
+    }
+    const values = days.map(d => {
+      return orders.filter(o => o.date === d && o.status === 'completed').reduce((s,o) => s + (o.total||0), 0);
+    });
+    const max = Math.max(...values, 1);
+
+    const barW = Math.min(40, (w - 80) / 7 - 8);
+    const chartH = 160;
+    const startX = 40;
+    const startY = 10;
+
+    // Grid lines
+    ctx.strokeStyle = '#eee';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = startY + chartH - (chartH * i / 4);
+      ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(w - 10, y); ctx.stroke();
+    }
+
+    // Bars
+    days.forEach((d, i) => {
+      const x = startX + i * ((w - 60) / 7) + ((w - 60) / 7 - barW) / 2;
+      const h = (values[i] / max) * chartH;
+      const y = startY + chartH - h;
+
+      // Gradient bar
+      const grad = ctx.createLinearGradient(x, y, x, startY + chartH);
+      grad.addColorStop(0, '#8FC643');
+      grad.addColorStop(1, '#6FA030');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(x, y, barW, h, [4, 4, 0, 0]);
+      ctx.fill();
+
+      // Value on top
+      if (values[i] > 0) {
+        ctx.fillStyle = '#38261C';
+        ctx.font = '10px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText(fmtMoney(values[i]).replace('đ',''), x + barW/2, y - 6);
+      }
+
+      // Date label
+      ctx.fillStyle = '#888';
+      ctx.font = '11px system-ui';
+      ctx.textAlign = 'center';
+      const label = d.slice(5).replace('-','/');
+      ctx.fillText(label, x + barW/2, startY + chartH + 20);
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // TAB: SALES
+  // ═══════════════════════════════════════════
+  window.pRenderSales = function() {
+    const branchId = document.getElementById('pSalesBranch')?.value || '';
+    const from = document.getElementById('pSalesFrom')?.value || '';
+    const to = document.getElementById('pSalesTo')?.value || '';
+
+    let orders = get('tw_orders');
+    if (branchId) orders = orders.filter(o => o.branchId === branchId);
+    if (from) orders = orders.filter(o => o.date >= from);
+    if (to) orders = orders.filter(o => o.date <= to);
+    orders.sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
+
+    const completed = orders.filter(o => o.status === 'completed');
+    const revenue = completed.reduce((s,o) => s + (o.total||0), 0);
+    const avgTicket = completed.length ? Math.round(revenue / completed.length) : 0;
+
+    document.getElementById('pKpiSales').innerHTML = `
+      <div class="p-kpi"><div class="icon">🧾</div><div class="label">Tổng đơn</div><div class="value">${orders.length}</div></div>
+      <div class="p-kpi"><div class="icon">✅</div><div class="label">Hoàn thành</div><div class="value">${completed.length}</div></div>
+      <div class="p-kpi"><div class="icon">💰</div><div class="label">Doanh thu</div><div class="value">${fmtMoney(revenue)}</div></div>
+      <div class="p-kpi"><div class="icon">🎫</div><div class="label">TB/đơn</div><div class="value">${fmtMoney(avgTicket)}</div></div>
+    `;
+
+    const branches = get('tw_branches');
+    const tbody = document.getElementById('pSalesBody');
+    if (!orders.length) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="p-empty"><div class="icon">🧾</div><p>Không có đơn hàng</p></div></td></tr>';
+    } else {
+      tbody.innerHTML = orders.slice(0, 100).map(o => {
+        const br = branches.find(b => b.id === o.branchId);
+        const items = (o.items||[]).map(i => i.name + ' x' + i.qty).join(', ');
+        const statusClass = o.status==='completed'?'green':o.status==='cancelled'?'red':o.status==='pending'?'orange':'blue';
+        return `<tr>
+          <td><strong>${o.code||o.id}</strong></td>
+          <td>${br?br.name:'—'}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${items}">${items||'—'}</td>
+          <td><strong>${fmtMoney(o.total)}</strong></td>
+          <td>${o.paymentMethod==='cash'?'💵 Mặt':'💳 CK'}</td>
+          <td><span class="p-badge ${statusClass}">${STATUS_LABELS[o.status]||o.status}</span></td>
+          <td>${fmtDateTime(o.createdAt)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Top products
+    const productMap = {};
+    completed.forEach(o => {
+      (o.items||[]).forEach(i => {
+        if (!productMap[i.name]) productMap[i.name] = { name: i.name, qty: 0, revenue: 0 };
+        productMap[i.name].qty += i.qty;
+        productMap[i.name].revenue += i.price * i.qty;
+      });
+    });
+    const topProducts = Object.values(productMap).sort((a,b) => b.revenue - a.revenue).slice(0, 10);
+    if (!topProducts.length) {
+      document.getElementById('pTopProducts').innerHTML = '<div class="p-empty"><p>Chưa có dữ liệu</p></div>';
+    } else {
+      const maxRev = topProducts[0].revenue || 1;
+      document.getElementById('pTopProducts').innerHTML = topProducts.map((p,i) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<topProducts.length-1?'border-bottom:1px solid #f0e6d8':''}">
+          <span style="font-size:16px;font-weight:800;color:#888;width:24px">${i+1}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:#38261C">${p.name}</div>
+            <div style="background:#f0e6d8;border-radius:4px;height:6px;margin-top:4px;overflow:hidden">
+              <div style="background:#8FC643;height:100%;width:${Math.round(p.revenue/maxRev*100)}%;border-radius:4px"></div>
+            </div>
+          </div>
+          <div style="text-align:right;min-width:80px">
+            <div style="font-size:13px;font-weight:700">${fmtMoney(p.revenue)}</div>
+            <div style="font-size:11px;color:#888">${p.qty} ly</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  };
+
+  // ═══════════════════════════════════════════
+  // TAB: MENU & STOCK
+  // ═══════════════════════════════════════════
+  function pRenderMenuStock() {
+    const menuItems = get('tw_menu_items');
+    const ingredients = get('tw_ingredients');
+    const stock = get('tw_stock_central');
+    const dists = get('tw_distributions');
+    const branches = get('tw_branches');
+
+    // Menu table
+    const menuBody = document.getElementById('pMenuBody');
+    if (!menuItems.length) {
+      menuBody.innerHTML = '<tr><td colspan="5"><div class="p-empty"><p>Chưa có món</p></div></td></tr>';
+    } else {
+      menuBody.innerHTML = menuItems.map(m => `<tr>
+        <td><strong>${m.name||'—'}</strong></td>
+        <td>${CATEGORY_LABELS[m.category]||m.category||'—'}</td>
+        <td>${m.size||'M'}</td>
+        <td><strong>${fmtMoney(m.price)}</strong></td>
+        <td><span class="p-badge ${m.status==='active'?'green':'gray'}">${m.status==='active'?'Đang bán':'Ngưng'}</span></td>
+      </tr>`).join('');
+    }
+
+    // Stock table
+    const stockBody = document.getElementById('pStockBody');
+    if (!stock.length) {
+      stockBody.innerHTML = '<tr><td colspan="5"><div class="p-empty"><p>Chưa có dữ liệu kho</p></div></td></tr>';
+    } else {
+      stockBody.innerHTML = stock.map(s => {
+        const ing = ingredients.find(i => i.id === s.ingredientId) || {};
+        const low = s.qty <= (s.minQty || 0);
+        return `<tr style="${low?'background:#FFF3E0':''}">
+          <td><strong>${ing.name||s.ingredientId}</strong></td>
+          <td>${ing.unit||'—'}</td>
+          <td>${(s.qty||0).toLocaleString('vi-VN')}</td>
+          <td>${(s.minQty||0).toLocaleString('vi-VN')}</td>
+          <td><span class="p-badge ${low?'red':'green'}">${low?'⚠️ Sắp hết':'✅ Đủ'}</span></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Distribution history
+    const recentDists = dists.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 20);
+    if (!recentDists.length) {
+      document.getElementById('pDistHistory').innerHTML = '<div class="p-empty"><p>Chưa có lịch sử phân phối</p></div>';
+    } else {
+      document.getElementById('pDistHistory').innerHTML = '<div class="p-timeline">' + recentDists.map(d => {
+        const ing = ingredients.find(i => i.id === d.ingredientId) || {};
+        const br = branches.find(b => b.id === d.branchId) || {};
+        return `<div class="p-timeline-item">
+          <div class="dot blue"></div>
+          <div class="info">
+            <div class="title">${ing.name||'?'} → ${br.name||'?'}</div>
+            <div class="detail">${fmtDateTime(d.date)} · bởi ${d.by||'—'}</div>
+          </div>
+          <div class="amount">${(d.qty||0).toLocaleString('vi-VN')} ${ing.unit||''}</div>
+        </div>`;
+      }).join('') + '</div>';
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // TAB: COSTS
+  // ═══════════════════════════════════════════
+  window.pRenderCosts = function() {
+    const type = document.getElementById('pCostType')?.value || '';
+    const month = document.getElementById('pCostMonth')?.value || thisMonth();
+
+    let expenses = get('tw_expenses').filter(e => (e.date||'').startsWith(month));
+    if (type) expenses = expenses.filter(e => e.type === type);
+    expenses.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    const total = expenses.reduce((s,e) => s + (e.amount||0), 0);
+    const count = expenses.length;
+
+    document.getElementById('pKpiCosts').innerHTML = `
+      <div class="p-kpi"><div class="icon">📝</div><div class="label">Khoản chi</div><div class="value">${count}</div></div>
+      <div class="p-kpi"><div class="icon">💰</div><div class="label">Tổng chi phí</div><div class="value" style="color:#C62828">${fmtMoney(total)}</div></div>
+    `;
+
+    // Breakdown by type
+    const byType = {};
+    expenses.forEach(e => { byType[e.type] = (byType[e.type]||0) + (e.amount||0); });
+    const sorted = Object.entries(byType).sort((a,b) => b[1] - a[1]);
+    const maxVal = sorted.length ? sorted[0][1] : 1;
+
+    if (!sorted.length) {
+      document.getElementById('pCostBreakdown').innerHTML = '<div class="p-empty"><p>Không có chi phí</p></div>';
+    } else {
+      document.getElementById('pCostBreakdown').innerHTML = sorted.map(([k,v]) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0e6d8">
+          <div style="min-width:100px;font-size:13px;font-weight:600;color:#38261C">${EXPENSE_LABELS[k]||k}</div>
+          <div style="flex:1;background:#f0e6d8;border-radius:4px;height:8px;overflow:hidden">
+            <div style="background:#C0392B;height:100%;width:${Math.round(v/maxVal*100)}%;border-radius:4px;transition:width .3s"></div>
+          </div>
+          <div style="min-width:100px;text-align:right;font-size:13px;font-weight:700;color:#C62828">${fmtMoney(v)}</div>
+        </div>
+      `).join('');
+    }
+
+    // Detail table
+    const branches = get('tw_branches');
+    const tbody = document.getElementById('pCostBody');
+    if (!expenses.length) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="p-empty"><p>Không có chi phí</p></div></td></tr>';
+    } else {
+      tbody.innerHTML = expenses.map(e => {
+        const br = branches.find(b => b.id === e.branchId);
+        return `<tr>
+          <td>${e.description||'—'}</td>
+          <td><span class="p-badge gray">${EXPENSE_LABELS[e.type]||e.type}</span></td>
+          <td>${br?br.name:'Chung'}</td>
+          <td><strong style="color:#C62828">${fmtMoney(e.amount)}</strong></td>
+          <td>${fmtDate(e.date)}</td>
+        </tr>`;
+      }).join('');
+    }
+  };
+
+  // ═══════════════════════════════════════════
+  // TAB: SETTLEMENT (P&L + Partner Share)
+  // ═══════════════════════════════════════════
+  window.pRenderSettlement = function() {
+    const month = document.getElementById('pSettleMonth')?.value || thisMonth();
+    const orders = get('tw_orders').filter(o => o.status === 'completed' && (o.date||'').startsWith(month));
+    const expenses = get('tw_expenses').filter(e => (e.date||'').startsWith(month));
+    const config = getObj('tw_partner_config');
+
+    const revenue = orders.reduce((s,o) => s + (o.total||0), 0);
+    const totalCosts = expenses.reduce((s,e) => s + (e.amount||0), 0);
+    const netBeforeTax = revenue - totalCosts;
+    const taxRate = 0.10;
+    const tax = netBeforeTax > 0 ? Math.round(netBeforeTax * taxRate) : 0;
+    const netProfit = netBeforeTax - tax;
+    const sharePercent = config.sharePercent || 30;
+    const partnerShare = Math.round(Math.max(0, netProfit) * sharePercent / 100);
+    const h5cShare = Math.max(0, netProfit) - partnerShare;
+
+    // Expense breakdown
+    const expByType = {};
+    expenses.forEach(e => { expByType[e.type] = (expByType[e.type]||0) + (e.amount||0); });
+
+    // P&L Report
+    document.getElementById('pPnlReport').innerHTML = `
+      <div class="pnl-row"><span><strong>🧾 DOANH THU</strong></span><span class="pos"><strong>${fmtMoney(revenue)}</strong></span></div>
+      ${Object.entries(expByType).map(([k,v]) => `<div class="pnl-row sub"><span>− ${EXPENSE_LABELS[k]||k}</span><span class="neg">-${fmtMoney(v)}</span></div>`).join('')}
+      <div class="pnl-row total"><span>TỔNG CHI PHÍ</span><span class="neg">-${fmtMoney(totalCosts)}</span></div>
+      <div class="pnl-row" style="margin-top:8px"><span><strong>Lợi nhuận trước thuế</strong></span><span><strong>${fmtMoney(netBeforeTax)}</strong></span></div>
+      <div class="pnl-row sub"><span>− Thuế (~${Math.round(taxRate*100)}%)</span><span class="neg">-${fmtMoney(tax)}</span></div>
+      <div class="pnl-row highlight"><span>💰 LỢI NHUẬN RÒNG</span><span style="color:${netProfit>=0?'#2E7D32':'#C62828'}">${fmtMoney(netProfit)}</span></div>
+    `;
+
+    // Settlement KPIs
+    document.getElementById('pKpiSettle').innerHTML = `
+      <div class="p-kpi"><div class="icon">💰</div><div class="label">Lợi nhuận ròng</div><div class="value">${fmtMoney(netProfit)}</div></div>
+      <div class="p-kpi"><div class="icon">📊</div><div class="label">Tỷ lệ của bạn</div><div class="value">${sharePercent}%</div></div>
+      <div class="p-kpi"><div class="icon">🤝</div><div class="label">Phần bạn nhận</div><div class="value" style="color:#2E7D32">${fmtMoney(partnerShare)}</div></div>
+      <div class="p-kpi"><div class="icon">☕</div><div class="label">Phần H5C</div><div class="value">${fmtMoney(h5cShare)}</div></div>
+    `;
+
+    // Settlement detail
+    document.getElementById('pSettleDetail').innerHTML = `
+      <div style="background:#E8F5E9;border-radius:12px;padding:20px;text-align:center">
+        <div style="font-size:13px;color:#2E7D32;font-weight:600;margin-bottom:8px">Tháng ${month}</div>
+        <div style="font-size:28px;font-weight:800;color:#2E7D32">${fmtMoney(partnerShare)}</div>
+        <div style="font-size:12px;color:#666;margin-top:8px">
+          = ${fmtMoney(netProfit)} × ${sharePercent}%
+          ${config.partnerName ? (' · ' + config.partnerName) : ''}
+        </div>
+      </div>
+    `;
+
+    // Monthly history (show last 6 months)
+    pRenderSettleHistory();
+  };
+
+  function pRenderSettleHistory() {
+    const config = getObj('tw_partner_config');
+    const sharePercent = config.sharePercent || 30;
+    const months = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(); d.setMonth(d.getMonth() - i);
+      months.push(d.toISOString().slice(0, 7));
+    }
+
+    const allOrders = get('tw_orders');
+    const allExpenses = get('tw_expenses');
+
+    const rows = months.map(m => {
+      const mOrders = allOrders.filter(o => o.status === 'completed' && (o.date||'').startsWith(m));
+      const mExpenses = allExpenses.filter(e => (e.date||'').startsWith(m));
+      const rev = mOrders.reduce((s,o) => s + (o.total||0), 0);
+      const costs = mExpenses.reduce((s,e) => s + (e.amount||0), 0);
+      const net = rev - costs;
+      const tax = net > 0 ? Math.round(net * 0.10) : 0;
+      const profit = net - tax;
+      const share = Math.round(Math.max(0, profit) * sharePercent / 100);
+      return { month: m, rev, costs, profit, share, orderCount: mOrders.length };
+    });
+
+    if (!rows.some(r => r.orderCount > 0)) {
+      document.getElementById('pSettleHistory').innerHTML = '<div class="p-empty"><p>Chưa có dữ liệu</p></div>';
+      return;
+    }
+
+    document.getElementById('pSettleHistory').innerHTML = `
+      <div style="overflow-x:auto">
+        <table class="p-table">
+          <thead><tr>
+            <th>Tháng</th>
+            <th>Đơn hàng</th>
+            <th>Doanh thu</th>
+            <th>Chi phí</th>
+            <th>LN ròng</th>
+            <th>Phần bạn (${sharePercent}%)</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(r => `<tr>
+              <td><strong>${r.month}</strong></td>
+              <td>${r.orderCount}</td>
+              <td>${fmtMoney(r.rev)}</td>
+              <td style="color:#C62828">${fmtMoney(r.costs)}</td>
+              <td style="color:${r.profit>=0?'#2E7D32':'#C62828'};font-weight:700">${fmtMoney(r.profit)}</td>
+              <td style="color:#2E7D32;font-weight:700">${fmtMoney(r.share)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ═══════════════════════════════════════════
+  // FIREBASE SYNC (read-only listener)
+  // ═══════════════════════════════════════════
+  function initFirebaseReadOnly() {
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyC535lClzEDgH41xKYGlvHRxo_vGtQY6w0",
+      authDomain: "hello5coffee-erp.firebaseapp.com",
+      projectId: "hello5coffee-erp",
+      storageBucket: "hello5coffee-erp.firebasestorage.app",
+      messagingSenderId: "325690479954",
+      appId: "1:325690479954:web:8be769b17433f2543ad68b"
+    };
+
+    const TW_KEYS = [
+      'tw_branches','tw_menu_items','tw_ingredients','tw_recipes',
+      'tw_stock_central','tw_stock_branch','tw_distributions',
+      'tw_shifts','tw_orders','tw_expenses','tw_partner_config',
+      'accounts'
+    ];
+    const LS_PREFIX = 'h5c_v1_';
+    const COLLECTION = 'h5c_data';
+
+    function loadScript(url) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector('script[src="'+url+'"]')) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = url; s.crossOrigin = 'anonymous';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function boot() {
+      try {
+        await loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+        await loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js');
+      } catch(e) {
+        try {
+          await loadScript('https://unpkg.com/firebase@10.14.1/firebase-app-compat.js');
+          await loadScript('https://unpkg.com/firebase@10.14.1/firebase-firestore-compat.js');
+        } catch(e2) { console.warn('Partner Portal: Firebase SDK load failed'); return; }
+      }
+
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      const db = firebase.firestore();
+      try { await db.enablePersistence({ synchronizeTabs: true }); } catch(e) {}
+
+      // Initial pull
+      try {
+        const snap = await db.collection(COLLECTION).get();
+        snap.forEach(doc => {
+          if (TW_KEYS.includes(doc.id)) {
+            const data = doc.data().value;
+            if (data !== undefined && data !== null) {
+              localStorage.setItem(LS_PREFIX + doc.id, JSON.stringify(data));
+            }
+          }
+        });
+        console.log('Partner Portal: Pulled data ✅');
+      } catch(e) { console.warn('Partner Portal: Pull failed:', e); }
+
+      // Check session after pulling accounts
+      const session = getSession();
+      if (session) showPortal();
+
+      // Realtime listener (read-only)
+      db.collection(COLLECTION).onSnapshot(snap => {
+        let changed = false;
+        snap.docChanges().forEach(change => {
+          if (!TW_KEYS.includes(change.doc.id)) return;
+          if (change.type === 'modified' || change.type === 'added') {
+            const data = change.doc.data().value;
+            if (data !== undefined && data !== null) {
+              localStorage.setItem(LS_PREFIX + change.doc.id, JSON.stringify(data));
+              changed = true;
+            }
+          }
+        });
+        if (changed && getSession()) {
+          // Re-render active tab
+          const activeTab = document.querySelector('.p-tab.active')?.dataset.tab || 'overview';
+          pSwitchTab(activeTab);
+        }
+      });
+    }
+
+    boot();
+  }
+
+  // ═══════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════
+  function init() {
+    initFirebaseReadOnly();
+
+    // Check existing session
+    const session = getSession();
+    if (session) {
+      showPortal();
+    }
+
+    // Enter key on login
+    document.getElementById('loginPw')?.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') partnerLogin();
+    });
+    document.getElementById('loginEmail')?.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('loginPw').focus();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>

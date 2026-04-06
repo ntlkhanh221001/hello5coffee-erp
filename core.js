@@ -242,6 +242,7 @@
     { email:'sales@hello5coffee.com',   pw:'123456',       role:'EMPLOYEE_SALES',   name:'Lê Minh Khoa',   pos:'Chuyên viên Kinh doanh', empId:'EMP003', permissions:null },
     { email:'finance@hello5coffee.com', pw:'123456',       role:'EMPLOYEE_FINANCE', name:'Phạm Thị Mai',   pos:'Kế toán viên',           empId:'EMP004', permissions:null },
     { email:'nv@hello5coffee.com',      pw:'123456',       role:'EMPLOYEE_HR',      name:'Đặng Văn Hùng',  pos:'Chuyên viên Nhân sự',    empId:'EMP005', permissions:null },
+    { email:'partner@hello5coffee.com', pw:'Partner@123',  role:'BARISTA_PARTNER',  name:'Barista Partner', pos:'Đối tác Takeaway',       empId:'EMP006', permissions:null },
   ];
 
   window.getAccounts = function() {
@@ -316,6 +317,13 @@
 
     if (typeof window.state !== 'undefined') window.state.user = userObj;
     saveSession(userObj);
+
+    // BARISTA_PARTNER → redirect to Partner Portal
+    if (acc.role === 'BARISTA_PARTNER') {
+      window.location.href = 'takeaway-partner.html';
+      return;
+    }
+
     if (typeof window.showMain === 'function') window.showMain();
   }
 
@@ -353,6 +361,7 @@
       'users.manage_accounts':false,
       'reports.view':true,
       'ann.view':true,'ann.create':true,'ann.approve':true,
+      'tw.view':true,'tw.manage_menu':true,'tw.manage_stock':true,'tw.manage_orders':true,'tw.manage_expenses':true,'tw.manage_branches':true,'tw.manage_partners':true,'tw.view_reports':true,
     },
     EMPLOYEE_SALES: {
       'dash.view':true,'dash.top_sales':true,
@@ -361,17 +370,22 @@
       'orders.request_cancel':true,'orders.submit_request':true,
       'leads.view':'own','leads.create':true,'leads.edit':'own','leads.convert_order':true,
       'ann.view':true,
+      'tw.view':true,'tw.manage_orders':true,
     },
     EMPLOYEE_FINANCE: {
       'dash.view':true,'dash.kpi_finance':true,'dash.ar_ap':true,
       'expenses.view':'all','expenses.create':true,'expenses.edit':'own',
       'reports.view':true,
       'ann.view':true,
+      'tw.view':true,'tw.manage_expenses':true,'tw.view_reports':true,
     },
     EMPLOYEE_HR: {
       'dash.view':true,
       'users.view':true,'users.manage_attendance':true,'users.evaluate_kpi':true,
       'ann.view':true,'ann.create':true,
+    },
+    BARISTA_PARTNER: {
+      'tw.view':true,'tw.manage_orders':true,'tw.manage_stock':true,'tw.view_reports':true,
     },
   };
 
@@ -418,6 +432,7 @@
     users:'users.html', reports:'reports.html', announcements:'announcements.html',
     accounting:'accounting.html', shipping:'shipping.html', payroll:'payroll.html',
     qc:'qc.html', contracts:'contracts.html',
+    takeaway:'takeaway.html',
   };
 
   window.navigateTo = function(page) {
@@ -431,7 +446,8 @@
         warehouse:'wh.view_stock', production:'production.view',
         users:'users.view', reports:'reports.view', announcements:'ann.view',
         accounting:'accounting.view', shipping:'shipping.view', payroll:'payroll.view',
-        qc:'qc.view', contracts:'contracts.view'
+        qc:'qc.view', contracts:'contracts.view',
+        takeaway:'tw.view'
       };
       const permId = PERM_MAP[page];
       if (permId && typeof window._can === 'function' && !window._can(permId)) {
@@ -595,13 +611,19 @@
     window.getPermissions = _core_getPerms;
 
     // Auto-login từ session nếu chưa login
+    const saved = loadSession();
+    const currentPage = window.location.pathname.split('/').pop();
+
+    // BARISTA_PARTNER trên bất kỳ trang ERP nào → redirect sang Partner Portal
+    if (saved && saved.role === 'BARISTA_PARTNER' && currentPage !== 'takeaway-partner.html') {
+      window.location.href = 'takeaway-partner.html';
+      return;
+    }
+
     const ml = document.getElementById('mainLayout');
-    if (ml && ml.classList.contains('hidden')) {
-      const saved = loadSession();
-      if (saved) {
-        if (typeof window.state !== 'undefined') window.state.user = saved;
-        if (typeof window.showMain === 'function') window.showMain();
-      }
+    if (ml && ml.classList.contains('hidden') && saved) {
+      if (typeof window.state !== 'undefined') window.state.user = saved;
+      if (typeof window.showMain === 'function') window.showMain();
     }
 
     // Fade-in page sau khi load xong

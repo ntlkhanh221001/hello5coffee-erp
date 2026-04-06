@@ -45,6 +45,7 @@
     {id:'contracts',     icon:'📝', label:'Hợp đồng'},
     {id:'users',         icon:'👥', label:'Nhân viên'},
     {id:'payroll',       icon:'⏰', label:'Lương & CC'},
+    {id:'takeaway',      icon:'☕', label:'Takeaway'},
 
     {id:'reports',       icon:'📈', label:'Báo cáo'},
     {id:'announcements', icon:'📢', label:'Thông báo'},
@@ -55,7 +56,7 @@
     customers:'customers.html', expenses:'expenses.html', debts:'debts.html',
     cashbook:'cashbook.html',   warehouse:'warehouse.html', production:'production.html',
     qc:'qc.html',              accounting:'accounting.html', shipping:'shipping.html',
-    contracts:'contracts.html', payroll:'payroll.html',
+    contracts:'contracts.html', payroll:'payroll.html', takeaway:'takeaway.html',
     users:'users.html',         reports:'reports.html', announcements:'announcements.html',
   };
 
@@ -77,7 +78,7 @@
           customers:'customers.view', expenses:'expenses.view', debts:'debts.view',
           cashbook:'cashbook.view', warehouse:'wh.view_stock', production:'production.view',
           accounting:'accounting.view', shipping:'shipping.view', payroll:'payroll.view',
-          qc:'qc.view', contracts:'contracts.view',
+          qc:'qc.view', contracts:'contracts.view', takeaway:'tw.view',
           users:'users.view', reports:'reports.view', announcements:'ann.view'
         };
         const permId = viewMap[moduleId];
@@ -92,10 +93,11 @@
       // Role template defaults
       const roleDefs = {
         C_LEVEL:          null, // sees all
-        MANAGER:          ['dashboard','orders','leads','customers','expenses','debts','cashbook','warehouse','production','qc','accounting','shipping','contracts','users','payroll','reports','announcements'],
-        EMPLOYEE_SALES:   ['dashboard','orders','leads','customers','shipping','contracts','announcements'],
-        EMPLOYEE_FINANCE: ['dashboard','expenses','debts','cashbook','accounting','payroll','reports','announcements'],
+        MANAGER:          ['dashboard','orders','leads','customers','expenses','debts','cashbook','warehouse','production','qc','accounting','shipping','contracts','users','payroll','takeaway','reports','announcements'],
+        EMPLOYEE_SALES:   ['dashboard','orders','leads','customers','shipping','contracts','takeaway','announcements'],
+        EMPLOYEE_FINANCE: ['dashboard','expenses','debts','cashbook','accounting','payroll','takeaway','reports','announcements'],
         EMPLOYEE_HR:      ['dashboard','users','payroll','announcements'],
+        BARISTA_PARTNER:  ['dashboard','takeaway'],
       };
       const allowed = roleDefs[acc.role];
       if (allowed === null || allowed === undefined) return true;
