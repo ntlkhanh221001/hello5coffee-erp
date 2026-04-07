@@ -319,17 +319,18 @@ function render(){
   const now=new Date();const monthStart=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   const newThisMonth=CUSTOMERS.filter(c=>c.createdAt&&c.createdAt.startsWith(monthStart)).length;
 
-  // Calculate revenue from orders
+  // Calculate revenue from orders — exclude cancelled orders ("Đã Hủy")
   let totalRev=0;
   const custRevMap={};
-  orders.forEach(o=>{
+  const activeOrders=orders.filter(o=>o.status!=='da_huy');
+  activeOrders.forEach(o=>{
     const val=o.total||(o.products||[]).reduce((s,p)=>s+(p.qty||0)*(p.unitPrice||0),0);
     totalRev+=val;
     const key=(o.customer||'').trim().toLowerCase();
     if(!custRevMap[key])custRevMap[key]=0;
     custRevMap[key]+=val;
   });
-  const avgOrder=orders.length?totalRev/orders.length:0;
+  const avgOrder=activeOrders.length?totalRev/activeOrders.length:0;
 
   let html=`
     <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
@@ -568,7 +569,7 @@ function viewCustomer(id){
     if(c.phone&&o.phone&&o.phone.replace(/\s/g,'')===c.phone.replace(/\s/g,'')) return true;
     return (o.customer||'').trim().toLowerCase()===(c.name||'').trim().toLowerCase();
   });
-  const totalRev=orders.reduce((s,o)=>s+(o.total||(o.products||[]).reduce((ss,p)=>ss+(p.qty||0)*(p.unitPrice||0),0)),0);
+  const totalRev=orders.filter(o=>o.status!=='da_huy').reduce((s,o)=>s+(o.total||(o.products||[]).reduce((ss,p)=>ss+(p.qty||0)*(p.unitPrice||0),0)),0);
   const lastOrder=orders.length?orders.sort((a,b)=>b.createdAt>a.createdAt?1:-1)[0]:null;
 
   const colorIdx=Math.abs((c.name||'').charCodeAt(0))%AVATAR_COLORS.length;
