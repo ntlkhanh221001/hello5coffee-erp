@@ -540,6 +540,21 @@
   </div>
 </div>
 
+<div id="deleteOrderModal" class="modal-overlay hidden">
+  <div class="modal small">
+    <div class="modal-title" style="color:var(--h5c-terracotta)">⚠️ Xóa vĩnh viễn đơn hàng</div>
+    <p style="font-size:13px;color:var(--h5c-text-secondary);margin-bottom:6px">Bạn sắp xóa vĩnh viễn đơn <strong id="deleteOrderId"></strong> — <span id="deleteOrderCustomer"></span>.</p>
+    <div style="background:var(--h5c-terracotta-light);border-radius:8px;padding:10px;font-size:12px;color:var(--h5c-terracotta);margin-bottom:14px;font-weight:700">
+      ⚠️ Hành động này <u>không thể hoàn tác</u>. Đơn hàng sẽ bị xóa hoàn toàn khỏi hệ thống.
+    </div>
+    <input type="hidden" id="confirmDeleteOrderId"/>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('deleteOrderModal')">Hủy bỏ</button>
+      <button class="modal-btn danger" onclick="deleteOrderPermanently()">🗑 Xác nhận xóa vĩnh viễn</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ RETURN MODAL ═══ -->
 <div id="returnModal" class="modal-overlay hidden">
   <div class="modal large">
@@ -1128,10 +1143,11 @@ function renderCancelledTab(){
           ${isReturned&&o._returnItems?`<div style="font-size:10px;color:var(--h5c-terracotta);margin-top:3px">SP trả: ${o._returnItems.map(it=>it.name+' x'+it.returnQty).join(', ')}</div>`:''}
           ${hasPendingRestore?`<div style="font-size:11px;color:var(--h5c-steel);margin-top:4px;font-weight:700">Đang chờ duyệt khôi phục (bởi ${o.pendingRestore.requestedBy})</div>`:''}
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
+        <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
           ${hasPendingRestore?`<span class="cancel-status-badge pending_restore">Chờ duyệt khôi phục</span>`:`
             ${_can('orders.request_restore')&&!isReturned?`<button class="btn-add" style="padding:6px 12px;font-size:11px;background:var(--h5c-steel);color:#fff" onclick="event.stopPropagation();openRestoreModal('${o.id}')">Yêu cầu khôi phục</button>`:''}
           `}
+          ${_can('orders.approve_cancel')?`<button class="action-btn del" title="Xóa vĩnh viễn đơn hàng này" style="width:auto;padding:0 10px;font-size:11px;font-weight:700" onclick="event.stopPropagation();openDeleteOrderModal('${o.id}')">🗑 Xóa vĩnh viễn</button>`:''}
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px">
@@ -1143,6 +1159,30 @@ function renderCancelledTab(){
     </div>`;
   });
   return h;
+}
+
+function openDeleteOrderModal(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o)return;
+  document.getElementById('deleteOrderId').textContent=id;
+  document.getElementById('deleteOrderCustomer').textContent=o.customer||'';
+  document.getElementById('confirmDeleteOrderId').value=id;
+  openModal('deleteOrderModal');
+}
+function deleteOrderPermanently(){
+  const id=document.getElementById('confirmDeleteOrderId').value;
+  if(!id)return;
+  const idx=ORDERS.findIndex(o=>o.id===id);
+  if(idx===-1){showToast('Không tìm thấy đơn hàng!','error');return;}
+  const o=ORDERS[idx];
+  if(o.status!==H5C_CONST.ORDER_STATUS.CANCELLED&&o.status!==H5C_CONST.ORDER_STATUS.RETURNED){
+    showToast('Chỉ có thể xóa đơn đã hủy hoặc trả hàng!','error');return;
+  }
+  ORDERS.splice(idx,1);
+  H5C.set('orders',ORDERS);
+  closeModal('deleteOrderModal');
+  showToast(`Đã xóa vĩnh viễn đơn ${id}`,'success');
+  render();
 }
 
 // ════════════════════════════════════════════════════════════════
