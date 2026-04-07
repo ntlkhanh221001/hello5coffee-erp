@@ -1167,7 +1167,7 @@ function openDeleteOrderModal(id){
   document.getElementById('deleteOrderId').textContent=id;
   document.getElementById('deleteOrderCustomer').textContent=o.customer||'';
   document.getElementById('confirmDeleteOrderId').value=id;
-  openModal('deleteOrderModal');
+  document.getElementById('deleteOrderModal').classList.remove('hidden');
 }
 function deleteOrderPermanently(){
   const id=document.getElementById('confirmDeleteOrderId').value;
