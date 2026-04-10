@@ -2477,66 +2477,178 @@ function renderHistory(){
 // ══════════════════════════════════════════════════════════════
 // SỬA PHIẾU LỊCH SỬ
 // ══════════════════════════════════════════════════════════════
+let _editHistProducts=[];
+let _editHistRowIdx=0;
+
 function editLotHistory(lotNo){
   const entries=HISTORY.filter(h=>h.lotNo===lotNo);
   if(!entries.length)return;
   const first=entries[0];
   const type=first.type;
+  const isNhap=type===H5C_CONST.LOT_TYPE.NHAP;
+  const typeLabel=isNhap?'nhập':'xuất';
+  const typeColor=isNhap?'var(--green-d)':'var(--red)';
+  const typeIcon=isNhap?'📥':'📤';
 
-  const rowsHtml=entries.map((h,i)=>{
-    const sku=SKUS.find(s=>s.id===h.skuId);
-    return `<div style="display:grid;grid-template-columns:2fr 80px 110px;gap:8px;margin-bottom:8px;background:var(--cream);border-radius:7px;padding:8px;align-items:center">
-      <div style="font-size:12px;font-weight:600">${sku?sku.name:h.skuId} <span style="color:var(--brown-m);font-weight:400">×${h.qty}</span></div>
-      <div style="font-size:9px;font-weight:700;color:var(--brown-m);text-transform:uppercase">Đơn giá (đ)</div>
-      <input type="number" class="modal-input edit-h-price" data-hist-id="${h.id}" value="${h.price||0}" style="font-size:12px">
-    </div>`;
-  }).join('');
+  _editHistProducts=entries.map(h=>({
+    histId:h.id,
+    skuId:h.skuId,
+    qty:h.qty,
+    price:h.price||0,
+    warehouseId:h.warehouseId||'',
+    lotRef:h.lotRef||''
+  }));
+  _editHistRowIdx=0;
+
+  const whOpts=WAREHOUSES.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
+  const supOpts=SUPPLIERS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+
+  // Tìm thông tin phiếu gốc
+  const lot=LOTS.find(l=>l.lotNo===lotNo);
+  const supplierId=lot?lot.supplierId:(first.supplierId||'');
+  const warehouseId=lot?lot.warehouseId:(first.warehouseId||'');
 
   const modal=document.createElement('div');
   modal.className='modal-overlay';
   modal.id='editHistModal';
-  modal.innerHTML=`<div class="modal-box" style="max-width:480px">
-    <div class="modal-title">Sửa phiếu ${type===H5C_CONST.LOT_TYPE.NHAP?'nhập':'xuất'}: ${lotNo}</div>
-    <div style="margin-bottom:12px">
-      <label class="modal-label">Ngày</label>
-      <input type="date" id="editHistDate" class="modal-input" value="${first.date}">
+  modal.style.cssText='position:fixed;inset:0;background:rgba(56,38,28,.55);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px';
+  modal.innerHTML=`<div style="background:#fff;border-radius:14px;padding:22px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto">
+    <div style="font-size:15px;font-weight:900;color:${typeColor};margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      ${typeIcon} Sửa phiếu ${typeLabel}: <span style="color:var(--brown)">${lotNo}</span>
     </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div><label class="modal-label">Ngày</label>
+        <input type="date" id="editHistDate" class="modal-input" value="${first.date}"></div>
+      ${isNhap?`<div><label class="modal-label">NCC</label>
+        <select id="editHistSupplier" class="modal-input"><option value="">-- Không --</option>${supOpts}</select></div>`
+        :`<div><label class="modal-label">Kho xuất</label>
+        <select id="editHistWarehouse" class="modal-input">${whOpts}</select></div>`}
+    </div>
+    ${isNhap?`<div style="margin-bottom:12px"><label class="modal-label">Kho nhập</label>
+      <select id="editHistWarehouse" class="modal-input">${whOpts}<option value="giao_truc_tiep">🚚 Giao trực tiếp</option></select></div>`:''}
+
+    <div style="background:var(--cream);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:800;color:var(--brown-m);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        📋 Sản phẩm ${typeLabel}
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 70px 100px 24px;gap:4px;margin-bottom:4px;font-size:9px;font-weight:700;color:var(--brown-m);text-transform:uppercase">
+        <div>SKU</div><div>SL</div><div>Đơn giá (đ)</div><div></div>
+      </div>
+      <div id="editHistProductRows"></div>
+      <button type="button" onclick="_addEditHistRow()" style="width:100%;padding:7px;border:1px dashed var(--cream-b);border-radius:6px;background:transparent;color:var(--brown-m);font-size:11px;cursor:pointer;margin-top:4px">➕ Thêm sản phẩm</button>
+    </div>
+
     <div style="margin-bottom:12px">
       <label class="modal-label">Ghi chú</label>
       <input type="text" id="editHistNote" class="modal-input" value="${first.note||''}">
     </div>
-    <div style="margin-bottom:4px"><label class="modal-label">Đơn giá theo SKU</label></div>
-    ${rowsHtml}
-    <div class="modal-btns">
-      <button class="modal-btn cancel" onclick="document.getElementById('editHistModal').remove()">Hủy</button>
-      <button class="modal-btn primary" onclick="saveLotHistoryEdit('${lotNo}')">Lưu</button>
+
+    <div style="display:flex;gap:8px">
+      <button class="modal-btn cancel" style="flex:1" onclick="document.getElementById('editHistModal').remove()">Hủy</button>
+      <button class="modal-btn primary" style="flex:1" onclick="saveLotHistoryEdit('${lotNo}')">💾 Lưu thay đổi</button>
     </div>
   </div>`;
   document.body.appendChild(modal);
+
+  // Set initial values
+  if(supplierId){const el=document.getElementById('editHistSupplier');if(el)el.value=supplierId;}
+  if(warehouseId){const el=document.getElementById('editHistWarehouse');if(el)el.value=warehouseId;}
+
+  _renderEditHistRows();
+}
+
+function _renderEditHistRows(){
+  const container=document.getElementById('editHistProductRows');
+  if(!container)return;
+  const inputStyle='padding:5px 6px;border:1px solid var(--cream-b);border-radius:5px;font-size:11px;width:100%';
+  const skuOpts='<option value="">-- SKU --</option>'+SKUS.map(s=>`<option value="${s.id}">${s.code} - ${s.name}</option>`).join('');
+
+  container.innerHTML=_editHistProducts.map((p,i)=>`
+    <div style="display:grid;grid-template-columns:2fr 70px 100px 24px;gap:4px;align-items:center;margin-bottom:4px;background:var(--white);border-radius:5px;padding:4px" data-ehist-row="${i}">
+      <select style="${inputStyle}" onchange="_editHistProducts[${i}].skuId=this.value">
+        ${skuOpts.replace('value="'+p.skuId+'"','value="'+p.skuId+'" selected')}
+      </select>
+      <input type="number" style="${inputStyle}" value="${p.qty}" min="1" oninput="_editHistProducts[${i}].qty=parseInt(this.value)||0">
+      <input type="number" style="${inputStyle}" value="${p.price}" oninput="_editHistProducts[${i}].price=parseFloat(this.value)||0">
+      <button type="button" onclick="_editHistProducts.splice(${i},1);_renderEditHistRows()" style="width:22px;height:22px;border:none;border-radius:4px;background:#FFEBEE;color:var(--red);cursor:pointer;font-size:10px">✕</button>
+    </div>`).join('');
+}
+
+function _addEditHistRow(){
+  _editHistProducts.push({histId:'',skuId:'',qty:1,price:0,warehouseId:'',lotRef:''});
+  _renderEditHistRows();
 }
 
 function saveLotHistoryEdit(lotNo){
   const date=document.getElementById('editHistDate').value;
   const note=document.getElementById('editHistNote').value;
-  const priceInputs=document.querySelectorAll('.edit-h-price');
-  const priceMap={};
-  priceInputs.forEach(inp=>{priceMap[inp.dataset.histId]=parseFloat(inp.value)||0;});
+  const warehouseEl=document.getElementById('editHistWarehouse');
+  const warehouseId=warehouseEl?warehouseEl.value:'';
+  const supplierEl=document.getElementById('editHistSupplier');
+  const supplierId=supplierEl?supplierEl.value:'';
 
-  HISTORY.forEach(h=>{
-    if(h.lotNo!==lotNo)return;
-    h.date=date;
-    h.note=note;
-    if(priceMap[h.id]!==undefined)h.price=priceMap[h.id];
+  const validProducts=_editHistProducts.filter(p=>p.skuId&&p.qty>0);
+  if(!validProducts.length){alert('❌ Cần ít nhất 1 sản phẩm hợp lệ!');return;}
+
+  // Xóa history entries cũ của lotNo
+  const oldEntries=HISTORY.filter(h=>h.lotNo===lotNo);
+  const type=oldEntries.length?oldEntries[0].type:H5C_CONST.LOT_TYPE.NHAP;
+  HISTORY=HISTORY.filter(h=>h.lotNo!==lotNo);
+
+  // Tạo lại history entries mới
+  validProducts.forEach(p=>{
+    HISTORY.push({
+      id:p.histId||('H'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase()),
+      date, type, lotNo,
+      skuId:p.skuId,
+      warehouseId:warehouseId||null,
+      qty:p.qty, price:p.price,
+      user:state.user.name, note
+    });
   });
-  // Sync date to the import lot record too
-  if(HISTORY.find(h=>h.lotNo===lotNo&&h.type===H5C_CONST.LOT_TYPE.NHAP)){
-    const lot=LOTS.find(l=>l.lotNo===lotNo);
-    if(lot)lot.date=date;
+
+  // Sync lots
+  if(type===H5C_CONST.LOT_TYPE.NHAP){
+    // Xóa lots cũ của lotNo và tạo lại
+    const oldLots=LOTS.filter(l=>l.lotNo===lotNo&&l.type===H5C_CONST.LOT_TYPE.NHAP);
+    // Lưu lại qtyRemain cũ theo skuId để giữ đúng tồn kho
+    const remainMap={};
+    oldLots.forEach(l=>{remainMap[l.skuId]={qtyRemain:l.qtyRemain,id:l.id};});
+
+    LOTS=LOTS.filter(l=>l.lotNo!==lotNo||l.type!==H5C_CONST.LOT_TYPE.NHAP);
+    const isGTT=warehouseId==='giao_truc_tiep';
+
+    validProducts.forEach(p=>{
+      const old=remainMap[p.skuId];
+      const qtyDiff=old?(p.qty-old.qtyRemain+(old.qtyRemain)):p.qty;
+      const _newLot={
+        id:old?old.id:('LOT'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase()),
+        lotNo, date, type:H5C_CONST.LOT_TYPE.NHAP, skuId:p.skuId,
+        warehouseId:isGTT?null:warehouseId,
+        giaoTrucTiep:isGTT,
+        qty:p.qty, qtyRemain:old?Math.max(0,old.qtyRemain+(p.qty-(remainMap[p.skuId]?LOTS.concat(oldLots).find(l=>l.id===old.id)?.qty||p.qty:p.qty))):p.qty,
+        price:p.price,
+        supplierId:supplierId||null,
+        user:state.user.name, note
+      };
+      // Tính lại qtyRemain chính xác: qtyRemain cũ + (qty mới - qty cũ)
+      const oldLot=oldLots.find(l=>l.skuId===p.skuId);
+      if(oldLot){
+        _newLot.qtyRemain=Math.max(0,oldLot.qtyRemain+(p.qty-oldLot.qty));
+      }else{
+        _newLot.qtyRemain=isGTT?0:p.qty;
+      }
+      H5C_LOT.stamp(_newLot);
+      LOTS.push(_newLot);
+    });
     H5C.set('lots',LOTS);
   }
+
   H5C.set('wh_history',HISTORY);
   document.getElementById('editHistModal').remove();
   render();
+  showToast('✅ Đã cập nhật phiếu '+lotNo,'success');
 }
 
 // ══════════════════════════════════════════════════════════════
