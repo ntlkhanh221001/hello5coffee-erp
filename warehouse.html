@@ -2775,8 +2775,9 @@ function renderPO(){
     return h;
   }
 
-  h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã PO</th><th>NCC</th><th>Sản phẩm</th><th>SL</th><th>Giá trị PO</th><th>Ngày đặt</th><th>Ngày nhận DK</th><th>Đơn BH liên kết</th><th>TT</th><th>TT Tiền</th><th></th></tr></thead><tbody>';
+  h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã PO</th><th>NCC</th><th>Sản phẩm</th><th>SL</th><th>Giá trị PO</th><th>Ngày đặt</th><th>Ngày nhận DK</th><th>Đơn BH liên kết</th><th>Người nhận</th><th>TT</th><th>TT Tiền</th><th></th></tr></thead><tbody>';
 
+  const _allOrdersForPO=H5C.get('orders')||[];
   POS.forEach(po=>{
     const sup=SUPPLIERS.find(s=>s.id===po.supplierId);
     const poValue=po.products.reduce((a,pr)=>a+(pr.qty*pr.unitPrice),0);
@@ -2786,6 +2787,9 @@ function renderPO(){
     const statusTxt=PO_STATUS_TEXT[po.status]||'#333';
     const PAY={unpaid:'Chưa TT',partial:'Một phần',paid:'Đã TT'};
     const payColor={unpaid:'var(--red)',partial:'var(--orange)',paid:'#2E7D32'};
+    const _lnkOrd=po.linkedOrderId?_allOrdersForPO.find(o=>o.id===po.linkedOrderId):null;
+    const _rcvName=_lnkOrd&&_lnkOrd.recipientName?_lnkOrd.recipientName:(_lnkOrd?_lnkOrd.customer:'');
+    const _rcvPhone=_lnkOrd&&_lnkOrd.recipientPhone?_lnkOrd.recipientPhone:(_lnkOrd?_lnkOrd.phone:'');
     h+=`<tr>
       <td><strong>${po.code}</strong><div style="font-size:10px;color:var(--brown-m)">${po.note||''}</div></td>
       <td style="font-size:11px">${sup?sup.name:'—'}</td>
@@ -2795,6 +2799,7 @@ function renderPO(){
       <td style="font-size:11px">${formatDate(po.orderDate)}</td>
       <td style="font-size:11px">${formatDate(po.expectedDate)}</td>
       <td style="font-size:11px">${po.linkedOrderId?`<span style="background:#E8F5E9;color:#2E7D32;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700">${po.linkedOrderId}</span>`:'<span style="color:var(--cream-b)">—</span>'}</td>
+      <td style="font-size:11px">${_rcvName?`<div style="font-weight:600">${_rcvName}</div><div style="font-size:10px;color:var(--brown-m)">${_rcvPhone}</div>`:'<span style="color:var(--cream-b)">—</span>'}</td>
       <td><span style="display:inline-block;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700;background:${statusBg};color:${statusTxt}">${PO_STATUS_LABELS[po.status]||po.status}</span></td>
       <td style="font-size:11px;font-weight:700;color:${payColor[po.payStatus||'unpaid']}">${PAY[po.payStatus||'unpaid']}</td>
       <td><div class="action-btns">
@@ -3206,14 +3211,21 @@ function exportPO(poId) {
         'Người nhận/Receiver:',
         'Thời gian giao hàng/Receiving date:',
       ],
-      infoValues: [
-        po.code || '',
-        po.orderDate || '',
-        sup ? sup.name : po.supplierId || '',
-        wh ? wh.name : (sup ? sup.address || '' : ''),
-        state.user ? state.user.name : '',
-        po.expectedDate || '',
-      ],
+      infoValues: (function(){
+        var allOrders=H5C.get('orders')||[];
+        var linkedOrd=po.linkedOrderId?allOrders.find(function(o){return o.id===po.linkedOrderId;}):null;
+        var rcvName=linkedOrd&&linkedOrd.recipientName?linkedOrd.recipientName:(linkedOrd?linkedOrd.customer:'');
+        var rcvPhone=linkedOrd&&linkedOrd.recipientPhone?linkedOrd.recipientPhone:(linkedOrd?linkedOrd.phone:'');
+        var receiverStr=rcvName?(rcvName+(rcvPhone?' — '+rcvPhone:'')):(state.user?state.user.name:'');
+        return [
+          po.code || '',
+          po.orderDate || '',
+          sup ? sup.name : po.supplierId || '',
+          wh ? wh.name : (sup ? sup.address || '' : ''),
+          receiverStr,
+          po.expectedDate || '',
+        ];
+      })(),
       products: po.products.map(p => {
         const sku = SKUS.find(s => s.id === p.skuId);
         return {code:sku?sku.code:p.skuId, name:sku?sku.name:'', unit:sku?sku.unit:'', qty:p.qty, price:p.unitPrice, note:''};

@@ -251,6 +251,10 @@
         <div class="modal-group"><label class="modal-label">Số điện thoại *</label><input type="tel" id="orderPhone" class="modal-input" required></div>
       </div>
       <div class="modal-group"><label class="modal-label">Địa chỉ giao hàng *</label><input type="text" id="orderAddress" class="modal-input" required></div>
+      <div class="modal-row">
+        <div class="modal-group"><label class="modal-label">Tên người nhận</label><input type="text" id="orderRecipientName" class="modal-input" placeholder="Nếu khác khách hàng"></div>
+        <div class="modal-group"><label class="modal-label">SĐT người nhận</label><input type="tel" id="orderRecipientPhone" class="modal-input" placeholder="Nếu khác SĐT khách"></div>
+      </div>
       <div class="modal-row three">
         <div class="modal-group"><label class="modal-label">Phân loại</label>
           <select id="orderTradeType" class="modal-input">
@@ -1885,6 +1889,8 @@ function openEditModal(id){
   document.getElementById('orderCustomer').value=o.customer;
   document.getElementById('orderPhone').value=o.phone;
   document.getElementById('orderAddress').value=o.address;
+  document.getElementById('orderRecipientName').value=o.recipientName||'';
+  document.getElementById('orderRecipientPhone').value=o.recipientPhone||'';
   document.getElementById('orderTradeType').value=o.tradeType||'noi_dia';
   document.getElementById('orderTaxCode').value=o.taxCode||'';
   document.getElementById('orderCurrency').value=o.currency||'VND';
@@ -1983,7 +1989,7 @@ function openEditModal(id){
 }
 
 function resetOrderForm(){
-  ['orderCustomer','orderPhone','orderAddress','orderNote','orderTotal','costShipping','revenueShipping'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['orderCustomer','orderPhone','orderAddress','orderRecipientName','orderRecipientPhone','orderNote','orderTotal','costShipping','revenueShipping'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['orderProductionDate','orderShipDate','orderDeliveryDate'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('orderStatus').value='confirmed';
   document.getElementById('orderPayment').value='unpaid';
@@ -2361,6 +2367,8 @@ function saveOrder(e){
     customer:document.getElementById('orderCustomer').value.trim(),
     phone:document.getElementById('orderPhone').value.trim(),
     address:document.getElementById('orderAddress').value.trim(),
+    recipientName:document.getElementById('orderRecipientName').value.trim(),
+    recipientPhone:document.getElementById('orderRecipientPhone').value.trim(),
     tradeType:document.getElementById('orderTradeType').value,
     taxCode:document.getElementById('orderTaxCode').value.trim(),
     currency:document.getElementById('orderCurrency').value,
