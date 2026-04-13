@@ -374,6 +374,7 @@
         <div class="source-toggle">
           <button type="button" class="source-btn active" id="btnTonKho" onclick="setStockSource('ton_kho')">Hàng tồn kho</button>
           <button type="button" class="source-btn" id="btnDatRieng" onclick="setStockSource('dat_rieng')">Đặt đơn riêng</button>
+          <button type="button" class="source-btn" id="btnKetHop" onclick="setStockSource('ket_hop')">Kết hợp</button>
         </div>
         <div class="source-ref-group" id="groupMaXuat">
           <label class="modal-label">Mã phiếu xuất kho <span style="font-size:10px;color:var(--h5c-text-secondary);font-weight:400">(bắt buộc để xác nhận)</span> <span style="color:#E53935">*</span></label>
@@ -1912,8 +1913,9 @@ function openEditModal(id){
   state.stockSource=o.stockSource||'ton_kho';
   document.getElementById('btnTonKho').classList.toggle('active',state.stockSource==='ton_kho');
   document.getElementById('btnDatRieng').classList.toggle('active',state.stockSource==='dat_rieng');
-  document.getElementById('groupMaXuat').classList.toggle('show',state.stockSource==='ton_kho');
-  document.getElementById('groupMaNhap').classList.toggle('show',state.stockSource==='dat_rieng');
+  document.getElementById('btnKetHop').classList.toggle('active',state.stockSource==='ket_hop');
+  document.getElementById('groupMaXuat').classList.toggle('show',state.stockSource==='ton_kho'||state.stockSource==='ket_hop');
+  document.getElementById('groupMaNhap').classList.toggle('show',state.stockSource==='dat_rieng'||state.stockSource==='ket_hop');
 
   // In edit mode: always show locked display (never show dropdown by default)
   const maXuatLocked=document.getElementById('maXuatLocked');
@@ -1939,8 +1941,8 @@ function openEditModal(id){
   const maNhapLocked=document.getElementById('maNhapLocked');
   const maNhapLockedVal=document.getElementById('maNhapLockedVal');
   const maNhapSel=document.getElementById('orderMaNhap');
-  if(state.stockSource==='dat_rieng'){
-    setStockSource('dat_rieng');
+  if(state.stockSource==='dat_rieng'||state.stockSource==='ket_hop'){
+    setStockSource(state.stockSource);
     if(o.maNhap){
       const _poList=H5C.get('pos')||[];
       const _matchedPO=_poList.find(p=>p.id===o.maNhap);
@@ -1965,8 +1967,9 @@ function openEditModal(id){
   document.getElementById('productRows').innerHTML='';
   (o.products||[]).forEach(p=>addProductRow(p));
 
-  // Lock rows if source already linked
+  // Lock rows if source already linked (for ket_hop, don't auto-lock since products are manually managed)
   setTimeout(()=>{
+    if(state.stockSource==='ket_hop')return;
     const linkedId=state.stockSource==='ton_kho'?o.maXuat:o.maNhap;
     if(linkedId) lockProductRows();
   },80);
@@ -2002,7 +2005,7 @@ function resetOrderForm(){
   state.custType='le';state.stockSource='ton_kho';
   document.getElementById('btnLe').classList.add('active');document.getElementById('btnBuon').classList.remove('active');
   document.getElementById('wholesaleSection').classList.add('hidden');document.getElementById('channelGroup').classList.remove('hidden');
-  document.getElementById('btnTonKho').classList.add('active');document.getElementById('btnDatRieng').classList.remove('active');
+  document.getElementById('btnTonKho').classList.add('active');document.getElementById('btnDatRieng').classList.remove('active');document.getElementById('btnKetHop').classList.remove('active');
   document.getElementById('groupMaXuat').classList.remove('show');document.getElementById('groupMaNhap').classList.remove('show');
   document.getElementById('maXuatLocked').style.display='none';document.getElementById('orderMaXuat').style.display='';
   document.getElementById('maNhapLocked').style.display='none';document.getElementById('orderMaNhap').style.display='';
@@ -2043,9 +2046,10 @@ function setStockSource(src){
   state.stockSource=src;
   document.getElementById('btnTonKho').classList.toggle('active',src==='ton_kho');
   document.getElementById('btnDatRieng').classList.toggle('active',src==='dat_rieng');
-  document.getElementById('groupMaXuat').classList.toggle('show',src==='ton_kho');
-  document.getElementById('groupMaNhap').classList.toggle('show',src==='dat_rieng');
-  if(src==='dat_rieng'){
+  document.getElementById('btnKetHop').classList.toggle('active',src==='ket_hop');
+  document.getElementById('groupMaXuat').classList.toggle('show',src==='ton_kho'||src==='ket_hop');
+  document.getElementById('groupMaNhap').classList.toggle('show',src==='dat_rieng'||src==='ket_hop');
+  if(src==='dat_rieng'||src==='ket_hop'){
     const poList=H5C.get('pos')||[];
     const sel=document.getElementById('orderMaNhap');
     if(sel){
@@ -2060,7 +2064,7 @@ function setStockSource(src){
       }
     }
   }
-  if(src==='ton_kho')loadWarehouseXuat();
+  if(src==='ton_kho'||src==='ket_hop')loadWarehouseXuat();
 }
 
 function unlockSourceCode(type){
@@ -2146,12 +2150,17 @@ function onSourceLinked(type){
     }
   }
 
-  if(products.length){
-    document.getElementById('productRows').innerHTML='';
-    products.forEach(p=>addProductRow(p));
-    recalcTotal();
+  if(state.stockSource==='ket_hop'){
+    // In mixed mode: don't replace existing products, don't lock
+    // Just lock the source display below
+  }else{
+    if(products.length){
+      document.getElementById('productRows').innerHTML='';
+      products.forEach(p=>addProductRow(p));
+      recalcTotal();
+    }
+    lockProductRows();
   }
-  lockProductRows();
 
   // Re-lock the source display with the selected option text
   if(type==='ton_kho'){
@@ -2389,24 +2398,31 @@ function saveOrder(e){
     revenueOther:getRevenueOther(),
     total:totalRevenue,
     stockSource:state.stockSource,
-    maXuat:state.stockSource==='ton_kho'
+    maXuat:(state.stockSource==='ton_kho'||state.stockSource==='ket_hop')
       ?(document.getElementById('maXuatLocked').style.display!=='none'
         ?(document.getElementById('maXuatLocked').dataset.value||document.getElementById('orderMaXuat').value)
         :document.getElementById('orderMaXuat').value)
       :'',
-    maNhap:state.stockSource==='dat_rieng'
+    maNhap:(state.stockSource==='dat_rieng'||state.stockSource==='ket_hop')
       ?(document.getElementById('maNhapLocked').style.display!=='none'
         ?(document.getElementById('maNhapLocked').dataset.value||document.getElementById('orderMaNhap').value)
         :document.getElementById('orderMaNhap').value)
       :'',
   };
 
-  // Block "confirmed" if no PO linked
+  // Block "confirmed" if no source linked
   if(orderData.status===H5C_CONST.ORDER_STATUS.CONFIRMED){
-    const linkedPO=orderData.stockSource==='ton_kho'?orderData.maXuat:orderData.maNhap;
-    if(!linkedPO){
-      alert('⚠️ Để xác nhận đơn hàng, bắt buộc phải chọn PO nguồn hàng!\n\n• Hàng tồn kho → chọn PO đã nhận hàng\n• Đặt đơn riêng → chọn PO đang đặt NCC');
-      return;
+    if(orderData.stockSource==='ket_hop'){
+      if(!orderData.maXuat&&!orderData.maNhap){
+        alert('⚠️ Để xác nhận đơn hàng kết hợp, cần ít nhất 1 phiếu xuất kho hoặc 1 PO đặt hàng!');
+        return;
+      }
+    }else{
+      const linkedPO=orderData.stockSource==='ton_kho'?orderData.maXuat:orderData.maNhap;
+      if(!linkedPO){
+        alert('⚠️ Để xác nhận đơn hàng, bắt buộc phải chọn PO nguồn hàng!\n\n• Hàng tồn kho → chọn PO đã nhận hàng\n• Đặt đơn riêng → chọn PO đang đặt NCC\n• Kết hợp → chọn cả 2');
+        return;
+      }
     }
   }
 

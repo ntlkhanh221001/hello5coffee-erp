@@ -73,6 +73,13 @@
     REJECTED:   'rejected'
   });
 
+  const IMPORT_STATUS = Object.freeze({
+    CONFIRMED:   'imp_confirmed',
+    PRODUCING:   'imp_producing',
+    SHIPPING:    'imp_shipping',
+    RECEIVED:    'imp_received'
+  });
+
   // ── FORMAT HELPERS ───────────────────────────────────────────
 
   /** Format number with vi-VN locale (e.g. 1.234.567) */
@@ -148,6 +155,7 @@
     SHIPMENT_STATUS:       SHIPMENT_STATUS,
     PRODUCTION_STATUS:     PRODUCTION_STATUS,
     ORDER_REQUEST_STATUS:  ORDER_REQUEST_STATUS,
+    IMPORT_STATUS:         IMPORT_STATUS,
     COUNTRY_LABELS:        COUNTRY_LABELS
   };
 

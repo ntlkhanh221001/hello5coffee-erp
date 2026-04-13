@@ -1926,10 +1926,18 @@ function renderInOut(){
       </div>
 
       <div class="modal-row">
+        <div class="modal-group"><label class="modal-label">Tiến trình</label>
+          <select id="impProgress" class="modal-input">
+            <option value="imp_confirmed">✅ Đã xác nhận</option>
+            <option value="imp_producing">🔧 Đang sản xuất</option>
+            <option value="imp_shipping">🚚 Đang vận chuyển</option>
+            <option value="imp_received" selected>📥 Đã nhập kho</option>
+          </select>
+        </div>
         <div class="modal-group"><label class="modal-label">TT thanh toán NCC</label><select id="impPayStatus" class="modal-input" onchange="document.getElementById('impPaidAmountGroup').style.display=this.value==='partial'?'block':'none'"><option value="unpaid">Chưa TT</option><option value="partial">Một phần</option><option value="paid">Đã TT</option></select></div>
-        <div class="modal-group" id="impPaidAmountGroup" style="display:none"><label class="modal-label">Số tiền đã trả (VNĐ)</label><input type="number" id="impPaidAmount" class="modal-input" placeholder="0"></div>
         <div class="modal-group"><label class="modal-label">Đến hạn TT</label><input type="date" id="impDueDate" class="modal-input"></div>
       </div>
+      <div class="modal-group" id="impPaidAmountGroup" style="display:none"><label class="modal-label">Số tiền đã trả (VNĐ)</label><input type="number" id="impPaidAmount" class="modal-input" placeholder="0"></div>
       <div class="modal-group"><label class="modal-label">Ghi chú</label><input type="text" id="impNote" class="modal-input"></div>
       <button type="submit" class="modal-btn primary" style="width:100%">📥 Nhập kho</button>
     </form>
@@ -1982,6 +1990,35 @@ function renderInOut(){
   
   return h;
 }
+// ═══ Helper: tính số lượng chưa được đáp ứng của đơn hàng ═══
+function _getUnfulfilledProducts(orderId){
+  const orders=H5C.get('orders')||[];
+  const order=orders.find(o=>o.id===orderId);
+  if(!order||!order.products)return [];
+
+  // Tổng hợp SL đã xuất kho (EX) cho đơn này
+  const exHistory=(H5C.get('wh_history')||[]).filter(h=>h.type===H5C_CONST.LOT_TYPE.XUAT&&h.orderId===orderId);
+  const exMap={};
+  exHistory.forEach(h=>{exMap[h.skuId]=(exMap[h.skuId]||0)+h.qty;});
+
+  // Tổng hợp SL đã đặt POR cho đơn này
+  const poList=H5C.get('pos')||[];
+  const linkedPOs=poList.filter(p=>p.linkedOrderId===orderId);
+  const poMap={};
+  linkedPOs.forEach(po=>{
+    (po.products||[]).forEach(pr=>{poMap[pr.skuId]=(poMap[pr.skuId]||0)+pr.qty;});
+  });
+
+  // Tính SL chưa đáp ứng
+  return order.products.map(p=>{
+    const skuId=p.productId||p.skuId||'';
+    const needed=p.qty||0;
+    const fulfilled=(exMap[skuId]||0)+(poMap[skuId]||0);
+    const remaining=Math.max(0,needed-fulfilled);
+    return {skuId,name:p.name,unit:p.unit||'',qtyOrdered:needed,qtyFulfilled:fulfilled,qtyRemaining:remaining,costPerUnit:p.costPerUnit||0,unitPrice:p.unitPrice||0};
+  }).filter(p=>p.qtyRemaining>0);
+}
+
 // ═══ Helper: build <option> list từ đơn hàng đã xác nhận ═══
 function _fillExpTradeType(orderId){
   if(!orderId){document.getElementById('expTradeType').value='noi_dia';return;}
@@ -1995,34 +2032,40 @@ function _buildOrderOptions(selectedId){
   const linkableStatuses=[H5C_CONST.ORDER_STATUS.CONFIRMED,H5C_CONST.ORDER_STATUS.PRODUCING,H5C_CONST.ORDER_STATUS.PRODUCED,H5C_CONST.ORDER_STATUS.SHIPPING];
   let html='<option value="">-- Không liên kết --</option>';
   orders.filter(o=>linkableStatuses.includes(o.status)||(selectedId&&o.id===selectedId)).forEach(o=>{
-    const prods=(o.products||[]).map(function(p){return p.name+'×'+p.qty;}).join(', ');
+    const unfulfilled=_getUnfulfilledProducts(o.id);
+    const allProds=(o.products||[]).map(function(p){return p.name+'×'+p.qty;}).join(', ');
+    const unfulfilledLabel=unfulfilled.length?(' [Còn thiếu: '+unfulfilled.map(u=>u.name+'×'+u.qtyRemaining).join(', ')+']'):'';
+    // Nếu tất cả đã đáp ứng đủ và không phải đơn đang chọn → vẫn hiện nhưng ghi chú
+    const fullyDone=unfulfilled.length===0;
+    const tag=fullyDone?' ✅ Đủ hàng':'';
     const sel=(selectedId&&selectedId===o.id)?' selected':'';
-    html+='<option value="'+o.id+'"'+sel+'>'+o.id+' — '+o.customer+' ('+prods+')</option>';
+    html+='<option value="'+o.id+'"'+sel+'>'+o.id+' — '+o.customer+' ('+allProds+')'+unfulfilledLabel+tag+'</option>';
   });
   return html;
 }
 
-// ═══ TỰ ĐỘNG điền sản phẩm từ đơn hàng đã xác nhận ═══
+// ═══ TỰ ĐỘNG điền sản phẩm chưa đáp ứng từ đơn hàng ═══
 function fillExpProductsFromOrder(orderId){
   if(!orderId)return;
-  const orders=H5C.get('orders')||[];
-  const order=orders.find(o=>o.id===orderId);
-  if(!order||!order.products||!order.products.length)return;
+  const unfulfilled=_getUnfulfilledProducts(orderId);
+  if(!unfulfilled.length){
+    alert('✅ Đơn hàng '+orderId+' đã được đáp ứng đủ hàng!');
+    return;
+  }
   document.getElementById('expProductRows').innerHTML='';
   _expRowIdx=0;
-  order.products.forEach(p=>{
+  unfulfilled.forEach(p=>{
     addExpProductRow();
     const lastRows=document.querySelectorAll('#expProductRows [data-exp-row]');
     const lastRow=lastRows[lastRows.length-1];
     if(!lastRow)return;
     const idx=lastRow.dataset.expRow;
-    const skuId=p.productId||p.skuId||'';
     const skuSel=document.getElementById('expSku_'+idx);
-    if(skuSel){skuSel.value=skuId;skuSel.dispatchEvent(new Event('change'));}
+    if(skuSel){skuSel.value=p.skuId;skuSel.dispatchEvent(new Event('change'));}
     const qtyEl=document.getElementById('expQty_'+idx);
-    if(qtyEl)qtyEl.value=p.qty;
+    if(qtyEl)qtyEl.value=p.qtyRemaining;
     // Pre-fill import price from SKU
-    const sku=SKUS.find(s=>s.id===skuId);
+    const sku=SKUS.find(s=>s.id===p.skuId);
     if(sku&&sku.retailImportPrice){
       const priceEl=document.getElementById('expPrice_'+idx);
       if(priceEl)priceEl.value=sku.retailImportPrice;
@@ -2146,6 +2189,8 @@ function doImport(e){
   const lotNo=document.getElementById('impLotNo').value;
   const date=document.getElementById('impDate').value;
   const supplierId=document.getElementById('impSupplier').value||null;
+  const impProgress=document.getElementById('impProgress').value||H5C_CONST.IMPORT_STATUS.RECEIVED;
+  const isReceived=impProgress===H5C_CONST.IMPORT_STATUS.RECEIVED;
   const payStatus=document.getElementById('impPayStatus').value;
   const paidAmount=parseFloat(document.getElementById('impPaidAmount')?.value)||0;
   const dueDate=document.getElementById('impDueDate').value||null;
@@ -2172,7 +2217,8 @@ function doImport(e){
       lotNo, date, type:H5C_CONST.LOT_TYPE.NHAP, skuId,
       warehouseId:isGTT?null:whId,
       giaoTrucTiep:isGTT,
-      qty, qtyRemain:isGTT?0:qty, price,
+      qty, qtyRemain:isGTT?0:(isReceived?qty:0), price,
+      impProgress,
       mfgDate, bestBeforeMonths:bb,
       supplierId, location, payStatus, paidAmount:payStatus===H5C_CONST.PAYMENT_STATUS.PARTIAL?paidAmount:null, dueDate,
       user:state.user.name, note
@@ -2185,7 +2231,7 @@ function doImport(e){
       id:'H'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(),
       date, type:H5C_CONST.LOT_TYPE.NHAP, lotNo,
       skuId, warehouseId:isGTT?null:whId,
-      qty, price,
+      qty, price, impProgress,
       user:state.user.name, note
     });
     
@@ -2199,9 +2245,15 @@ function doImport(e){
   const _savedLotNo=lotNo;
   render();
   if(!isGTT){
+    const _progLabel={imp_confirmed:'Đã xác nhận',imp_producing:'Đang sản xuất',imp_shipping:'Đang vận chuyển',imp_received:'Đã nhập kho'};
+    const _progMsg=isReceived?'Nhập kho '+count+' SP thành công!':'Tạo phiếu nhập '+count+' SP — '+(_progLabel[impProgress]||'')+' (chưa cộng tồn kho)';
     setTimeout(()=>{
-      if(confirm('✅ Nhập kho '+count+' SP thành công!\n\nXuất phiếu nhập kho Excel?'))
-        exportPhieuNhap(_savedLotNo);
+      if(isReceived){
+        if(confirm('✅ '+_progMsg+'\n\nXuất phiếu nhập kho Excel?'))
+          exportPhieuNhap(_savedLotNo);
+      }else{
+        alert('📋 '+_progMsg);
+      }
     },100);
   } else {
     alert('✅ Đã ghi nhận '+count+' SP giao trực tiếp!');
@@ -2454,6 +2506,12 @@ function renderLots(){
 // ══════════════════════════════════════════════════════════════
 // LỊCH SỬ
 // ══════════════════════════════════════════════════════════════
+const IMP_PROGRESS_LABELS={imp_confirmed:'Đã xác nhận',imp_producing:'Đang SX',imp_shipping:'Đang VC',imp_received:'Đã nhập kho'};
+const IMP_PROGRESS_COLORS={imp_confirmed:'#E3F2FD',imp_producing:'#FFF3E0',imp_shipping:'#F3E5F5',imp_received:'#E8F5E9'};
+const IMP_PROGRESS_TEXT={imp_confirmed:'#1565C0',imp_producing:'#E65100',imp_shipping:'#7B1FA2',imp_received:'#2E7D32'};
+const IMP_PROGRESS_ICONS={imp_confirmed:'✅',imp_producing:'🔧',imp_shipping:'🚚',imp_received:'📥'};
+const IMP_PROGRESS_FLOW=['imp_confirmed','imp_producing','imp_shipping','imp_received'];
+
 function renderHistory(){
   let h=`<div class="section-header"><div class="section-filters">
     <select class="filter-select" id="fHType" onchange="render()"><option value="all">Tất cả</option><option value="nhap">Nhập</option><option value="xuat">Xuất</option></select>
@@ -2462,16 +2520,49 @@ function renderHistory(){
   let list=HISTORY.slice();if(tf!=='all')list=list.filter(l=>l.type===tf);
   list.sort((a,b)=>new Date(b.date)-new Date(a.date));
   const seenLotNos=new Set();
-  h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Ngày</th><th>Loại</th><th>Mã phiếu</th><th>SKU</th><th>Kho</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Người</th><th>Ghi chú</th><th style="width:40px"></th></tr></thead><tbody>';
+  h+='<div class="table-wrap"><table class="data-table"><thead><tr><th>Ngày</th><th>Loại</th><th>Mã phiếu</th><th>Tiến trình</th><th>SKU</th><th>Kho</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Người</th><th>Ghi chú</th><th style="width:40px"></th></tr></thead><tbody>';
   list.forEach(l=>{
     const sku=SKUS.find(s=>s.id===l.skuId),wh=WAREHOUSES.find(w=>w.id===l.warehouseId);
     const isFirst=!seenLotNos.has(l.lotNo);seenLotNos.add(l.lotNo);
     const misaBtn=isFirst&&l.type===H5C_CONST.LOT_TYPE.XUAT?`<button class="action-btn" title="Xuất Misa" style="background:#E8F5E9;color:#2E7D32" onclick="exportMisaFromEX('${l.lotNo}')">M</button>`:'';
-    const actionBtns=isFirst?`<div class="action-btns"><button class="action-btn" title="Xuất phiếu Excel" style="background:#E3F2FD;color:#1565C0" onclick="${l.type===H5C_CONST.LOT_TYPE.NHAP?`exportPhieuNhap('${l.lotNo}')`:`exportPhieuXuat('${l.lotNo}')`}">📄</button>${misaBtn}<button class="action-btn" title="Sửa phiếu" onclick="editLotHistory('${l.lotNo}')">✏️</button><button class="action-btn" title="Xóa phiếu" onclick="deleteLotHistory('${l.lotNo}','${l.type}')">🗑️</button></div>`:'';
-    h+=`<tr><td>${formatDate(l.date)}</td><td><span class="action-badge ${l.type}">${l.type===H5C_CONST.LOT_TYPE.NHAP?'Nhập':'Xuất'}</span></td><td><strong>${l.lotNo}</strong></td><td>${sku?sku.name:'—'}</td><td><span class="wh-badge">${wh?wh.code:'—'}</span></td><td>${l.type===H5C_CONST.LOT_TYPE.NHAP?'+':'-'}${l.qty}</td><td>${fmt(l.price)}đ</td><td>${fmt((l.qty||0)*(l.price||0))}đ</td><td>${l.user||'—'}</td><td>${l.note||'—'}</td><td>${actionBtns}</td></tr>`;
+    // Progress advance button for nhập
+    const prog=l.impProgress||'imp_received';
+    const progIdx=IMP_PROGRESS_FLOW.indexOf(prog);
+    const advBtn=isFirst&&l.type===H5C_CONST.LOT_TYPE.NHAP&&progIdx<IMP_PROGRESS_FLOW.length-1?`<button class="action-btn" title="Chuyển tiến trình tiếp theo" style="background:${IMP_PROGRESS_COLORS[IMP_PROGRESS_FLOW[progIdx+1]]};color:${IMP_PROGRESS_TEXT[IMP_PROGRESS_FLOW[progIdx+1]]}" onclick="advanceImportProgress('${l.lotNo}')">▶</button>`:'';
+    const actionBtns=isFirst?`<div class="action-btns">${advBtn}<button class="action-btn" title="Xuất phiếu Excel" style="background:#E3F2FD;color:#1565C0" onclick="${l.type===H5C_CONST.LOT_TYPE.NHAP?`exportPhieuNhap('${l.lotNo}')`:`exportPhieuXuat('${l.lotNo}')`}">📄</button>${misaBtn}<button class="action-btn" title="Sửa phiếu" onclick="editLotHistory('${l.lotNo}')">✏️</button><button class="action-btn" title="Xóa phiếu" onclick="deleteLotHistory('${l.lotNo}','${l.type}')">🗑️</button></div>`:'';
+    // Progress badge
+    const progBadge=l.type===H5C_CONST.LOT_TYPE.NHAP?`<span style="display:inline-block;padding:2px 7px;border-radius:99px;font-size:9px;font-weight:700;background:${IMP_PROGRESS_COLORS[prog]||'#F5F5F5'};color:${IMP_PROGRESS_TEXT[prog]||'#333'};white-space:nowrap">${IMP_PROGRESS_ICONS[prog]||''} ${IMP_PROGRESS_LABELS[prog]||prog}</span>`:'<span style="color:var(--cream-b)">—</span>';
+    h+=`<tr><td>${formatDate(l.date)}</td><td><span class="action-badge ${l.type}">${l.type===H5C_CONST.LOT_TYPE.NHAP?'Nhập':'Xuất'}</span></td><td><strong>${l.lotNo}</strong></td><td>${progBadge}</td><td>${sku?sku.name:'—'}</td><td><span class="wh-badge">${wh?wh.code:'—'}</span></td><td>${l.type===H5C_CONST.LOT_TYPE.NHAP?'+':'-'}${l.qty}</td><td>${fmt(l.price)}đ</td><td>${fmt((l.qty||0)*(l.price||0))}đ</td><td>${l.user||'—'}</td><td>${l.note||'—'}</td><td>${actionBtns}</td></tr>`;
   });
   h+='</tbody></table></div>';
   return h;
+}
+
+function advanceImportProgress(lotNo){
+  const entries=HISTORY.filter(h=>h.lotNo===lotNo&&h.type===H5C_CONST.LOT_TYPE.NHAP);
+  if(!entries.length)return;
+  const curProg=entries[0].impProgress||'imp_received';
+  const idx=IMP_PROGRESS_FLOW.indexOf(curProg);
+  if(idx>=IMP_PROGRESS_FLOW.length-1){alert('Phiếu đã ở trạng thái cuối!');return;}
+  const nextProg=IMP_PROGRESS_FLOW[idx+1];
+  const isNowReceived=nextProg===H5C_CONST.IMPORT_STATUS.RECEIVED;
+  if(!confirm('Chuyển tiến trình → '+IMP_PROGRESS_LABELS[nextProg]+'?'))return;
+
+  // Update all history entries of this lotNo
+  HISTORY.forEach(h=>{if(h.lotNo===lotNo&&h.type===H5C_CONST.LOT_TYPE.NHAP)h.impProgress=nextProg;});
+  H5C.set('wh_history',HISTORY);
+
+  // Update corresponding lots
+  const lotsOfLotNo=LOTS.filter(l=>l.lotNo===lotNo&&l.type===H5C_CONST.LOT_TYPE.NHAP);
+  lotsOfLotNo.forEach(l=>{
+    l.impProgress=nextProg;
+    if(isNowReceived&&!l.giaoTrucTiep){
+      l.qtyRemain=l.qty-(l.reservedQty||0);
+    }
+  });
+  H5C.set('lots',LOTS);
+  render();
+  showToast((IMP_PROGRESS_ICONS[nextProg]||'')+' Phiếu '+lotNo+' → '+IMP_PROGRESS_LABELS[nextProg],'success');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2507,6 +2598,7 @@ function editLotHistory(lotNo){
   const lot=LOTS.find(l=>l.lotNo===lotNo);
   const supplierId=lot?lot.supplierId:(first.supplierId||'');
   const warehouseId=lot?lot.warehouseId:(first.warehouseId||'');
+  const curImpProgress=lot?lot.impProgress:(first.impProgress||'imp_received');
 
   const modal=document.createElement('div');
   modal.className='modal-overlay';
@@ -2525,8 +2617,14 @@ function editLotHistory(lotNo){
         :`<div><label class="modal-label">Kho xuất</label>
         <select id="editHistWarehouse" class="modal-input">${whOpts}</select></div>`}
     </div>
-    ${isNhap?`<div style="margin-bottom:12px"><label class="modal-label">Kho nhập</label>
-      <select id="editHistWarehouse" class="modal-input">${whOpts}<option value="giao_truc_tiep">🚚 Giao trực tiếp</option></select></div>`:''}
+    ${isNhap?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div><label class="modal-label">Kho nhập</label>
+        <select id="editHistWarehouse" class="modal-input">${whOpts}<option value="giao_truc_tiep">🚚 Giao trực tiếp</option></select></div>
+      <div><label class="modal-label">Tiến trình</label>
+        <select id="editHistProgress" class="modal-input">
+          ${IMP_PROGRESS_FLOW.map(k=>'<option value="'+k+'"'+(k===curImpProgress?' selected':'')+'>'+IMP_PROGRESS_ICONS[k]+' '+IMP_PROGRESS_LABELS[k]+'</option>').join('')}
+        </select></div>
+    </div>`:''}
 
     <div style="background:var(--cream);border-radius:8px;padding:12px;margin-bottom:12px">
       <div style="font-size:11px;font-weight:800;color:var(--brown-m);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
@@ -2587,6 +2685,9 @@ function saveLotHistoryEdit(lotNo){
   const warehouseId=warehouseEl?warehouseEl.value:'';
   const supplierEl=document.getElementById('editHistSupplier');
   const supplierId=supplierEl?supplierEl.value:'';
+  const progressEl=document.getElementById('editHistProgress');
+  const impProgress=progressEl?progressEl.value:'imp_received';
+  const isReceived=impProgress===H5C_CONST.IMPORT_STATUS.RECEIVED;
 
   const validProducts=_editHistProducts.filter(p=>p.skuId&&p.qty>0);
   if(!validProducts.length){alert('❌ Cần ít nhất 1 sản phẩm hợp lệ!');return;}
@@ -2604,41 +2705,47 @@ function saveLotHistoryEdit(lotNo){
       skuId:p.skuId,
       warehouseId:warehouseId||null,
       qty:p.qty, price:p.price,
+      impProgress:type===H5C_CONST.LOT_TYPE.NHAP?impProgress:undefined,
       user:state.user.name, note
     });
   });
 
   // Sync lots
   if(type===H5C_CONST.LOT_TYPE.NHAP){
-    // Xóa lots cũ của lotNo và tạo lại
     const oldLots=LOTS.filter(l=>l.lotNo===lotNo&&l.type===H5C_CONST.LOT_TYPE.NHAP);
-    // Lưu lại qtyRemain cũ theo skuId để giữ đúng tồn kho
     const remainMap={};
-    oldLots.forEach(l=>{remainMap[l.skuId]={qtyRemain:l.qtyRemain,id:l.id};});
+    oldLots.forEach(l=>{remainMap[l.skuId]={qtyRemain:l.qtyRemain,qty:l.qty,id:l.id,impProgress:l.impProgress};});
 
     LOTS=LOTS.filter(l=>l.lotNo!==lotNo||l.type!==H5C_CONST.LOT_TYPE.NHAP);
     const isGTT=warehouseId==='giao_truc_tiep';
 
     validProducts.forEach(p=>{
       const old=remainMap[p.skuId];
-      const qtyDiff=old?(p.qty-old.qtyRemain+(old.qtyRemain)):p.qty;
+      let qtyRemain=0;
+      if(isGTT){
+        qtyRemain=0;
+      }else if(!isReceived){
+        qtyRemain=0;
+      }else if(old){
+        const wasReceived=old.impProgress===H5C_CONST.IMPORT_STATUS.RECEIVED||!old.impProgress;
+        if(wasReceived){
+          qtyRemain=Math.max(0,old.qtyRemain+(p.qty-old.qty));
+        }else{
+          qtyRemain=p.qty;
+        }
+      }else{
+        qtyRemain=p.qty;
+      }
       const _newLot={
         id:old?old.id:('LOT'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase()),
         lotNo, date, type:H5C_CONST.LOT_TYPE.NHAP, skuId:p.skuId,
         warehouseId:isGTT?null:warehouseId,
         giaoTrucTiep:isGTT,
-        qty:p.qty, qtyRemain:old?Math.max(0,old.qtyRemain+(p.qty-(remainMap[p.skuId]?LOTS.concat(oldLots).find(l=>l.id===old.id)?.qty||p.qty:p.qty))):p.qty,
-        price:p.price,
+        qty:p.qty, qtyRemain,
+        price:p.price, impProgress,
         supplierId:supplierId||null,
         user:state.user.name, note
       };
-      // Tính lại qtyRemain chính xác: qtyRemain cũ + (qty mới - qty cũ)
-      const oldLot=oldLots.find(l=>l.skuId===p.skuId);
-      if(oldLot){
-        _newLot.qtyRemain=Math.max(0,oldLot.qtyRemain+(p.qty-oldLot.qty));
-      }else{
-        _newLot.qtyRemain=isGTT?0:p.qty;
-      }
       H5C_LOT.stamp(_newLot);
       LOTS.push(_newLot);
     });
@@ -3026,10 +3133,15 @@ function fillPOProductsFromOrder(orderId){
   const order=orders.find(o=>o.id===orderId);
   if(!order||!order.products||!order.products.length)return;
   if(order.tradeType){const el=document.getElementById('poTradeType');if(el)el.value=order.tradeType;}
-  _poProducts=order.products.map(p=>{
-    const skuId=p.productId||p.skuId||'';
-    const sku=SKUS.find(s=>s.id===skuId);
-    return {skuId,qty:p.qty||1,unitPrice:sku&&sku.retailImportPrice?sku.retailImportPrice:0};
+
+  const unfulfilled=_getUnfulfilledProducts(orderId);
+  if(!unfulfilled.length){
+    alert('✅ Đơn hàng '+orderId+' đã được đáp ứng đủ hàng!');
+    return;
+  }
+  _poProducts=unfulfilled.map(p=>{
+    const sku=SKUS.find(s=>s.id===p.skuId);
+    return {skuId:p.skuId,qty:p.qtyRemaining,unitPrice:sku&&sku.retailImportPrice?sku.retailImportPrice:0};
   });
   renderPOProductRows();
 }
