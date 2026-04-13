@@ -119,7 +119,13 @@
 <div class="layout">
   <aside class="sidebar"></aside>
   <div class="main">
-    <header class="topbar" id="topbar"></header>
+    <header class="topbar" id="topbar" style="display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:var(--h5c-surface);border-bottom:1px solid var(--h5c-border)">
+      <div style="font-size:14px;font-weight:700;color:var(--h5c-text)">☕ Takeaway</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span id="twUserName" style="font-size:13px;color:var(--h5c-text-secondary);font-weight:600"></span>
+        <button onclick="twLogout()" style="padding:6px 14px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-sm);background:transparent;font-size:12px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer">Đăng xuất</button>
+      </div>
+    </header>
     <main class="content" id="mainContent">
 
       <div class="tw-header">
@@ -499,6 +505,49 @@
   const STATUS_LABELS = {
     pending:'Chờ pha', preparing:'Đang pha', ready:'Sẵn sàng',
     completed:'Hoàn thành', cancelled:'Đã hủy'
+  };
+
+  // ═══════════════════════════════════════════
+  // ROLE-BASED PERMISSIONS
+  // ═══════════════════════════════════════════
+  function getSessionRole() {
+    try { const u = JSON.parse(localStorage.getItem('h5c_erp_user') || 'null'); return u ? u.role : ''; } catch(e) { return ''; }
+  }
+  function isManager() {
+    const r = getSessionRole();
+    return ['C_LEVEL','MANAGER','TW_MANAGER'].includes(r);
+  }
+
+  // Tabs visible per role
+  const STAFF_TABS = ['dashboard','orders','shifts','daily-nvl'];
+  const ALL_TABS = ['dashboard','branches','menu','inventory','orders','shifts','expenses','daily-nvl','reports'];
+
+  function applyRoleUI() {
+    const role = getSessionRole();
+    const session = JSON.parse(localStorage.getItem('h5c_erp_user') || '{}');
+    const mgr = isManager();
+
+    // Topbar user name
+    const nameEl = document.getElementById('twUserName');
+    if (nameEl) nameEl.textContent = (session.name || session.email || '—') + (mgr ? ' (Quản lý)' : ' (Nhân viên)');
+
+    // Tab visibility
+    const allowedTabs = mgr ? ALL_TABS : STAFF_TABS;
+    document.querySelectorAll('.tw-tab').forEach(btn => {
+      const tab = btn.dataset.tab;
+      btn.style.display = allowedTabs.includes(tab) ? '' : 'none';
+    });
+
+    // If current active tab is hidden, switch to dashboard
+    const activeTab = document.querySelector('.tw-tab.active');
+    if (activeTab && activeTab.style.display === 'none') {
+      twSwitchTab('dashboard');
+    }
+  }
+
+  window.twLogout = function() {
+    localStorage.removeItem('h5c_erp_user');
+    window.location.href = 'dashboard.html';
   };
 
   // ═══════════════════════════════════════════
@@ -2126,6 +2175,7 @@
     if (document.getElementById('twNvlDate')) document.getElementById('twNvlDate').value = todayStr;
 
     populateBranchDropdowns();
+    applyRoleUI();
     twRenderDashboard();
   }
 
