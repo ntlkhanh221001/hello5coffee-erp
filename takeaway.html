@@ -73,10 +73,45 @@
 .tw-shift-card .shift-stat .num{font-size:16px;font-weight:700}
 .tw-shift-card .shift-stat .lbl{font-size:10px;color:var(--h5c-text-secondary)}
 
+/* ═══ Denomination Grid ═══ */
+.tw-denom-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tw-denom-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-sm)}
+.tw-denom-item label{font-size:12px;font-weight:600;color:var(--h5c-text-secondary);min-width:60px}
+.tw-denom-item input{width:60px;padding:6px 8px;border:1px solid var(--h5c-border);border-radius:var(--h5c-radius-sm);font-size:13px;text-align:center}
+.tw-denom-total{font-size:16px;font-weight:800;text-align:right;padding:12px 0;border-top:2px solid var(--h5c-border);margin-top:12px}
+
+/* ═══ Cash Flow Summary ═══ */
+.tw-cash-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.tw-cash-box{padding:12px;border-radius:var(--h5c-radius-sm);text-align:center}
+.tw-cash-box.income{background:rgba(143,176,81,.1);border:1px solid rgba(143,176,81,.3)}
+.tw-cash-box.expense{background:rgba(196,69,54,.06);border:1px solid rgba(196,69,54,.2)}
+.tw-cash-box .lbl{font-size:11px;color:var(--h5c-text-secondary);font-weight:600}
+.tw-cash-box .val{font-size:16px;font-weight:800;margin-top:4px}
+
+/* ═══ Transaction List ═══ */
+.tw-tx-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
+.tw-tx-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-sm);font-size:13px}
+.tw-tx-item .tx-type{font-weight:600}
+.tw-tx-item .tx-amount.plus{color:var(--h5c-sage);font-weight:700}
+.tw-tx-item .tx-amount.minus{color:var(--h5c-terracotta);font-weight:700}
+
+/* ═══ Variance Table ═══ */
+.tw-variance-ok{color:var(--h5c-sage);font-weight:700}
+.tw-variance-warn{color:var(--h5c-amber);font-weight:700}
+.tw-variance-bad{color:var(--h5c-terracotta);font-weight:700}
+
+/* ═══ Alert Banner ═══ */
+.tw-alert{padding:12px 16px;border-radius:var(--h5c-radius-md);margin-bottom:16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.tw-alert.warning{background:rgba(236,197,75,.15);color:#9A7D00;border:1px solid rgba(236,197,75,.3)}
+.tw-alert.danger{background:rgba(196,69,54,.1);color:var(--h5c-terracotta);border:1px solid rgba(196,69,54,.2)}
+.tw-alert.success{background:rgba(143,176,81,.1);color:var(--h5c-sage);border:1px solid rgba(143,176,81,.3)}
+
 @media(max-width:768px){
   .tw-kpi-grid{grid-template-columns:1fr 1fr}
   .tw-tab-bar{width:100%;overflow-x:auto}
   .tw-modal-row{grid-template-columns:1fr}
+  .tw-denom-grid{grid-template-columns:repeat(2,1fr)}
+  .tw-cash-summary{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -100,6 +135,7 @@
         <button class="tw-tab" data-tab="orders" onclick="twSwitchTab('orders')">🧾 Đơn hàng</button>
         <button class="tw-tab" data-tab="shifts" onclick="twSwitchTab('shifts')">⏰ Ca làm</button>
         <button class="tw-tab" data-tab="expenses" onclick="twSwitchTab('expenses')">💰 Chi phí</button>
+        <button class="tw-tab" data-tab="daily-nvl" onclick="twSwitchTab('daily-nvl')">🧮 Kiểm NVL</button>
         <button class="tw-tab" data-tab="reports" onclick="twSwitchTab('reports')">📈 Báo cáo & P&L</button>
       </div>
 
@@ -174,6 +210,7 @@
                 <th>Giá bán</th>
                 <th>Giá vốn</th>
                 <th>Trạng thái</th>
+                <th>Định lượng</th>
                 <th style="width:80px">Thao tác</th>
               </tr>
             </thead>
@@ -320,6 +357,46 @@
       </div>
 
       <!-- ═══════════════════════════════════════════ -->
+      <!-- TAB: Daily NVL Tracking                    -->
+      <!-- ═══════════════════════════════════════════ -->
+      <div class="tw-panel" id="panel-daily-nvl">
+        <div class="tw-header">
+          <div class="tw-filters">
+            <select class="tw-filter" id="twNvlBranch" onchange="twRenderDailyNvl()">
+              <option value="">Chọn chi nhánh</option>
+            </select>
+            <input type="date" class="tw-filter" id="twNvlDate" onchange="twRenderDailyNvl()"/>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary" onclick="twShowNvlCountModal('open')">📋 Đếm đầu ngày</button>
+            <button class="btn btn-secondary" onclick="twShowNvlCountModal('close')">📋 Đếm cuối ngày</button>
+          </div>
+        </div>
+        <div id="twNvlAlerts"></div>
+        <div class="tw-kpi-grid" id="twNvlKpi" style="margin-bottom:16px"></div>
+        <div class="card" style="margin-bottom:20px">
+          <h3 style="margin:0 0 16px;font-size:15px;font-weight:700">📊 Báo cáo Khấu hao NVL</h3>
+          <div class="table-wrapper">
+            <table class="table" id="twNvlTable">
+              <thead>
+                <tr>
+                  <th>Nguyên liệu</th>
+                  <th>ĐVT</th>
+                  <th>Tồn đầu ngày</th>
+                  <th>Tồn cuối ngày</th>
+                  <th>SD thực tế</th>
+                  <th>SD kế hoạch</th>
+                  <th>Chênh lệch</th>
+                  <th>Tỷ lệ hao hụt</th>
+                </tr>
+              </thead>
+              <tbody id="twNvlBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════ -->
       <!-- TAB: Reports & P&L                         -->
       <!-- ═══════════════════════════════════════════ -->
       <div class="tw-panel" id="panel-reports">
@@ -371,17 +448,31 @@
 
   // ── Storage Keys ──
   const KEYS = {
-    branches:      'tw_branches',
-    menuItems:     'tw_menu_items',
-    ingredients:   'tw_ingredients',
-    recipes:       'tw_recipes',
-    stockCentral:  'tw_stock_central',
-    stockBranch:   'tw_stock_branch',
-    distributions: 'tw_distributions',
-    shifts:        'tw_shifts',
-    orders:        'tw_orders',
-    expenses:      'tw_expenses',
-    partnerConfig: 'tw_partner_config',
+    branches:         'tw_branches',
+    menuItems:        'tw_menu_items',
+    ingredients:      'tw_ingredients',
+    recipes:          'tw_recipes',
+    stockCentral:     'tw_stock_central',
+    stockBranch:      'tw_stock_branch',
+    distributions:    'tw_distributions',
+    shifts:           'tw_shifts',
+    orders:           'tw_orders',
+    expenses:         'tw_expenses',
+    partnerConfig:    'tw_partner_config',
+    shiftTransactions:'tw_shift_transactions',
+    dailyInventory:   'tw_daily_inventory',
+  };
+
+  const DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
+
+  const SHIFT_TX_TYPES = {
+    order_cash:  'Thu tiền mặt (đơn hàng)',
+    other_income:'Thu khác',
+    buy_nvl:     'Mua NVL',
+    cleaning:    'Vệ sinh',
+    transport:   'Vận chuyển',
+    tip:         'Tip nhân viên',
+    other_exp:   'Chi khác',
   };
 
   // ── Helpers ──
@@ -428,6 +519,7 @@
       case 'orders':    twRenderOrders(); break;
       case 'shifts':    twRenderShifts(); break;
       case 'expenses':  twRenderExpenses(); break;
+      case 'daily-nvl': twRenderDailyNvl(); break;
       case 'reports':   twRenderReports(); break;
     }
   }
@@ -437,7 +529,7 @@
   // ═══════════════════════════════════════════
   function populateBranchDropdowns() {
     const branches = get(KEYS.branches).filter(b => b.status === 'active');
-    const selectors = ['twOrderBranch','twShiftBranch','twExpBranch','twInvBranchFilter','twRptBranch'];
+    const selectors = ['twOrderBranch','twShiftBranch','twExpBranch','twInvBranchFilter','twRptBranch','twNvlBranch'];
     selectors.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -606,20 +698,26 @@
       tbody.innerHTML = '<tr><td colspan="7"><div class="tw-empty"><div class="icon">📋</div><p>Chưa có món nào trong menu</p></div></td></tr>';
       return;
     }
-    tbody.innerHTML = items.map(i => `<tr>
+    const recipes = get(KEYS.recipes);
+    tbody.innerHTML = items.map(i => {
+      const recipe = recipes.find(r => r.menuItemId === i.id);
+      const ingCount = recipe ? (recipe.ingredients||[]).length : 0;
+      return `<tr>
       <td><strong>${i.name||'—'}</strong></td>
       <td>${CATEGORY_LABELS[i.category]||i.category||'—'}</td>
       <td>${i.size||'M'}</td>
       <td>${fmtMoney(i.price)}</td>
       <td>${fmtMoney(i.cost)}</td>
       <td><span class="tw-badge ${i.status==='active'?'active':'inactive'}">${i.status==='active'?'Đang bán':'Ngưng'}</span></td>
+      <td><button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="twShowRecipeModal('${i.id}')">🧪 ${ingCount ? ingCount + ' NL' : 'Chưa có'}</button></td>
       <td>
         <div class="tw-actions">
           <button class="tw-action edit" onclick="twEditMenu('${i.id}')">✏️</button>
           <button class="tw-action delete" onclick="twDeleteMenu('${i.id}')">🗑️</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+    }).join('');
   };
 
   window.twShowMenuModal = function(itemId) {
@@ -724,6 +822,91 @@
     set(KEYS.menuItems, get(KEYS.menuItems).filter(i => i.id !== id));
     twRenderMenu();
     showToast('Đã xóa món', 'success');
+  };
+
+  // ═══════════════════════════════════════════
+  // RECIPE / BOM (Bill of Materials)
+  // ═══════════════════════════════════════════
+  window.twShowRecipeModal = function(menuItemId) {
+    const item = get(KEYS.menuItems).find(m => m.id === menuItemId);
+    if (!item) return;
+    const ingredients = get(KEYS.ingredients);
+    const recipes = get(KEYS.recipes);
+    const recipe = recipes.find(r => r.menuItemId === menuItemId);
+    const recipeIngs = recipe ? (recipe.ingredients || []) : [];
+
+    const ingRows = recipeIngs.map((ri, idx) => {
+      const ing = ingredients.find(i => i.id === ri.ingredientId);
+      return `<div class="tw-recipe-item" data-idx="${idx}">
+        <select class="input recipe-ing-sel" style="flex:1;margin-right:8px">
+          ${ingredients.map(i => `<option value="${i.id}" ${i.id===ri.ingredientId?'selected':''}>${i.name} (${i.unit})</option>`).join('')}
+        </select>
+        <input class="input recipe-ing-qty" type="number" value="${ri.qty||0}" min="0" step="any" style="width:80px;margin-right:8px" placeholder="Số lượng"/>
+        <button class="tw-action delete" onclick="this.closest('.tw-recipe-item').remove()">✕</button>
+      </div>`;
+    }).join('');
+
+    document.getElementById('twModalContent').innerHTML = `
+      <div class="modal-header">
+        <h3>🧪 Định lượng: ${item.name} (${item.size||'M'})</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--h5c-text-secondary);margin-bottom:16px">Gán nguyên liệu và định lượng cho mỗi ly/phần. Dùng để tính sử dụng NVL theo kế hoạch.</p>
+        <div id="twRecipeRows" class="tw-recipe-list">
+          ${ingRows || '<p style="text-align:center;color:var(--h5c-text-secondary)">Chưa có nguyên liệu nào</p>'}
+        </div>
+        <button class="btn btn-secondary" onclick="twAddRecipeRow()" style="margin-top:12px">+ Thêm nguyên liệu</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twSaveRecipe('${menuItemId}')">Lưu định lượng</button>
+      </div>
+    `;
+    document.getElementById('twModal').style.display = 'flex';
+  };
+
+  window.twAddRecipeRow = function() {
+    const ingredients = get(KEYS.ingredients);
+    if (!ingredients.length) { showToast('Thêm nguyên liệu trước (tab Menu → Nguyên liệu)', 'warning'); return; }
+    // Remove placeholder text if present
+    const container = document.getElementById('twRecipeRows');
+    const placeholder = container.querySelector('p');
+    if (placeholder) placeholder.remove();
+
+    const row = document.createElement('div');
+    row.className = 'tw-recipe-item';
+    row.innerHTML = `
+      <select class="input recipe-ing-sel" style="flex:1;margin-right:8px">
+        ${ingredients.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('')}
+      </select>
+      <input class="input recipe-ing-qty" type="number" value="" min="0" step="any" style="width:80px;margin-right:8px" placeholder="Số lượng"/>
+      <button class="tw-action delete" onclick="this.closest('.tw-recipe-item').remove()">✕</button>
+    `;
+    container.appendChild(row);
+  };
+
+  window.twSaveRecipe = function(menuItemId) {
+    const rows = document.querySelectorAll('#twRecipeRows .tw-recipe-item');
+    const ingredients = [];
+    rows.forEach(row => {
+      const ingId = row.querySelector('.recipe-ing-sel').value;
+      const qty = parseFloat(row.querySelector('.recipe-ing-qty').value) || 0;
+      if (ingId && qty > 0) ingredients.push({ ingredientId: ingId, qty });
+    });
+
+    let recipes = get(KEYS.recipes);
+    const idx = recipes.findIndex(r => r.menuItemId === menuItemId);
+    if (idx >= 0) {
+      recipes[idx].ingredients = ingredients;
+      recipes[idx].updatedAt = new Date().toISOString();
+    } else {
+      recipes.push({ id: genId('RCP'), menuItemId, ingredients, createdAt: new Date().toISOString() });
+    }
+    set(KEYS.recipes, recipes);
+    twCloseModal();
+    twRenderMenu();
+    showToast('Đã lưu định lượng (' + ingredients.length + ' nguyên liệu)', 'success');
   };
 
   // ═══════════════════════════════════════════
@@ -1181,8 +1364,15 @@
       grid.innerHTML = '<div class="tw-empty"><div class="icon">⏰</div><p>Chưa có ca làm nào cho ngày này</p></div>';
       return;
     }
+    const allTxs = get(KEYS.shiftTransactions);
     grid.innerHTML = shifts.map(s => {
       const br = branches.find(b => b.id === s.branchId);
+      const openTotal = (s.openFund && typeof s.openFund === 'object') ? s.openFund.total : (s.openFund || 0);
+      const closeTotal = s.closeFund ? s.closeFund.total : null;
+      const txs = allTxs.filter(t => t.shiftId === s.id);
+      const txIncome = txs.filter(t => t.type === 'other_income').reduce((sum,t) => sum + (t.amount||0), 0);
+      const txExpense = txs.filter(t => !['order_cash','other_income'].includes(t.type)).reduce((sum,t) => sum + (t.amount||0), 0);
+
       return `<div class="tw-shift-card">
         <div class="shift-head">
           <div>
@@ -1194,11 +1384,65 @@
         <div class="shift-stats">
           <div class="shift-stat"><div class="num">${s.orderCount||0}</div><div class="lbl">Đơn</div></div>
           <div class="shift-stat"><div class="num">${fmtMoney(s.revenue||0)}</div><div class="lbl">Doanh thu</div></div>
+          <div class="shift-stat"><div class="num">${fmtMoney(openTotal)}</div><div class="lbl">Tiền đầu ca</div></div>
+          <div class="shift-stat"><div class="num">${closeTotal !== null ? fmtMoney(closeTotal) : '—'}</div><div class="lbl">Tiền cuối ca</div></div>
         </div>
-        ${!s.closedAt?`<button class="btn btn-secondary" style="width:100%;margin-top:12px" onclick="twCloseShift('${s.id}')">🔒 Đóng ca</button>`:''}
+        ${txs.length || txIncome || txExpense ? `<div class="tw-cash-summary">
+          <div class="tw-cash-box income"><div class="lbl">Thu khác</div><div class="val" style="color:var(--h5c-sage)">+${fmtMoney(txIncome)}</div></div>
+          <div class="tw-cash-box expense"><div class="lbl">Chi trong ca</div><div class="val" style="color:var(--h5c-terracotta)">-${fmtMoney(txExpense)}</div></div>
+        </div>` : ''}
+        ${s.closedAt && s.cashDiff !== undefined && s.cashDiff !== 0 ? `<div class="tw-alert ${Math.abs(s.cashDiff)>10000?'danger':'warning'}" style="margin-top:12px">⚠️ Chênh lệch: ${s.cashDiff>0?'+':''}${fmtMoney(s.cashDiff)}</div>` : ''}
+        ${s.closedAt && s.cashDiff === 0 ? `<div class="tw-alert success" style="margin-top:12px">✅ Tiền khớp</div>` : ''}
+        ${!s.closedAt ? `<div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-secondary" style="flex:1" onclick="twShowShiftTxModal('${s.id}')">💰 Ghi thu/chi</button>
+          <button class="btn btn-secondary" style="flex:1" onclick="twViewShiftTxs('${s.id}')">📋 Xem (${txs.length})</button>
+          <button class="btn btn-primary" style="flex:1" onclick="twCloseShift('${s.id}')">🔒 Đóng ca</button>
+        </div>` : `<div style="margin-top:8px"><button class="btn btn-secondary" style="width:100%;font-size:12px" onclick="twViewShiftTxs('${s.id}')">📋 Xem thu/chi (${txs.length})</button></div>`}
       </div>`;
     }).join('');
   };
+
+  // Helper: generate denomination counting grid HTML
+  function denomGridHtml(prefix, values) {
+    const v = values || {};
+    return `<div class="tw-denom-grid" id="${prefix}Grid">
+      ${DENOMINATIONS.map(d => `<div class="tw-denom-item">
+        <label>${d >= 1000 ? (d/1000)+'k' : d}</label>
+        <input type="number" min="0" value="${v[d]||0}" data-denom="${d}" onchange="twCalcDenomTotal('${prefix}')"/>
+      </div>`).join('')}
+    </div>
+    <div class="tw-denom-total" id="${prefix}Total">Tổng: ${fmtMoney(Object.entries(v).reduce((s,e)=>s+parseInt(e[0])*(parseInt(e[1])||0),0))}</div>`;
+  }
+
+  // Helper: calculate denomination total
+  window.twCalcDenomTotal = function(prefix) {
+    let total = 0;
+    document.querySelectorAll('#' + prefix + 'Grid input').forEach(inp => {
+      total += (parseInt(inp.dataset.denom)||0) * (parseInt(inp.value)||0);
+    });
+    document.getElementById(prefix + 'Total').innerHTML = 'Tổng: <strong>' + fmtMoney(total) + '</strong>';
+  };
+
+  // Helper: read denominations from grid
+  function readDenomGrid(prefix) {
+    const denoms = {};
+    let total = 0;
+    document.querySelectorAll('#' + prefix + 'Grid input').forEach(inp => {
+      const d = parseInt(inp.dataset.denom);
+      const q = parseInt(inp.value) || 0;
+      if (q > 0) denoms[d] = q;
+      total += d * q;
+    });
+    return { denominations: denoms, total };
+  }
+
+  // Helper: check previous shift mismatch
+  function checkShiftMismatch(branchId) {
+    const shifts = get(KEYS.shifts).filter(s => s.branchId === branchId && s.closedAt);
+    if (!shifts.length) return null;
+    shifts.sort((a,b) => (b.closedAt||'').localeCompare(a.closedAt||''));
+    return shifts[0]; // last closed shift
+  }
 
   window.twShowShiftModal = function() {
     const branches = get(KEYS.branches).filter(b => b.status === 'active');
@@ -1211,7 +1455,7 @@
         <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Chi nhánh *</label>
-            <select class="input" id="twShiftBranchSel">
+            <select class="input" id="twShiftBranchSel" onchange="twCheckPrevShift()">
               ${branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('')}
             </select>
           </div>
@@ -1224,9 +1468,10 @@
             </select>
           </div>
         </div>
+        <div id="twShiftMismatchAlert"></div>
         <div class="tw-modal-group">
-          <label class="tw-modal-label">Tiền quỹ đầu ca (VNĐ)</label>
-          <input class="input" type="number" id="twShiftFund" placeholder="500000" value="500000"/>
+          <label class="tw-modal-label">💵 Đếm tiền đầu ca (theo mệnh giá)</label>
+          ${denomGridHtml('twOpenDenom', {})}
         </div>
       </div>
       <div class="modal-footer">
@@ -1235,44 +1480,225 @@
       </div>
     `;
     document.getElementById('twModal').style.display = 'flex';
+    twCheckPrevShift();
+  };
+
+  // Check if opening cash differs from previous shift's closing cash
+  window.twCheckPrevShift = function() {
+    const branchId = document.getElementById('twShiftBranchSel')?.value;
+    const alertEl = document.getElementById('twShiftMismatchAlert');
+    if (!branchId || !alertEl) return;
+    const prev = checkShiftMismatch(branchId);
+    if (prev && prev.closeFund) {
+      alertEl.innerHTML = `<div class="tw-alert warning">⚠️ Ca trước (${prev.shiftName||'—'} ${fmtDateTime(prev.closedAt)}) đóng với: <strong>${fmtMoney(prev.closeFund.total)}</strong>. Vui lòng đếm khớp số này.</div>`;
+    } else {
+      alertEl.innerHTML = '';
+    }
   };
 
   window.twSaveShift = function() {
     const branchId = document.getElementById('twShiftBranchSel').value;
     if (!branchId) { showToast('Chọn chi nhánh', 'warning'); return; }
+
+    const openFundData = readDenomGrid('twOpenDenom');
+    if (openFundData.total <= 0) { showToast('Vui lòng đếm tiền đầu ca', 'warning'); return; }
+
+    // Check mismatch with previous shift
+    const prev = checkShiftMismatch(branchId);
+    if (prev && prev.closeFund && Math.abs(prev.closeFund.total - openFundData.total) > 0) {
+      const diff = openFundData.total - prev.closeFund.total;
+      if (!confirm('⚠️ CHÊNH LỆCH TIỀN!\n\nCuối ca trước: ' + fmtMoney(prev.closeFund.total) + '\nĐầu ca này: ' + fmtMoney(openFundData.total) + '\nChênh lệch: ' + fmtMoney(diff) + '\n\nVẫn mở ca?')) return;
+    }
+
+    const shiftId = genId('SH');
     let shifts = get(KEYS.shifts);
     shifts.push({
-      id: genId('SH'), branchId,
+      id: shiftId, branchId,
       shiftName: document.getElementById('twShiftName').value,
-      openFund: parseInt(document.getElementById('twShiftFund').value) || 0,
+      openFund: openFundData,
       date: today(),
       openedAt: new Date().toISOString(),
       openedBy: currentUser(),
-      closedAt: null, orderCount: 0, revenue: 0,
+      closedAt: null, closeFund: null,
+      orderCount: 0, revenue: 0,
     });
     set(KEYS.shifts, shifts);
     twCloseModal();
     twRenderShifts();
-    showToast('Đã mở ca mới', 'success');
+    showToast('Đã mở ca mới — Quỹ đầu ca: ' + fmtMoney(openFundData.total), 'success');
   };
 
   window.twCloseShift = function(id) {
-    if (!confirm('Đóng ca này?')) return;
+    const shifts = get(KEYS.shifts);
+    const s = shifts.find(x => x.id === id);
+    if (!s) return;
+
+    // Calculate cash flow
+    const orders = get(KEYS.orders).filter(o =>
+      o.branchId === s.branchId && o.date === s.date && o.status === 'completed'
+    );
+    const txs = get(KEYS.shiftTransactions).filter(t => t.shiftId === id);
+
+    const cashOrders = orders.filter(o => o.paymentMethod === 'cash');
+    const cashRevenue = cashOrders.reduce((sum,o) => sum + (o.total||0), 0);
+    const transferRevenue = orders.filter(o => o.paymentMethod === 'transfer').reduce((sum,o) => sum + (o.total||0), 0);
+    const otherIncome = txs.filter(t => t.type === 'other_income').reduce((sum,t) => sum + (t.amount||0), 0);
+    const totalExpInShift = txs.filter(t => !['order_cash','other_income'].includes(t.type)).reduce((sum,t) => sum + (t.amount||0), 0);
+
+    const openTotal = (s.openFund && typeof s.openFund === 'object') ? s.openFund.total : (s.openFund || 0);
+    const expectedCash = openTotal + cashRevenue + otherIncome - totalExpInShift;
+
+    document.getElementById('twModalContent').innerHTML = `
+      <div class="modal-header">
+        <h3>🔒 Đóng ca: ${s.shiftName||'Ca'} — ${fmtDateTime(s.openedAt)}</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="card" style="margin-bottom:16px;padding:16px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md)">
+          <h4 style="margin:0 0 12px;font-size:14px;font-weight:700">📊 Tóm tắt dòng tiền trong ca</h4>
+          <table class="table" style="font-size:13px">
+            <tbody>
+              <tr><td>Tiền đầu ca</td><td style="text-align:right;font-weight:600">${fmtMoney(openTotal)}</td></tr>
+              <tr><td style="padding-left:16px">+ Thu tiền mặt (${cashOrders.length} đơn)</td><td style="text-align:right;color:var(--h5c-sage)">+${fmtMoney(cashRevenue)}</td></tr>
+              <tr><td style="padding-left:16px">+ Thu chuyển khoản</td><td style="text-align:right;color:var(--h5c-sage)">+${fmtMoney(transferRevenue)}</td></tr>
+              <tr><td style="padding-left:16px">+ Thu khác</td><td style="text-align:right;color:var(--h5c-sage)">+${fmtMoney(otherIncome)}</td></tr>
+              <tr><td style="padding-left:16px">− Chi trong ca</td><td style="text-align:right;color:var(--h5c-terracotta)">-${fmtMoney(totalExpInShift)}</td></tr>
+              <tr style="border-top:2px solid var(--h5c-border)"><td><strong>Tiền mặt kỳ vọng</strong></td><td style="text-align:right;font-weight:800;font-size:15px">${fmtMoney(expectedCash)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tw-modal-group">
+          <label class="tw-modal-label">💵 Đếm tiền cuối ca (theo mệnh giá)</label>
+          ${denomGridHtml('twCloseDenom', {})}
+        </div>
+        <div id="twCloseShiftDiff" style="margin-top:12px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twConfirmCloseShift('${id}',${expectedCash})">Xác nhận đóng ca</button>
+      </div>
+    `;
+    document.getElementById('twModal').style.display = 'flex';
+  };
+
+  window.twConfirmCloseShift = function(id, expectedCash) {
+    const closeFundData = readDenomGrid('twCloseDenom');
+    if (closeFundData.total <= 0) { showToast('Vui lòng đếm tiền cuối ca', 'warning'); return; }
+
+    const diff = closeFundData.total - expectedCash;
+    if (Math.abs(diff) > 0) {
+      if (!confirm('⚠️ CHÊNH LỆCH TIỀN!\n\nKỳ vọng: ' + fmtMoney(expectedCash) + '\nThực đếm: ' + fmtMoney(closeFundData.total) + '\nChênh lệch: ' + (diff>0?'+':'') + fmtMoney(diff) + '\n\nVẫn đóng ca?')) return;
+    }
+
     let shifts = get(KEYS.shifts);
     const s = shifts.find(x => x.id === id);
     if (s) {
-      // Count orders in this shift
       const orders = get(KEYS.orders).filter(o =>
         o.branchId === s.branchId && o.date === s.date && o.status === 'completed'
       );
       s.orderCount = orders.length;
       s.revenue = orders.reduce((sum,o) => sum + (o.total||0), 0);
+      s.closeFund = closeFundData;
       s.closedAt = new Date().toISOString();
       s.closedBy = currentUser();
+      s.cashDiff = diff;
     }
     set(KEYS.shifts, shifts);
+    twCloseModal();
     twRenderShifts();
-    showToast('Đã đóng ca', 'success');
+    showToast(Math.abs(diff) > 0 ? 'Đã đóng ca — Chênh lệch: ' + fmtMoney(diff) : 'Đã đóng ca — Tiền khớp!', diff === 0 ? 'success' : 'warning');
+  };
+
+  // ═══════════════════════════════════════════
+  // SHIFT TRANSACTIONS (Thu/Chi trong ca)
+  // ═══════════════════════════════════════════
+  window.twShowShiftTxModal = function(shiftId) {
+    const incomeTypes = ['other_income'];
+    const expenseTypes = ['buy_nvl','cleaning','transport','tip','other_exp'];
+
+    document.getElementById('twModalContent').innerHTML = `
+      <div class="modal-header">
+        <h3>💰 Ghi thu/chi trong ca</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tw-modal-row">
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Loại giao dịch *</label>
+            <select class="input" id="twTxType">
+              <optgroup label="── THU ──">
+                ${incomeTypes.map(k => `<option value="${k}">${SHIFT_TX_TYPES[k]}</option>`).join('')}
+              </optgroup>
+              <optgroup label="── CHI ──">
+                ${expenseTypes.map(k => `<option value="${k}">${SHIFT_TX_TYPES[k]}</option>`).join('')}
+              </optgroup>
+            </select>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Số tiền (VNĐ) *</label>
+            <input class="input" type="number" id="twTxAmount" placeholder="50000"/>
+          </div>
+        </div>
+        <div class="tw-modal-group">
+          <label class="tw-modal-label">Mô tả chi tiết</label>
+          <input class="input" id="twTxDesc" placeholder="VD: Mua đá viên, mua sữa bổ sung..."/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twSaveShiftTx('${shiftId}')">Lưu</button>
+      </div>
+    `;
+    document.getElementById('twModal').style.display = 'flex';
+  };
+
+  window.twSaveShiftTx = function(shiftId) {
+    const type = document.getElementById('twTxType').value;
+    const amount = parseInt(document.getElementById('twTxAmount').value) || 0;
+    if (!amount) { showToast('Nhập số tiền', 'warning'); return; }
+
+    let txs = get(KEYS.shiftTransactions);
+    txs.push({
+      id: genId('TX'), shiftId, type, amount,
+      description: document.getElementById('twTxDesc').value.trim(),
+      createdAt: new Date().toISOString(),
+      createdBy: currentUser(),
+    });
+    set(KEYS.shiftTransactions, txs);
+    twCloseModal();
+    twRenderShifts();
+    const isIncome = ['order_cash','other_income'].includes(type);
+    showToast((isIncome ? 'Đã ghi thu' : 'Đã ghi chi') + ': ' + fmtMoney(amount), 'success');
+  };
+
+  window.twViewShiftTxs = function(shiftId) {
+    const txs = get(KEYS.shiftTransactions).filter(t => t.shiftId === shiftId);
+    const s = get(KEYS.shifts).find(x => x.id === shiftId);
+
+    document.getElementById('twModalContent').innerHTML = `
+      <div class="modal-header">
+        <h3>📋 Thu/Chi trong ca${s ? ' — ' + (s.shiftName||'') : ''}</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        ${txs.length ? `<div class="tw-tx-list">
+          ${txs.map(t => {
+            const isIncome = ['order_cash','other_income'].includes(t.type);
+            return `<div class="tw-tx-item">
+              <div>
+                <div class="tx-type">${SHIFT_TX_TYPES[t.type]||t.type}</div>
+                <div style="font-size:11px;color:var(--h5c-text-secondary)">${t.description||'—'} — ${fmtDateTime(t.createdAt)}</div>
+              </div>
+              <div class="tx-amount ${isIncome?'plus':'minus'}">${isIncome?'+':'−'}${fmtMoney(t.amount)}</div>
+            </div>`;
+          }).join('')}
+        </div>` : '<div class="tw-empty"><div class="icon">💰</div><p>Chưa có giao dịch nào</p></div>'}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Đóng</button>
+      </div>
+    `;
+    document.getElementById('twModal').style.display = 'flex';
   };
 
   // ═══════════════════════════════════════════
@@ -1398,6 +1824,171 @@
     set(KEYS.expenses, get(KEYS.expenses).filter(e => e.id !== id));
     twRenderExpenses();
     showToast('Đã xóa chi phí', 'success');
+  };
+
+  // ═══════════════════════════════════════════
+  // TAB: DAILY NVL TRACKING
+  // ═══════════════════════════════════════════
+  window.twRenderDailyNvl = function() {
+    const branchId = document.getElementById('twNvlBranch')?.value || '';
+    const date = document.getElementById('twNvlDate')?.value || today();
+    const ingredients = get(KEYS.ingredients);
+    const dailyInv = get(KEYS.dailyInventory);
+    const recipes = get(KEYS.recipes);
+
+    if (!branchId) {
+      document.getElementById('twNvlAlerts').innerHTML = '<div class="tw-alert warning">⚠️ Vui lòng chọn chi nhánh để xem báo cáo NVL</div>';
+      document.getElementById('twNvlKpi').innerHTML = '';
+      document.getElementById('twNvlBody').innerHTML = '<tr><td colspan="8"><div class="tw-empty"><div class="icon">🧮</div><p>Chọn chi nhánh</p></div></td></tr>';
+      return;
+    }
+
+    const openRecord = dailyInv.find(d => d.branchId === branchId && d.date === date && d.type === 'open');
+    const closeRecord = dailyInv.find(d => d.branchId === branchId && d.date === date && d.type === 'close');
+
+    // Calculate planned usage from orders
+    const dayOrders = get(KEYS.orders).filter(o =>
+      o.branchId === branchId && o.date === date && o.status === 'completed'
+    );
+    const plannedUsage = {}; // ingredientId -> qty
+    dayOrders.forEach(o => {
+      (o.items || []).forEach(item => {
+        const recipe = recipes.find(r => r.menuItemId === item.menuItemId);
+        if (recipe) {
+          (recipe.ingredients || []).forEach(ri => {
+            plannedUsage[ri.ingredientId] = (plannedUsage[ri.ingredientId] || 0) + ri.qty * item.qty;
+          });
+        }
+      });
+    });
+
+    // KPIs
+    const hasOpen = !!openRecord;
+    const hasClose = !!closeRecord;
+    const totalPlanned = Object.values(plannedUsage).reduce((s, v) => s + v, 0);
+    document.getElementById('twNvlKpi').innerHTML = `
+      <div class="tw-kpi"><div class="label">Đếm đầu ngày</div><div class="value">${hasOpen ? '✅' : '❌'}</div></div>
+      <div class="tw-kpi"><div class="label">Đếm cuối ngày</div><div class="value">${hasClose ? '✅' : '❌'}</div></div>
+      <div class="tw-kpi"><div class="label">Đơn hoàn thành</div><div class="value">${dayOrders.length}</div></div>
+      <div class="tw-kpi"><div class="label">NL có recipe</div><div class="value">${Object.keys(plannedUsage).length}</div></div>
+    `;
+
+    // Alerts
+    let alerts = '';
+    if (!hasOpen) alerts += '<div class="tw-alert warning">📋 Chưa đếm NVL đầu ngày</div>';
+    if (!hasClose && new Date().toISOString().slice(0,10) === date) alerts += '';
+    document.getElementById('twNvlAlerts').innerHTML = alerts;
+
+    // Build variance table
+    const openItems = openRecord ? (openRecord.items || []) : [];
+    const closeItems = closeRecord ? (closeRecord.items || []) : [];
+
+    if (!ingredients.length) {
+      document.getElementById('twNvlBody').innerHTML = '<tr><td colspan="8"><div class="tw-empty"><div class="icon">🧪</div><p>Chưa có nguyên liệu. Thêm ở tab Menu → Nguyên liệu</p></div></td></tr>';
+      return;
+    }
+
+    const rows = ingredients.map(ing => {
+      const openQty = (openItems.find(i => i.ingredientId === ing.id) || {}).qty;
+      const closeQty = (closeItems.find(i => i.ingredientId === ing.id) || {}).qty;
+      const actualUsage = (openQty !== undefined && closeQty !== undefined) ? openQty - closeQty : null;
+      const planned = plannedUsage[ing.id] || 0;
+      const variance = actualUsage !== null ? actualUsage - planned : null;
+      const variancePercent = (planned > 0 && variance !== null) ? ((variance / planned) * 100) : null;
+
+      let varianceClass = '';
+      if (variancePercent !== null) {
+        if (Math.abs(variancePercent) <= 5) varianceClass = 'tw-variance-ok';
+        else if (Math.abs(variancePercent) <= 15) varianceClass = 'tw-variance-warn';
+        else varianceClass = 'tw-variance-bad';
+      }
+
+      return `<tr>
+        <td><strong>${ing.name}</strong></td>
+        <td>${ing.unit || '—'}</td>
+        <td>${openQty !== undefined ? openQty.toLocaleString('vi-VN') : '<span style="color:#aaa">—</span>'}</td>
+        <td>${closeQty !== undefined ? closeQty.toLocaleString('vi-VN') : '<span style="color:#aaa">—</span>'}</td>
+        <td>${actualUsage !== null ? actualUsage.toLocaleString('vi-VN') : '<span style="color:#aaa">—</span>'}</td>
+        <td>${planned ? planned.toLocaleString('vi-VN') : '<span style="color:#aaa">0</span>'}</td>
+        <td class="${varianceClass}">${variance !== null ? (variance > 0 ? '+' : '') + variance.toLocaleString('vi-VN') : '—'}</td>
+        <td class="${varianceClass}">${variancePercent !== null ? (variancePercent > 0 ? '+' : '') + variancePercent.toFixed(1) + '%' : '—'}</td>
+      </tr>`;
+    });
+
+    document.getElementById('twNvlBody').innerHTML = rows.join('');
+  };
+
+  // Modal: Count NVL (open or close)
+  window.twShowNvlCountModal = function(type) {
+    const branchId = document.getElementById('twNvlBranch')?.value;
+    const date = document.getElementById('twNvlDate')?.value || today();
+    if (!branchId) { showToast('Chọn chi nhánh trước', 'warning'); return; }
+
+    const ingredients = get(KEYS.ingredients);
+    if (!ingredients.length) { showToast('Chưa có nguyên liệu. Thêm ở tab Menu → Nguyên liệu', 'warning'); return; }
+
+    // Pre-fill with existing data if any
+    const dailyInv = get(KEYS.dailyInventory);
+    const existing = dailyInv.find(d => d.branchId === branchId && d.date === date && d.type === type);
+    const existingItems = existing ? (existing.items || []) : [];
+
+    const label = type === 'open' ? 'đầu ngày' : 'cuối ngày';
+
+    document.getElementById('twModalContent').innerHTML = `
+      <div class="modal-header">
+        <h3>📋 Đếm NVL ${label} — ${fmtDate(date)}</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--h5c-text-secondary);margin-bottom:16px">Nhập số lượng tồn thực tế của từng nguyên liệu tại chi nhánh.</p>
+        <div style="display:flex;flex-direction:column;gap:8px" id="twNvlCountRows">
+          ${ingredients.map(ing => {
+            const ex = existingItems.find(i => i.ingredientId === ing.id);
+            return `<div class="tw-recipe-item" data-ing-id="${ing.id}">
+              <span class="name">${ing.name}</span>
+              <span class="qty" style="min-width:40px;text-align:right;color:var(--h5c-text-secondary)">${ing.unit}</span>
+              <input class="input nvl-count-qty" type="number" min="0" step="any" value="${ex ? ex.qty : ''}" style="width:100px;text-align:right" placeholder="0"/>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twSaveNvlCount('${type}','${branchId}','${date}')">Lưu kiểm đếm</button>
+      </div>
+    `;
+    document.getElementById('twModal').style.display = 'flex';
+  };
+
+  window.twSaveNvlCount = function(type, branchId, date) {
+    const items = [];
+    document.querySelectorAll('#twNvlCountRows .tw-recipe-item').forEach(row => {
+      const ingId = row.dataset.ingId;
+      const qty = parseFloat(row.querySelector('.nvl-count-qty').value);
+      if (ingId && !isNaN(qty)) items.push({ ingredientId: ingId, qty });
+    });
+
+    if (!items.length) { showToast('Nhập ít nhất 1 nguyên liệu', 'warning'); return; }
+
+    let dailyInv = get(KEYS.dailyInventory);
+    const idx = dailyInv.findIndex(d => d.branchId === branchId && d.date === date && d.type === type);
+    const record = {
+      id: idx >= 0 ? dailyInv[idx].id : genId('DINV'),
+      branchId, date, type, items,
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser(),
+    };
+
+    if (idx >= 0) {
+      dailyInv[idx] = record;
+    } else {
+      dailyInv.push(record);
+    }
+    set(KEYS.dailyInventory, dailyInv);
+    twCloseModal();
+    twRenderDailyNvl();
+    const label = type === 'open' ? 'đầu ngày' : 'cuối ngày';
+    showToast('Đã lưu kiểm đếm NVL ' + label + ' (' + items.length + ' NL)', 'success');
   };
 
   // ═══════════════════════════════════════════
@@ -1532,6 +2123,7 @@
     if (document.getElementById('twShiftDate')) document.getElementById('twShiftDate').value = todayStr;
     if (document.getElementById('twExpMonth')) document.getElementById('twExpMonth').value = monthStr;
     if (document.getElementById('twRptMonth')) document.getElementById('twRptMonth').value = monthStr;
+    if (document.getElementById('twNvlDate')) document.getElementById('twNvlDate').value = todayStr;
 
     populateBranchDropdowns();
     twRenderDashboard();
