@@ -9,6 +9,21 @@
 <script src="constants.js?v=1"></script>
 <script src="sidebar.js?v=3"></script>
 <style>
+/* ═══ Modal compat (takeaway uses .modal-header etc, design.css uses .modal-title etc) ═══ */
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--h5c-border)}
+.modal-header h3{margin:0;font-size:18px;font-weight:700;color:var(--h5c-text)}
+.modal-close{width:32px;height:32px;border:none;background:var(--h5c-bg-subtle);border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--h5c-text-secondary);transition:all .2s}
+.modal-close:hover{background:var(--h5c-border);color:var(--h5c-text)}
+.modal-body{margin-bottom:20px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--h5c-border)}
+.tw-modal-group .input,.modal-body .input,.tw-modal-row .input{width:100%;padding:10px 14px;border:1.5px solid var(--h5c-border);border-radius:var(--h5c-radius-sm);font-size:13px;background:var(--h5c-bg);color:var(--h5c-text);outline:none;box-sizing:border-box;transition:border .2s}
+.tw-modal-group .input:focus,.modal-body .input:focus{border-color:var(--h5c-copper);background:var(--h5c-surface)}
+.tw-modal-group select.input{appearance:auto}
+.tw-modal-group textarea.input{resize:vertical}
+.btn{padding:10px 20px;border:none;border-radius:var(--h5c-radius-sm);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--h5c-copper),var(--h5c-copper-dark,#6FA030));color:#fff;box-shadow:0 2px 8px rgba(143,198,67,.25)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(143,198,67,.35)}
+
 /* ═══ Tab Bar ═══ */
 .tw-tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;flex-wrap:wrap;width:fit-content}
 .tw-tab{padding:8px 18px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s;white-space:nowrap}
