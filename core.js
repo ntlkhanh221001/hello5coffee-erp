@@ -318,9 +318,13 @@
     if (typeof window.state !== 'undefined') window.state.user = userObj;
     saveSession(userObj);
 
-    // BARISTA_PARTNER → redirect to Partner Portal
+    // Takeaway roles → redirect to appropriate page
     if (acc.role === 'BARISTA_PARTNER') {
       window.location.href = 'takeaway-partner.html';
+      return;
+    }
+    if (acc.role === 'TW_MANAGER' || acc.role === 'TW_STAFF') {
+      window.location.href = 'takeaway.html';
       return;
     }
 
@@ -383,6 +387,16 @@
       'dash.view':true,
       'users.view':true,'users.manage_attendance':true,'users.evaluate_kpi':true,
       'ann.view':true,'ann.create':true,
+    },
+    TW_MANAGER: {
+      'dash.view':true,
+      'tw.view':true,'tw.manage_menu':true,'tw.manage_stock':true,'tw.manage_orders':true,'tw.manage_expenses':true,'tw.manage_branches':true,'tw.manage_partners':true,'tw.view_reports':true,
+      'ann.view':true,
+    },
+    TW_STAFF: {
+      'dash.view':true,
+      'tw.view':true,'tw.manage_orders':true,'tw.manage_stock':true,
+      'ann.view':true,
     },
     BARISTA_PARTNER: {
       'tw.view':true,'tw.manage_orders':true,'tw.manage_stock':true,'tw.view_reports':true,
@@ -614,9 +628,14 @@
     const saved = loadSession();
     const currentPage = window.location.pathname.split('/').pop();
 
-    // BARISTA_PARTNER trên bất kỳ trang ERP nào → redirect sang Partner Portal
-    if (saved && saved.role === 'BARISTA_PARTNER' && currentPage !== 'takeaway-partner.html') {
+    // Takeaway roles → redirect to appropriate page
+    var pg = currentPage.replace('.html','');
+    if (saved && saved.role === 'BARISTA_PARTNER' && pg !== 'takeaway-partner') {
       window.location.href = 'takeaway-partner.html';
+      return;
+    }
+    if (saved && (saved.role === 'TW_MANAGER' || saved.role === 'TW_STAFF') && pg !== 'takeaway') {
+      window.location.href = 'takeaway.html';
       return;
     }
 
