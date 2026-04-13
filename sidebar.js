@@ -71,7 +71,7 @@
       const accounts = JSON.parse(localStorage.getItem('h5c_v1_accounts') || '[]');
       const acc      = accounts.find(a => (a.email||'').toLowerCase() === (session.email||'').toLowerCase());
       if (!acc) return (session.role === 'C_LEVEL');
-      if (acc.permissions) {
+      if (acc.permissions && Object.keys(acc.permissions).length > 0) {
         // New granular format: flat keys like 'dash.view', 'orders.view'
         const viewMap = {
           dashboard:'dash.view', orders:'orders.view', leads:'leads.view',
@@ -97,6 +97,8 @@
         EMPLOYEE_SALES:   ['dashboard','orders','leads','customers','shipping','contracts','takeaway','announcements'],
         EMPLOYEE_FINANCE: ['dashboard','expenses','debts','cashbook','accounting','payroll','takeaway','reports','announcements'],
         EMPLOYEE_HR:      ['dashboard','users','payroll','announcements'],
+        TW_MANAGER:       ['dashboard','takeaway'],
+        TW_STAFF:         ['dashboard','takeaway'],
         BARISTA_PARTNER:  ['dashboard','takeaway'],
       };
       const allowed = roleDefs[acc.role];

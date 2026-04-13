@@ -218,7 +218,7 @@
           <div class="modal-group"><label class="modal-label">Email đăng nhập *</label><input type="email" id="empLoginEmail" class="modal-input" placeholder="ten@hello5coffee.com" required></div>
           <div class="modal-group"><label class="modal-label">Mật khẩu *</label><div class="pw-toggle"><input type="password" id="empLoginPw" class="modal-input" placeholder="Tối thiểu 6 ký tự" required style="margin-bottom:0"><button type="button" class="pw-toggle-btn" onclick="const i=this.previousElementSibling;i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'">👁</button></div></div>
         </div>
-        <div class="modal-row">
+        <div class="modal-row" id="empRoleRow">
           <div class="modal-group"><label class="modal-label">Vai trò (Role)</label><select id="empRole" class="modal-input"></select></div>
           <div class="modal-group" style="display:flex;align-items:flex-end"><div class="acct-hint">Sau khi tạo, vào tab <strong>Tài khoản &amp; Quyền</strong> để phân quyền chi tiết</div></div>
         </div>
@@ -989,18 +989,22 @@ window._onDivisionChange = function() {
   const deptGroup = document.getElementById('empDeptGroup');
   const posGroup = document.getElementById('empPositionGroup');
   const posTwGroup = document.getElementById('empPositionTwGroup');
+  const roleRow = document.getElementById('empRoleRow');
   if (div === 'takeaway') {
     deptGroup.style.display = 'none';
     posGroup.style.display = 'none';
     posTwGroup.style.display = '';
+    if (roleRow) roleRow.style.display = 'none';
     // Auto-set role based on current TW position
+    _populateRoleOptions(div);
     _onTwPositionChange();
   } else {
     deptGroup.style.display = '';
     posGroup.style.display = '';
     posTwGroup.style.display = 'none';
+    if (roleRow) roleRow.style.display = '';
+    _populateRoleOptions(div);
   }
-  _populateRoleOptions(div);
 };
 
 window._onTwPositionChange = function() {
