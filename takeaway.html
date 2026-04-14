@@ -24,6 +24,12 @@
 .btn-primary{background:linear-gradient(135deg,var(--h5c-copper),var(--h5c-copper-dark,#6FA030));color:#fff;box-shadow:0 2px 8px rgba(143,198,67,.25)}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(143,198,67,.35)}
 
+/* ═══ Table wrapper (horizontal scroll for wide tables) ═══ */
+.table-wrapper{overflow-x:auto;border-radius:var(--h5c-radius-lg);background:var(--h5c-surface);border:1px solid var(--h5c-border)}
+.table-wrapper table{min-width:100%}
+.table-wrapper th,.table-wrapper td{white-space:nowrap}
+.table-wrapper td.wrap,.table-wrapper th.wrap{white-space:normal}
+
 /* ═══ Tab Bar ═══ */
 .tw-tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;flex-wrap:wrap;width:fit-content}
 .tw-tab{padding:8px 18px;border:none;border-radius:var(--h5c-radius-sm);background:transparent;font-size:13px;font-weight:600;color:var(--h5c-text-secondary);cursor:pointer;transition:all .2s;white-space:nowrap}
@@ -1736,13 +1742,17 @@
         <button class="modal-close" onclick="twCloseModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div style="display:grid;grid-template-columns:1.2fr 1.2fr 70px 100px 100px auto;gap:8px;margin-bottom:16px">
-          <input class="input" id="twIngName" placeholder="Tên nguyên liệu *"/>
-          <input class="input" id="twIngBrand" placeholder="Tên thương mại / NSX"/>
-          <input class="input" id="twIngUnit" placeholder="ĐV"/>
-          <input class="input" type="number" id="twIngShelf" placeholder="Vòng đời (ngày)" title="Số ngày bảo quản kể từ ngày nhập"/>
-          <input class="input" type="number" id="twIngPar" placeholder="Par level" title="Mức tồn kho chuẩn — tự cảnh báo đặt thêm khi xuống dưới"/>
-          <button class="btn btn-primary" onclick="twAddIngredient()">+ Thêm</button>
+        <div style="padding:14px;background:var(--h5c-bg-subtle);border-radius:8px;margin-bottom:16px">
+          <div class="tw-modal-row">
+            <div class="tw-modal-group"><label class="tw-modal-label">Tên nguyên liệu *</label><input class="input" id="twIngName" placeholder="VD: Sữa tươi"/></div>
+            <div class="tw-modal-group"><label class="tw-modal-label">Tên thương mại / NSX</label><input class="input" id="twIngBrand" placeholder="VD: Vinamilk 1L"/></div>
+          </div>
+          <div class="tw-modal-row" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end">
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Đơn vị</label><input class="input" id="twIngUnit" placeholder="g, ml, cái"/></div>
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Vòng đời (ngày)</label><input class="input" type="number" id="twIngShelf" placeholder="30"/></div>
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Par level</label><input class="input" type="number" id="twIngPar" placeholder="500"/></div>
+            <button class="btn btn-primary" onclick="twAddIngredient()" style="height:38px">+ Thêm</button>
+          </div>
         </div>
         <div class="table-wrapper">
           <table class="table">
