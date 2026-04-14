@@ -42,6 +42,10 @@
 .tw-tab.active{background:var(--h5c-surface);color:var(--h5c-text);box-shadow:var(--h5c-shadow-sm)}
 .tw-tab:hover:not(.active){color:var(--h5c-text)}
 .tw-panel{display:none}
+/* Bulletproof modal hide: overlay is only shown when the open class is present.
+   Inline style wins, but if anything ever clears it, this rule keeps the modal hidden. */
+#twModal:not(.tw-modal-open){display:none !important}
+#twModal.tw-modal-open{display:flex !important}
 .tw-panel.active{display:block}
 
 /* ═══ Header ═══ */
@@ -173,6 +177,7 @@
         <button class="tw-tab" data-tab="shifts" onclick="twSwitchTab('shifts')">⏰ Ca làm</button>
         <button class="tw-tab" data-tab="expenses" onclick="twSwitchTab('expenses')">💰 Chi phí</button>
         <button class="tw-tab" data-tab="daily-nvl" onclick="twSwitchTab('daily-nvl')">🧮 Kiểm NVL</button>
+        <button class="tw-tab" data-tab="hr" onclick="twSwitchTab('hr')">👥 Nhân sự</button>
         <button class="tw-tab" data-tab="reports" onclick="twSwitchTab('reports')">📈 Báo cáo & P&L</button>
       </div>
 
@@ -270,10 +275,26 @@
           <h3 style="margin:0 0 12px;font-size:15px;font-weight:700">➕ Thêm nguyên liệu mới</h3>
           <div class="tw-modal-row">
             <div class="tw-modal-group"><label class="tw-modal-label">Tên nguyên liệu *</label><input class="input" id="twIngName" placeholder="VD: Sữa tươi"/></div>
-            <div class="tw-modal-group"><label class="tw-modal-label">Tên thương mại / NSX</label><input class="input" id="twIngBrand" placeholder="VD: Vinamilk 1L"/></div>
+            <div class="tw-modal-group"><label class="tw-modal-label">Thương hiệu</label><input class="input" id="twIngBrand" placeholder="VD: Vinamilk"/></div>
           </div>
           <div class="tw-modal-row" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end">
-            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Đơn vị</label><input class="input" id="twIngUnit" placeholder="g, ml, cái"/></div>
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Đơn vị</label>
+              <select class="input" id="twIngUnit">
+                <option value="g">g (gram)</option>
+                <option value="kg">kg (ki-lô-gam)</option>
+                <option value="ml">ml (mi-li-lít)</option>
+                <option value="l">l (lít)</option>
+                <option value="cái">cái</option>
+                <option value="chiếc">chiếc</option>
+                <option value="hộp">hộp</option>
+                <option value="gói">gói</option>
+                <option value="chai">chai</option>
+                <option value="lon">lon</option>
+                <option value="túi">túi</option>
+                <option value="thùng">thùng</option>
+                <option value="khác">khác</option>
+              </select>
+            </div>
             <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Vòng đời (ngày)</label><input class="input" type="number" id="twIngShelf" placeholder="30"/></div>
             <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Par level</label><input class="input" type="number" id="twIngPar" placeholder="500"/></div>
             <button class="btn btn-primary" onclick="twAddIngredient()" style="height:38px">+ Thêm</button>
@@ -443,7 +464,7 @@
               <option value="cancelled">Đã hủy</option>
             </select>
           </div>
-          <button class="btn btn-primary" onclick="twShowOrderModal()">+ Tạo đơn</button>
+          <button class="btn btn-primary" onclick="twShowOrderModal()" style="font-size:15px;padding:12px 24px;font-weight:700;box-shadow:var(--h5c-shadow-md)">🧾 + Tạo đơn hàng mới</button>
         </div>
         <div class="tw-kpi-grid" id="twOrderKpi" style="margin-bottom:16px"></div>
         <div class="table-wrapper">
@@ -567,6 +588,113 @@
       </div>
 
       <!-- ═══════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- TAB: HR (Nhân sự)                          -->
+      <!-- ═══════════════════════════════════════════ -->
+      <div class="tw-panel" id="panel-hr">
+        <div class="tw-tab-bar" style="margin-bottom:16px">
+          <button class="tw-tab active" data-hr-tab="personnel" onclick="twSwitchHrTab('personnel')">👤 Quản lý nhân sự</button>
+          <button class="tw-tab" data-hr-tab="schedule" onclick="twSwitchHrTab('schedule')">📅 Xếp lịch làm</button>
+          <button class="tw-tab" data-hr-tab="attendance" onclick="twSwitchHrTab('attendance')">✅ Chấm công</button>
+          <button class="tw-tab" data-hr-tab="payroll" onclick="twSwitchHrTab('payroll')">💵 Lương</button>
+        </div>
+
+        <!-- HR SUB: Personnel -->
+        <div class="tw-hr-sub" id="hr-personnel">
+          <div class="tw-header">
+            <div class="tw-filters">
+              <input type="text" class="tw-filter" placeholder="Tìm nhân viên..." id="twEmpSearch" oninput="twRenderEmployees()"/>
+              <select class="tw-filter" id="twEmpBranchFilter" onchange="twRenderEmployees()"><option value="">Tất cả chi nhánh</option></select>
+              <select class="tw-filter" id="twEmpStatusFilter" onchange="twRenderEmployees()">
+                <option value="">Tất cả trạng thái</option>
+                <option value="active">Đang làm</option>
+                <option value="inactive">Nghỉ việc</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="twShowEmployeeModal()" style="font-size:14px;padding:10px 20px;font-weight:700">+ Thêm nhân viên</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Mã NV</th><th>Họ & Tên</th><th>Role</th><th>Chi nhánh</th>
+                  <th>SĐT</th><th>Ngày vào</th><th>Ca</th><th>Hình thức</th>
+                  <th>Mức lương</th><th>Hiệu suất</th><th>Trạng thái</th><th style="width:80px">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="twEmpBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HR SUB: Schedule -->
+        <div class="tw-hr-sub" id="hr-schedule" style="display:none">
+          <div class="tw-header">
+            <div style="font-size:13px;color:var(--h5c-text-secondary)">
+              💡 Lịch làm mẫu theo tuần — mỗi nhân viên có ca cố định cho từng ngày trong tuần. Dùng làm gốc cho chấm công.
+            </div>
+            <button class="btn btn-secondary" onclick="twRenderSchedule()">🔄 Tải lại</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="table" id="twScheduleTable">
+              <thead>
+                <tr>
+                  <th>Mã NV</th><th>Họ & Tên</th>
+                  <th style="text-align:center">T2</th><th style="text-align:center">T3</th>
+                  <th style="text-align:center">T4</th><th style="text-align:center">T5</th>
+                  <th style="text-align:center">T6</th><th style="text-align:center">T7</th>
+                  <th style="text-align:center">CN</th>
+                </tr>
+              </thead>
+              <tbody id="twScheduleBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HR SUB: Attendance -->
+        <div class="tw-hr-sub" id="hr-attendance" style="display:none">
+          <div class="tw-header">
+            <div class="tw-filters">
+              <input type="month" class="tw-filter" id="twAttMonth" onchange="twRenderAttendance()"/>
+              <select class="tw-filter" id="twAttBranchFilter" onchange="twRenderAttendance()"><option value="">Tất cả chi nhánh</option></select>
+            </div>
+            <div style="font-size:12px;color:var(--h5c-text-secondary)">Click vào ô để chấm công từng ca</div>
+          </div>
+          <div class="table-wrapper" style="max-height:70vh;overflow:auto">
+            <table class="table" id="twAttTable" style="font-size:12px">
+              <thead id="twAttHead"></thead>
+              <tbody id="twAttBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HR SUB: Payroll -->
+        <div class="tw-hr-sub" id="hr-payroll" style="display:none">
+          <div class="tw-header">
+            <div class="tw-filters">
+              <input type="month" class="tw-filter" id="twPayMonth" onchange="twRenderPayroll()"/>
+              <select class="tw-filter" id="twPayBranchFilter" onchange="twRenderPayroll()"><option value="">Tất cả chi nhánh</option></select>
+            </div>
+            <button class="btn btn-secondary" onclick="twRenderPayroll()">🔄 Tính lại</button>
+          </div>
+          <div class="tw-kpi-grid" id="twPayKpi" style="margin-bottom:16px"></div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Mã NV</th><th>Họ & Tên</th><th>Role</th><th>Chi nhánh</th><th>Hình thức</th>
+                  <th>Mức lương gốc</th><th>Ngày công</th><th>Số ca</th>
+                  <th>Lương theo công</th><th>Phụ cấp</th><th>Thưởng</th><th>Phạt</th>
+                  <th>Thực lĩnh</th><th>Ngày TT</th><th style="width:80px">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="twPayBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════ -->
       <!-- TAB: Reports & P&L                         -->
       <!-- ═══════════════════════════════════════════ -->
       <div class="tw-panel" id="panel-reports">
@@ -604,7 +732,7 @@
 </div>
 
 <!-- ═══ MODALS ═══ -->
-<div class="modal-overlay" id="twModal" style="display:none">
+<div class="modal-overlay" id="twModal">
   <div class="modal" id="twModalContent" style="max-width:640px"></div>
 </div>
 
@@ -635,7 +763,22 @@
     suppliers:        'tw_suppliers',
     supplierPayments: 'tw_supplier_payments',
     stockOut:         'tw_stock_out',
+    employees:        'tw_employees',
+    attendance:       'tw_attendance',
+    payrollAdj:       'tw_payroll_adj',
   };
+
+  // ── HR constants ──
+  const HR_SHIFTS = [
+    { key: 'sang',  label: 'Sáng'    },
+    { key: 'trua',  label: 'Trưa'    },
+    { key: 'chieu', label: 'Chiều'   },
+    { key: 'toi',   label: 'Tối'     },
+    { key: 'ot',    label: 'Tăng ca' },
+  ];
+  const HR_DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+  const HR_ROLES = ['Quản lý','Pha chế','Phục vụ','Thu ngân','Giao hàng','Kế toán','Bếp','Khác'];
+  const HR_SHIFT_OPTIONS = ['','Sáng','Trưa','Chiều','Tối','Sáng+Chiều','Cả ngày','Nghỉ'];
 
   const DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
 
@@ -741,6 +884,7 @@
       case 'shifts':    twRenderShifts(); break;
       case 'expenses':  twRenderExpenses(); break;
       case 'daily-nvl': twRenderDailyNvl(); break;
+      case 'hr':        twRenderHr(); break;
       case 'reports':   twRenderReports(); break;
     }
   }
@@ -905,7 +1049,7 @@
         <button class="btn btn-primary" onclick="twSaveBranch('${branchId||''}')">${b?'Cập nhật':'Thêm mới'}</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twSaveBranch = function(editId) {
@@ -1072,7 +1216,7 @@
         <button class="btn btn-primary" onclick="twSaveMenu('${itemId||''}')">${i?'Cập nhật':'Thêm mới'}</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
     twRenderVariants();
   };
 
@@ -1235,7 +1379,7 @@
         <button class="btn btn-primary" onclick="twSaveRecipe('${menuItemId}')">Lưu định lượng</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twAddRecipeRow = function() {
@@ -1399,7 +1543,7 @@
         <button class="btn btn-secondary" onclick="twCloseModal()">Đóng</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twDisposeLot = function(lotId) {
@@ -1577,7 +1721,7 @@
         <button class="btn btn-primary" onclick="twSaveSupplier('${supId||''}')">${s?'Cập nhật':'Thêm mới'}</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twSaveSupplier = function(editId) {
@@ -1647,7 +1791,7 @@
         <button class="btn btn-primary" onclick="twSaveSupplierPay('${supId}')">Lưu</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twSaveSupplierPay = function(supId) {
@@ -1818,7 +1962,7 @@
     list.push({ id: genId('ING'), name, brandName, unit: unit||'g', shelfLifeDays, parLevel, createdAt: new Date().toISOString() });
     set(KEYS.ingredients, list);
     // Clear form fields + refresh only the table body (no page reload, no focus loss)
-    nameEl.value = ''; brandEl.value = ''; unitEl.value = ''; shelfEl.value = ''; parEl.value = '';
+    nameEl.value = ''; brandEl.value = ''; unitEl.value = 'g'; shelfEl.value = ''; parEl.value = '';
     twRenderIngredientsPage();
     nameEl.focus();
     showToast('Đã thêm nguyên liệu', 'success');
@@ -1948,7 +2092,7 @@
         <button class="btn btn-primary" onclick="twSaveStockImport()">Nhập kho</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
     twOnStockIngChange();
   };
 
@@ -2056,7 +2200,7 @@
         <button class="btn btn-primary" onclick="twSaveDistribution()">Phân phối</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twSaveDistribution = function() {
@@ -2163,14 +2307,36 @@
 
   window.twShowOrderModal = function() {
     const branches = get(KEYS.branches).filter(b => b.status === 'active');
-    const menuItems = get(KEYS.menuItems).filter(m => m.status === 'active');
+    const menuItems = get(KEYS.menuItems).map(twNormalizeMenuItem).filter(m => m.status === 'active');
 
-    document.getElementById('twModalContent').innerHTML = `
+    // Build the full menu table: one row per (item × variant)
+    let rowIdx = 0;
+    const menuRows = menuItems.flatMap(m =>
+      (m.variants||[]).map(v => {
+        const key = `${m.id}::${v.size}`;
+        const price = v.price || 0;
+        return `<tr data-order-row="${rowIdx++}" data-item-id="${m.id}" data-size="${v.size}" data-name="${m.name}" data-price="${price}">
+          <td><strong>${m.name}</strong><br><small style="color:var(--h5c-text-secondary)">${CATEGORY_LABELS[m.category]||''}</small></td>
+          <td style="text-align:center"><span class="tw-badge">${v.size||'—'}</span></td>
+          <td class="num">${fmtMoney(price)}</td>
+          <td style="text-align:center">
+            <div style="display:inline-flex;align-items:center;gap:4px">
+              <button type="button" class="btn btn-secondary" style="width:28px;height:28px;padding:0;font-size:16px" onclick="twOrderQtyStep('${key}',-1)">−</button>
+              <input class="input" type="number" min="0" value="0" data-order-qty="${key}" oninput="twCalcOrderTotal()" style="width:54px;text-align:center"/>
+              <button type="button" class="btn btn-secondary" style="width:28px;height:28px;padding:0;font-size:16px" onclick="twOrderQtyStep('${key}',1)">+</button>
+            </div>
+          </td>
+          <td class="num" data-order-sub="${key}">0đ</td>
+        </tr>`;
+      })
+    ).join('');
+
+    twOpenModal(`
       <div class="modal-header">
         <h3>🧾 Tạo đơn hàng mới</h3>
         <button class="modal-close" onclick="twCloseModal()">✕</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="max-height:80vh;overflow-y:auto">
         <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Chi nhánh *</label>
@@ -2187,60 +2353,67 @@
           </div>
         </div>
         <div class="tw-modal-group">
-          <label class="tw-modal-label">Chọn món</label>
-          <div id="twOrdItems" style="display:flex;flex-direction:column;gap:8px">
-            <div class="tw-recipe-item" style="justify-content:space-between">
-              <select class="input" style="flex:1;margin-right:8px" onchange="twCalcOrderTotal()">
-                <option value="">-- Chọn món --</option>
-                ${menuItems.map(m => `<option value="${m.id}" data-price="${m.price}" data-name="${m.name}">${m.name} (${m.size}) — ${fmtMoney(m.price)}</option>`).join('')}
-              </select>
-              <input class="input" type="number" value="1" min="1" style="width:60px" onchange="twCalcOrderTotal()"/>
-              <button class="tw-action delete" onclick="this.closest('.tw-recipe-item').remove();twCalcOrderTotal()" style="margin-left:8px">✕</button>
-            </div>
+          <label class="tw-modal-label">Menu — chọn số lượng từng món</label>
+          <input type="text" class="input" id="twOrdMenuSearch" placeholder="Tìm món..." oninput="twFilterOrderMenu()" style="margin-bottom:8px"/>
+          <div class="table-wrapper" style="max-height:45vh;overflow-y:auto">
+            <table class="table" id="twOrdMenuTable">
+              <thead>
+                <tr>
+                  <th>Món</th>
+                  <th style="text-align:center;width:70px">Size</th>
+                  <th class="num" style="width:110px">Giá</th>
+                  <th style="text-align:center;width:150px">SL</th>
+                  <th class="num" style="width:110px">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>${menuRows || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--h5c-text-secondary)">Chưa có món nào trong menu</td></tr>'}</tbody>
+            </table>
           </div>
-          <button class="btn btn-secondary" onclick="twAddOrderItemRow()" style="margin-top:8px">+ Thêm món</button>
         </div>
         <div class="tw-modal-group">
           <label class="tw-modal-label">Ghi chú khách</label>
           <input class="input" id="twOrdNote" placeholder="Ít đường, thêm đá..."/>
         </div>
-        <div style="text-align:right;font-size:16px;font-weight:700;padding:12px 0;border-top:1px solid var(--h5c-border);margin-top:12px">
-          Tổng: <span id="twOrdTotal">0đ</span>
+        <div style="text-align:right;font-size:18px;font-weight:700;padding:14px 0;border-top:2px solid var(--h5c-border);margin-top:12px">
+          Tổng: <span id="twOrdTotal" style="color:var(--h5c-sage)">0đ</span>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
-        <button class="btn btn-primary" onclick="twSaveOrder()">Tạo đơn</button>
+        <button class="btn btn-primary" onclick="twSaveOrder()" style="font-size:15px;padding:12px 28px">✅ Tạo đơn</button>
       </div>
-    `;
-    document.getElementById('twModal').style.display = 'flex';
+    `);
   };
 
-  window.twAddOrderItemRow = function() {
-    const menuItems = get(KEYS.menuItems).filter(m => m.status === 'active');
-    const row = document.createElement('div');
-    row.className = 'tw-recipe-item';
-    row.style.justifyContent = 'space-between';
-    row.innerHTML = `
-      <select class="input" style="flex:1;margin-right:8px" onchange="twCalcOrderTotal()">
-        <option value="">-- Chọn món --</option>
-        ${menuItems.map(m => `<option value="${m.id}" data-price="${m.price}" data-name="${m.name}">${m.name} (${m.size}) — ${fmtMoney(m.price)}</option>`).join('')}
-      </select>
-      <input class="input" type="number" value="1" min="1" style="width:60px" onchange="twCalcOrderTotal()"/>
-      <button class="tw-action delete" onclick="this.closest('.tw-recipe-item').remove();twCalcOrderTotal()" style="margin-left:8px">✕</button>
-    `;
-    document.getElementById('twOrdItems').appendChild(row);
+  window.twFilterOrderMenu = function() {
+    const q = (document.getElementById('twOrdMenuSearch')?.value || '').toLowerCase();
+    document.querySelectorAll('#twOrdMenuTable tbody tr[data-order-row]').forEach(tr => {
+      const name = (tr.dataset.name || '').toLowerCase();
+      tr.style.display = !q || name.includes(q) ? '' : 'none';
+    });
+  };
+
+  window.twOrderQtyStep = function(key, delta) {
+    const input = document.querySelector(`[data-order-qty="${CSS.escape(key)}"]`);
+    if (!input) return;
+    const next = Math.max(0, (parseInt(input.value)||0) + delta);
+    input.value = next;
+    twCalcOrderTotal();
   };
 
   window.twCalcOrderTotal = function() {
     let total = 0;
-    document.querySelectorAll('#twOrdItems .tw-recipe-item').forEach(row => {
-      const sel = row.querySelector('select');
-      const qty = parseInt(row.querySelector('input[type=number]').value) || 0;
-      const opt = sel.selectedOptions[0];
-      if (opt && opt.value) total += (parseInt(opt.dataset.price)||0) * qty;
+    document.querySelectorAll('#twOrdMenuTable tbody tr[data-order-row]').forEach(tr => {
+      const qty = parseInt(tr.querySelector('[data-order-qty]').value) || 0;
+      const price = parseInt(tr.dataset.price) || 0;
+      const sub = qty * price;
+      const subCell = tr.querySelector('[data-order-sub]');
+      if (subCell) subCell.textContent = sub ? fmtMoney(sub) : '0đ';
+      tr.style.background = qty > 0 ? 'var(--h5c-bg-subtle)' : '';
+      total += sub;
     });
-    document.getElementById('twOrdTotal').textContent = fmtMoney(total);
+    const totalEl = document.getElementById('twOrdTotal');
+    if (totalEl) totalEl.textContent = fmtMoney(total);
   };
 
   window.twSaveOrder = function() {
@@ -2248,15 +2421,18 @@
     if (!branchId) { showToast('Chọn chi nhánh', 'warning'); return; }
 
     const items = [];
-    document.querySelectorAll('#twOrdItems .tw-recipe-item').forEach(row => {
-      const sel = row.querySelector('select');
-      const qty = parseInt(row.querySelector('input[type=number]').value) || 0;
-      const opt = sel.selectedOptions[0];
-      if (opt && opt.value && qty > 0) {
-        items.push({ menuItemId: opt.value, name: opt.dataset.name, price: parseInt(opt.dataset.price)||0, qty });
-      }
+    document.querySelectorAll('#twOrdMenuTable tbody tr[data-order-row]').forEach(tr => {
+      const qty = parseInt(tr.querySelector('[data-order-qty]').value) || 0;
+      if (qty <= 0) return;
+      items.push({
+        menuItemId: tr.dataset.itemId,
+        size: tr.dataset.size,
+        name: `${tr.dataset.name} (${tr.dataset.size})`,
+        price: parseInt(tr.dataset.price) || 0,
+        qty,
+      });
     });
-    if (!items.length) { showToast('Thêm ít nhất 1 món', 'warning'); return; }
+    if (!items.length) { showToast('Chọn ít nhất 1 món (SL > 0)', 'warning'); return; }
 
     const total = items.reduce((s,i) => s + i.price * i.qty, 0);
     const orders = get(KEYS.orders);
@@ -2312,7 +2488,7 @@
         <button class="btn btn-secondary" onclick="twCloseModal()">Đóng</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twUpdateOrderStatus = function(id, newStatus) {
@@ -2456,7 +2632,7 @@
         <button class="btn btn-primary" onclick="twSaveShift()">Mở ca</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
     twCheckPrevShift();
   };
 
@@ -2555,7 +2731,7 @@
         <button class="btn btn-primary" onclick="twConfirmCloseShift('${id}',${expectedCash})">Xác nhận đóng ca</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twConfirmCloseShift = function(id, expectedCash) {
@@ -2626,7 +2802,7 @@
         <button class="btn btn-primary" onclick="twSaveShiftTx('${shiftId}')">Lưu</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twSaveShiftTx = function(shiftId) {
@@ -2675,7 +2851,7 @@
         <button class="btn btn-secondary" onclick="twCloseModal()">Đóng</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   // ═══════════════════════════════════════════
@@ -2767,7 +2943,7 @@
         <button class="btn btn-primary" onclick="twSaveExpense('${expId||''}')">${e?'Cập nhật':'Thêm'}</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twSaveExpense = function(editId) {
@@ -2931,7 +3107,7 @@
         <button class="btn btn-primary" onclick="twSaveNvlCount('${type}','${branchId}','${date}')">Lưu kiểm đếm</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twSaveNvlCount = function(type, branchId, date) {
@@ -3045,7 +3221,7 @@
         <button class="btn btn-primary" onclick="twSavePartnerConfig()">Lưu</button>
       </div>
     `;
-    document.getElementById('twModal').style.display = 'flex';
+    document.getElementById('twModal').classList.add('tw-modal-open');
   };
 
   window.twSavePartnerConfig = function() {
@@ -3066,14 +3242,478 @@
   };
 
   // ═══════════════════════════════════════════
-  // MODAL CLOSE
+  // HR MODULE — Employees / Schedule / Attendance / Payroll
   // ═══════════════════════════════════════════
-  window.twCloseModal = function() {
-    document.getElementById('twModal').style.display = 'none';
+  let twHrSubTab = 'personnel';
+
+  window.twSwitchHrTab = function(sub) {
+    twHrSubTab = sub;
+    document.querySelectorAll('#panel-hr .tw-tab[data-hr-tab]').forEach(t => t.classList.toggle('active', t.dataset.hrTab === sub));
+    document.querySelectorAll('#panel-hr .tw-hr-sub').forEach(p => p.style.display = (p.id === 'hr-' + sub) ? '' : 'none');
+    if (sub === 'personnel')   twRenderEmployees();
+    if (sub === 'schedule')    twRenderSchedule();
+    if (sub === 'attendance')  twRenderAttendance();
+    if (sub === 'payroll')     twRenderPayroll();
   };
 
+  window.twRenderHr = function() {
+    // Populate all branch dropdowns inside HR
+    const branches = get(KEYS.branches).filter(b => b.status === 'active');
+    ['twEmpBranchFilter','twAttBranchFilter','twPayBranchFilter'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const cur = el.value;
+      el.innerHTML = '<option value="">Tất cả chi nhánh</option>' + branches.map(b => `<option value="${b.id}" ${cur===b.id?'selected':''}>${b.name}</option>`).join('');
+    });
+    const monthStr = thisMonth();
+    if (document.getElementById('twAttMonth') && !document.getElementById('twAttMonth').value) document.getElementById('twAttMonth').value = monthStr;
+    if (document.getElementById('twPayMonth') && !document.getElementById('twPayMonth').value) document.getElementById('twPayMonth').value = monthStr;
+    twSwitchHrTab(twHrSubTab);
+  };
+
+  // ── Helpers ──
+  function twNextEmpCode() {
+    const list = get(KEYS.employees);
+    const nums = list.map(e => parseInt((e.code||'').replace(/\D/g,''))||0);
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    return 'EMP' + String(next).padStart(3,'0');
+  }
+  function twBranchName(id) { const b = get(KEYS.branches).find(x => x.id === id); return b ? b.name : '—'; }
+
+  // ── Personnel ──
+  window.twRenderEmployees = function() {
+    const tbody = document.getElementById('twEmpBody');
+    if (!tbody) return;
+    const search = (document.getElementById('twEmpSearch')?.value || '').toLowerCase();
+    const branchFilter = document.getElementById('twEmpBranchFilter')?.value || '';
+    const statusFilter = document.getElementById('twEmpStatusFilter')?.value || '';
+    let list = get(KEYS.employees);
+    if (search) list = list.filter(e => (e.name||'').toLowerCase().includes(search) || (e.code||'').toLowerCase().includes(search));
+    if (branchFilter) list = list.filter(e => e.branchId === branchFilter);
+    if (statusFilter) list = list.filter(e => (e.status||'active') === statusFilter);
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--h5c-text-secondary)">Chưa có nhân viên. Bấm "+ Thêm nhân viên" để bắt đầu.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(e => {
+      const isFull = (e.workType||'full') === 'full';
+      const salary = isFull
+        ? fmtMoney(e.baseSalary||0) + '/tháng'
+        : fmtMoney(e.hourlyRate||0) + '/giờ';
+      const status = (e.status||'active') === 'active'
+        ? '<span class="tw-badge active">Đang làm</span>'
+        : '<span class="tw-badge inactive">Nghỉ việc</span>';
+      const rating = e.performanceRating ? '⭐'.repeat(Math.min(5, parseInt(e.performanceRating)||0)) : '—';
+      return `<tr>
+        <td><strong>${e.code||'—'}</strong></td>
+        <td><strong>${e.name||'—'}</strong>${e.address?`<br><small style="color:#888">${e.address}</small>`:''}</td>
+        <td>${e.role||'—'}</td>
+        <td>${twBranchName(e.branchId)}</td>
+        <td>${e.phone||'—'}</td>
+        <td>${fmtDate(e.startDate)}</td>
+        <td>${e.shift||'—'}</td>
+        <td>${isFull?'Full-time':'Part-time'}</td>
+        <td class="num">${salary}</td>
+        <td>${rating}</td>
+        <td>${status}</td>
+        <td>
+          <div class="tw-actions">
+            <button class="tw-action edit" onclick="twShowEmployeeModal('${e.id}')" title="Sửa">✏️</button>
+            <button class="tw-action delete" onclick="twDeleteEmployee('${e.id}')" title="Xóa">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  };
+
+  window.twShowEmployeeModal = function(empId) {
+    const e = empId ? get(KEYS.employees).find(x => x.id === empId) : null;
+    const branches = get(KEYS.branches).filter(b => b.status === 'active');
+    const isFull = !e || (e.workType||'full') === 'full';
+    twOpenModal(`
+      <div class="modal-header">
+        <h3>${e?'Sửa thông tin nhân viên':'Thêm nhân viên mới'}</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height:75vh;overflow-y:auto">
+        <div class="tw-modal-row">
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Mã nhân viên</label>
+            <input class="input" id="twEmpCode" value="${e?e.code||'':twNextEmpCode()}" readonly style="background:var(--h5c-bg-subtle)"/>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Họ và tên *</label>
+            <input class="input" id="twEmpName" value="${e?e.name||'':''}" placeholder="Nguyễn Văn A"/>
+          </div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Role</label>
+            <select class="input" id="twEmpRole">
+              ${HR_ROLES.map(r => `<option value="${r}" ${e&&e.role===r?'selected':''}>${r}</option>`).join('')}
+            </select>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Chi nhánh</label>
+            <select class="input" id="twEmpBranch">
+              <option value="">— Chưa gán —</option>
+              ${branches.map(b => `<option value="${b.id}" ${e&&e.branchId===b.id?'selected':''}>${b.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Số điện thoại</label>
+            <input class="input" id="twEmpPhone" value="${e?e.phone||'':''}" placeholder="09xxxxxxxx"/>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Ngày vào làm</label>
+            <input class="input" type="date" id="twEmpStart" value="${e?e.startDate||today():today()}"/>
+          </div>
+        </div>
+        <div class="tw-modal-group">
+          <label class="tw-modal-label">Địa chỉ</label>
+          <input class="input" id="twEmpAddress" value="${e?e.address||'':''}"/>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Ca làm mặc định</label>
+            <select class="input" id="twEmpShift">
+              ${HR_SHIFT_OPTIONS.map(s => `<option value="${s}" ${e&&e.shift===s?'selected':''}>${s||'—'}</option>`).join('')}
+            </select>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Hình thức làm việc</label>
+            <select class="input" id="twEmpWorkType" onchange="twToggleSalaryFields()">
+              <option value="full" ${isFull?'selected':''}>Full-time</option>
+              <option value="part" ${!isFull?'selected':''}>Part-time</option>
+            </select>
+          </div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group" id="twEmpBaseWrap" style="${isFull?'':'display:none'}">
+            <label class="tw-modal-label">Lương cơ bản / tháng</label>
+            <input class="input" type="number" id="twEmpBase" value="${e?e.baseSalary||'':''}" placeholder="8000000"/>
+          </div>
+          <div class="tw-modal-group" id="twEmpHourlyWrap" style="${!isFull?'':'display:none'}">
+            <label class="tw-modal-label">Lương theo giờ</label>
+            <input class="input" type="number" id="twEmpHourly" value="${e?e.hourlyRate||'':''}" placeholder="30000"/>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Đánh giá hiệu suất (1–5)</label>
+            <input class="input" type="number" min="0" max="5" id="twEmpRating" value="${e?e.performanceRating||'':''}"/>
+          </div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Trạng thái</label>
+            <select class="input" id="twEmpStatus">
+              <option value="active" ${(!e||(e.status||'active')==='active')?'selected':''}>Đang làm</option>
+              <option value="inactive" ${e&&e.status==='inactive'?'selected':''}>Nghỉ việc</option>
+            </select>
+          </div>
+        </div>
+        <div class="tw-modal-group">
+          <label class="tw-modal-label">Ghi chú</label>
+          <textarea class="input" id="twEmpNote" rows="2">${e?e.note||'':''}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twSaveEmployee('${empId||''}')">${e?'Cập nhật':'Thêm mới'}</button>
+      </div>
+    `);
+  };
+
+  window.twToggleSalaryFields = function() {
+    const isFull = document.getElementById('twEmpWorkType').value === 'full';
+    document.getElementById('twEmpBaseWrap').style.display = isFull ? '' : 'none';
+    document.getElementById('twEmpHourlyWrap').style.display = isFull ? 'none' : '';
+  };
+
+  window.twSaveEmployee = function(empId) {
+    const name = document.getElementById('twEmpName').value.trim();
+    if (!name) { showToast('Nhập họ tên', 'warning'); return; }
+    const data = {
+      code:              document.getElementById('twEmpCode').value.trim(),
+      name,
+      role:              document.getElementById('twEmpRole').value,
+      branchId:          document.getElementById('twEmpBranch').value,
+      phone:             document.getElementById('twEmpPhone').value.trim(),
+      address:           document.getElementById('twEmpAddress').value.trim(),
+      startDate:         document.getElementById('twEmpStart').value,
+      shift:             document.getElementById('twEmpShift').value,
+      workType:          document.getElementById('twEmpWorkType').value,
+      baseSalary:        parseFloat(document.getElementById('twEmpBase').value) || 0,
+      hourlyRate:        parseFloat(document.getElementById('twEmpHourly').value) || 0,
+      performanceRating: parseInt(document.getElementById('twEmpRating').value) || 0,
+      status:            document.getElementById('twEmpStatus').value,
+      note:              document.getElementById('twEmpNote').value.trim(),
+    };
+    let list = get(KEYS.employees);
+    if (empId) {
+      const idx = list.findIndex(x => x.id === empId);
+      if (idx >= 0) list[idx] = { ...list[idx], ...data, updatedAt: new Date().toISOString() };
+    } else {
+      list.push({ id: genId('EMP'), ...data, createdAt: new Date().toISOString() });
+    }
+    set(KEYS.employees, list);
+    twCloseModal();
+    twRenderEmployees();
+    showToast(empId?'Đã cập nhật nhân viên':'Đã thêm nhân viên', 'success');
+  };
+
+  window.twDeleteEmployee = function(id) {
+    const e = get(KEYS.employees).find(x => x.id === id);
+    if (!confirm(`Xóa nhân viên "${e?.name||''}"? (Dữ liệu chấm công của NV này vẫn sẽ giữ lại)`)) return;
+    set(KEYS.employees, get(KEYS.employees).filter(x => x.id !== id));
+    twRenderEmployees();
+    showToast('Đã xóa nhân viên', 'success');
+  };
+
+  // ── Schedule ──
+  window.twRenderSchedule = function() {
+    const tbody = document.getElementById('twScheduleBody');
+    if (!tbody) return;
+    const emps = get(KEYS.employees).filter(e => (e.status||'active') === 'active');
+    if (!emps.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--h5c-text-secondary)">Chưa có nhân viên. Thêm ở tab "Quản lý nhân sự" trước.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = emps.map(e => {
+      const sch = e.schedule || {};
+      const cells = HR_DAYS.map(d => `
+        <td style="text-align:center">
+          <select class="input" style="font-size:12px;padding:4px 6px;min-width:90px" onchange="twSaveScheduleCell('${e.id}','${d}',this.value)">
+            ${HR_SHIFT_OPTIONS.map(s => `<option value="${s}" ${sch[d]===s?'selected':''}>${s||'—'}</option>`).join('')}
+          </select>
+        </td>
+      `).join('');
+      return `<tr>
+        <td><strong>${e.code||'—'}</strong></td>
+        <td>${e.name||'—'}</td>
+        ${cells}
+      </tr>`;
+    }).join('');
+  };
+
+  window.twSaveScheduleCell = function(empId, day, value) {
+    let list = get(KEYS.employees);
+    const idx = list.findIndex(e => e.id === empId);
+    if (idx < 0) return;
+    list[idx].schedule = list[idx].schedule || {};
+    list[idx].schedule[day] = value;
+    set(KEYS.employees, list);
+  };
+
+  // ── Attendance (grid: dates × employees × shifts) ──
+  window.twRenderAttendance = function() {
+    const head = document.getElementById('twAttHead');
+    const body = document.getElementById('twAttBody');
+    if (!head || !body) return;
+    const monthStr = document.getElementById('twAttMonth').value || thisMonth();
+    const branchFilter = document.getElementById('twAttBranchFilter').value || '';
+    const emps = get(KEYS.employees).filter(e => (e.status||'active') === 'active' && (!branchFilter || e.branchId === branchFilter));
+    if (!emps.length) {
+      head.innerHTML = '';
+      body.innerHTML = '<tr><td style="text-align:center;padding:24px;color:var(--h5c-text-secondary)">Không có nhân viên</td></tr>';
+      return;
+    }
+    const [yy, mm] = monthStr.split('-').map(Number);
+    const daysInMonth = new Date(yy, mm, 0).getDate();
+
+    // Header: first col = Ngày, then each employee spans (shifts.length) columns
+    const row1 = ['<th rowspan="2" style="position:sticky;left:0;background:var(--h5c-bg-subtle);z-index:2">Ngày</th>']
+      .concat(emps.map(e => `<th colspan="${HR_SHIFTS.length}" style="text-align:center;background:var(--h5c-bg-subtle)">${e.code||''}<br><small>${e.name||''}</small></th>`))
+      .join('');
+    const row2 = emps.flatMap(() => HR_SHIFTS.map(s => `<th style="text-align:center;font-size:10px;padding:4px">${s.label}</th>`)).join('');
+    head.innerHTML = `<tr>${row1}</tr><tr>${row2}</tr>`;
+
+    const att = get(KEYS.attendance);
+    const attByEmp = {};
+    att.forEach(a => { attByEmp[a.empId] = attByEmp[a.empId] || {}; attByEmp[a.empId][a.date] = a.shifts || {}; });
+
+    const rows = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${yy}-${String(mm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const weekend = (new Date(dateStr).getDay() === 0 || new Date(dateStr).getDay() === 6);
+      const cells = emps.flatMap(e => {
+        const shifts = (attByEmp[e.id] && attByEmp[e.id][dateStr]) || {};
+        return HR_SHIFTS.map(s => {
+          const checked = shifts[s.key] ? 'checked' : '';
+          return `<td style="text-align:center;padding:4px"><input type="checkbox" ${checked} onchange="twToggleAttendance('${e.id}','${dateStr}','${s.key}',this.checked)"/></td>`;
+        });
+      }).join('');
+      rows.push(`<tr style="${weekend?'background:#fef7e0':''}"><td style="position:sticky;left:0;background:${weekend?'#fef7e0':'#fff'};font-weight:600">${String(d).padStart(2,'0')}/${String(mm).padStart(2,'0')}</td>${cells}</tr>`);
+    }
+    body.innerHTML = rows.join('');
+  };
+
+  window.twToggleAttendance = function(empId, date, shiftKey, checked) {
+    let att = get(KEYS.attendance);
+    let rec = att.find(a => a.empId === empId && a.date === date);
+    if (!rec) {
+      rec = { id: genId('ATT'), empId, date, shifts: {} };
+      att.push(rec);
+    }
+    rec.shifts = rec.shifts || {};
+    rec.shifts[shiftKey] = !!checked;
+    rec.updatedAt = new Date().toISOString();
+    set(KEYS.attendance, att);
+  };
+
+  // ── Payroll (computed from employees + attendance) ──
+  window.twRenderPayroll = function() {
+    const tbody = document.getElementById('twPayBody');
+    const kpi = document.getElementById('twPayKpi');
+    if (!tbody) return;
+    const monthStr = document.getElementById('twPayMonth').value || thisMonth();
+    const branchFilter = document.getElementById('twPayBranchFilter').value || '';
+    const emps = get(KEYS.employees).filter(e => !branchFilter || e.branchId === branchFilter);
+
+    const att = get(KEYS.attendance).filter(a => (a.date||'').startsWith(monthStr));
+    const adjList = get(KEYS.payrollAdj);
+
+    // Hours per shift assumption: 4 hours per shift (matching the screenshot "Số giờ 1 ca = 4")
+    const HOURS_PER_SHIFT = 4;
+
+    let totalPayout = 0;
+    let totalShifts = 0;
+    const rows = emps.map(e => {
+      const myAtt = att.filter(a => a.empId === e.id);
+      // Days worked = unique dates with at least 1 shift checked
+      const daysSet = new Set();
+      let shiftCount = 0;
+      myAtt.forEach(a => {
+        const checked = Object.values(a.shifts||{}).filter(Boolean).length;
+        if (checked > 0) daysSet.add(a.date);
+        shiftCount += checked;
+      });
+      const days = daysSet.size;
+      totalShifts += shiftCount;
+      const isFull = (e.workType||'full') === 'full';
+      let earned = 0;
+      if (isFull) {
+        // Assume 26 working days per month
+        earned = Math.round((e.baseSalary||0) * (days/26));
+      } else {
+        earned = Math.round((e.hourlyRate||0) * shiftCount * HOURS_PER_SHIFT);
+      }
+      const adj = adjList.find(x => x.empId === e.id && x.month === monthStr) || { allowance:0, bonus:0, penalty:0, paidAt:'' };
+      const net = earned + (adj.allowance||0) + (adj.bonus||0) - (adj.penalty||0);
+      totalPayout += net;
+      const baseLabel = isFull ? fmtMoney(e.baseSalary||0)+'/tháng' : fmtMoney(e.hourlyRate||0)+'/giờ';
+      return `<tr>
+        <td><strong>${e.code||'—'}</strong></td>
+        <td><strong>${e.name||'—'}</strong></td>
+        <td>${e.role||'—'}</td>
+        <td>${twBranchName(e.branchId)}</td>
+        <td>${isFull?'Full':'Part'}</td>
+        <td class="num">${baseLabel}</td>
+        <td class="num">${days}</td>
+        <td class="num">${shiftCount}</td>
+        <td class="num">${fmtMoney(earned)}</td>
+        <td class="num">${fmtMoney(adj.allowance||0)}</td>
+        <td class="num">${fmtMoney(adj.bonus||0)}</td>
+        <td class="num" style="color:var(--h5c-terracotta)">${fmtMoney(adj.penalty||0)}</td>
+        <td class="num" style="font-weight:700;color:var(--h5c-sage)">${fmtMoney(net)}</td>
+        <td>${adj.paidAt?fmtDate(adj.paidAt):'<span style="color:#888">Chưa TT</span>'}</td>
+        <td><button class="tw-action edit" onclick="twShowPayrollAdjModal('${e.id}','${monthStr}')" title="Điều chỉnh">💰</button></td>
+      </tr>`;
+    }).join('');
+    tbody.innerHTML = rows || '<tr><td colspan="15" style="text-align:center;padding:24px;color:var(--h5c-text-secondary)">Chưa có dữ liệu</td></tr>';
+
+    kpi.innerHTML = `
+      <div class="kpi-card"><div class="label">Tổng lương tháng</div><div class="value">${fmtMoney(totalPayout)}</div></div>
+      <div class="kpi-card"><div class="label">Số nhân viên</div><div class="value">${emps.length}</div></div>
+      <div class="kpi-card"><div class="label">Tổng số ca</div><div class="value">${totalShifts}</div></div>
+    `;
+  };
+
+  window.twShowPayrollAdjModal = function(empId, monthStr) {
+    const emp = get(KEYS.employees).find(x => x.id === empId);
+    if (!emp) return;
+    const adj = get(KEYS.payrollAdj).find(x => x.empId === empId && x.month === monthStr) || { allowance:0, bonus:0, penalty:0, paidAt:'', note:'' };
+    twOpenModal(`
+      <div class="modal-header">
+        <h3>💰 Điều chỉnh lương — ${emp.name} (${monthStr})</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Phụ cấp</label><input class="input" type="number" id="twAdjAllow" value="${adj.allowance||''}"/></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Thưởng</label><input class="input" type="number" id="twAdjBonus" value="${adj.bonus||''}"/></div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Phạt</label><input class="input" type="number" id="twAdjPenalty" value="${adj.penalty||''}"/></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Ngày thanh toán</label><input class="input" type="date" id="twAdjPaidAt" value="${adj.paidAt||''}"/></div>
+        </div>
+        <div class="tw-modal-group">
+          <label class="tw-modal-label">Ghi chú</label>
+          <textarea class="input" id="twAdjNote" rows="2">${adj.note||''}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twSavePayrollAdj('${empId}','${monthStr}')">Lưu</button>
+      </div>
+    `);
+  };
+
+  window.twSavePayrollAdj = function(empId, monthStr) {
+    let list = get(KEYS.payrollAdj);
+    const idx = list.findIndex(x => x.empId === empId && x.month === monthStr);
+    const data = {
+      empId, month: monthStr,
+      allowance: parseFloat(document.getElementById('twAdjAllow').value) || 0,
+      bonus:     parseFloat(document.getElementById('twAdjBonus').value) || 0,
+      penalty:   parseFloat(document.getElementById('twAdjPenalty').value) || 0,
+      paidAt:    document.getElementById('twAdjPaidAt').value,
+      note:      document.getElementById('twAdjNote').value.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+    if (idx >= 0) list[idx] = { ...list[idx], ...data };
+    else list.push({ id: genId('ADJ'), ...data });
+    set(KEYS.payrollAdj, list);
+    twCloseModal();
+    twRenderPayroll();
+    showToast('Đã lưu điều chỉnh', 'success');
+  };
+
+  // ═══════════════════════════════════════════
+  // MODAL CLOSE
+  // ═══════════════════════════════════════════
+  // ── Centralized modal helpers (bulletproof) ──
+  // Fixes reliability bugs where button clicks sometimes "did nothing": always
+  // resets inline style + any lingering classes before showing, so cascade/
+  // third-party (firebase-sync) interference can't leave the overlay in a
+  // half-hidden state.
+  window.twOpenModal = function(html) {
+    const overlay = document.getElementById('twModal');
+    const content = document.getElementById('twModalContent');
+    if (!overlay || !content) return;
+    content.innerHTML = html;
+    overlay.style.removeProperty('display');
+    overlay.style.display = 'flex';
+    overlay.removeAttribute('hidden');
+    overlay.classList.add('tw-modal-open');
+  };
+  window.twCloseModal = function() {
+    const overlay = document.getElementById('twModal');
+    if (!overlay) return;
+    overlay.classList.remove('tw-modal-open');
+  };
+
+  // Single delegated backdrop close listener (only closes on click of the overlay itself)
   document.getElementById('twModal')?.addEventListener('click', function(e) {
     if (e.target === this) twCloseModal();
+  });
+  // ESC to close
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('twModal');
+      if (overlay && overlay.style.display !== 'none') twCloseModal();
+    }
   });
 
   // ═══════════════════════════════════════════
