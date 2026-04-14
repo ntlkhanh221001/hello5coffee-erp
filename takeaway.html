@@ -26,9 +26,15 @@
 
 /* ═══ Table wrapper (horizontal scroll for wide tables) ═══ */
 .table-wrapper{overflow-x:auto;border-radius:var(--h5c-radius-lg);background:var(--h5c-surface);border:1px solid var(--h5c-border)}
-.table-wrapper table{min-width:100%}
-.table-wrapper th,.table-wrapper td{white-space:nowrap}
+.table-wrapper table{min-width:100%;width:100%;border-collapse:separate;border-spacing:0}
+.table-wrapper th,.table-wrapper td{white-space:nowrap;padding:12px 16px;border-bottom:1px solid var(--h5c-border);border-right:1px solid var(--h5c-border);text-align:left;vertical-align:middle;font-size:13px}
+.table-wrapper th:last-child,.table-wrapper td:last-child{border-right:none}
+.table-wrapper tr:last-child td{border-bottom:none}
+.table-wrapper thead th{background:var(--h5c-bg-subtle,#f8fafc);font-size:11px;font-weight:700;color:var(--h5c-text-secondary,#64748b);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--h5c-border)}
+.table-wrapper tbody tr:hover td{background:var(--h5c-bg-subtle,#f8fafc)}
 .table-wrapper td.wrap,.table-wrapper th.wrap{white-space:normal}
+.table-wrapper td.num,.table-wrapper th.num{text-align:right;font-variant-numeric:tabular-nums}
+.table-wrapper td.center,.table-wrapper th.center{text-align:center}
 
 /* ═══ Tab Bar ═══ */
 .tw-tab-bar{display:flex;gap:4px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:4px;margin-bottom:20px;flex-wrap:wrap;width:fit-content}
