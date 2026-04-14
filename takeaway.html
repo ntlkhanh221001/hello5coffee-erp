@@ -164,6 +164,7 @@
         <button class="tw-tab active" data-tab="dashboard" onclick="twSwitchTab('dashboard')">📊 Tổng quan</button>
         <button class="tw-tab" data-tab="branches" onclick="twSwitchTab('branches')">🏪 Chi nhánh</button>
         <button class="tw-tab" data-tab="menu" onclick="twSwitchTab('menu')">📋 Menu</button>
+        <button class="tw-tab" data-tab="ingredients" onclick="twSwitchTab('ingredients')">🧪 Nguyên liệu</button>
         <button class="tw-tab" data-tab="suppliers" onclick="twSwitchTab('suppliers')">🤝 Nhà cung cấp</button>
         <button class="tw-tab" data-tab="stock-in" onclick="twSwitchTab('stock-in')">📥 Nhập kho</button>
         <button class="tw-tab" data-tab="stock-out" onclick="twSwitchTab('stock-out')">📤 Xuất kho</button>
@@ -233,7 +234,7 @@
             </select>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-secondary" onclick="twShowIngredientModal()">🧪 Nguyên liệu</button>
+            <button class="btn btn-secondary" onclick="twSwitchTab('ingredients')">🧪 Nguyên liệu</button>
             <button class="btn btn-primary" onclick="twShowMenuModal()">+ Thêm món</button>
           </div>
         </div>
@@ -251,6 +252,38 @@
               </tr>
             </thead>
             <tbody id="twMenuBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- TAB: Ingredients (Nguyên liệu)             -->
+      <!-- ═══════════════════════════════════════════ -->
+      <div class="tw-panel" id="panel-ingredients">
+        <div class="tw-header">
+          <div class="tw-filters">
+            <input type="text" class="tw-filter" placeholder="Tìm nguyên liệu..." id="twIngSearch" oninput="twRenderIngredientsPage()"/>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <h3 style="margin:0 0 12px;font-size:15px;font-weight:700">➕ Thêm nguyên liệu mới</h3>
+          <div class="tw-modal-row">
+            <div class="tw-modal-group"><label class="tw-modal-label">Tên nguyên liệu *</label><input class="input" id="twIngName" placeholder="VD: Sữa tươi"/></div>
+            <div class="tw-modal-group"><label class="tw-modal-label">Tên thương mại / NSX</label><input class="input" id="twIngBrand" placeholder="VD: Vinamilk 1L"/></div>
+          </div>
+          <div class="tw-modal-row" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end">
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Đơn vị</label><input class="input" id="twIngUnit" placeholder="g, ml, cái"/></div>
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Vòng đời (ngày)</label><input class="input" type="number" id="twIngShelf" placeholder="30"/></div>
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Par level</label><input class="input" type="number" id="twIngPar" placeholder="500"/></div>
+            <button class="btn btn-primary" onclick="twAddIngredient()" style="height:38px">+ Thêm</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Tên NVL</th><th>Thương mại</th><th>ĐV</th><th>Vòng đời</th><th>Par level</th><th style="width:80px">Thao tác</th></tr></thead>
+            <tbody id="twIngredientBody"></tbody>
           </table>
         </div>
       </div>
@@ -699,6 +732,7 @@
       case 'dashboard': twRenderDashboard(); break;
       case 'branches':  twRenderBranches(); break;
       case 'menu':      twRenderMenu(); break;
+      case 'ingredients': twRenderIngredientsPage(); break;
       case 'suppliers': twRenderSuppliers(); break;
       case 'stock-in':  twRenderStockIn(); break;
       case 'stock-out': twRenderStockOut(); break;
@@ -1744,11 +1778,16 @@
     }).join('');
   };
 
-  // Render just the ingredient table body (no modal rebuild → preserves form focus)
-  window.twRenderIngredientTable = function() {
+  // Render dedicated Ingredients page (tab: ingredients)
+  window.twRenderIngredientsPage = function() {
     const tbody = document.getElementById('twIngredientBody');
     if (!tbody) return;
-    const ingredients = get(KEYS.ingredients);
+    const search = (document.getElementById('twIngSearch')?.value || '').toLowerCase();
+    let ingredients = get(KEYS.ingredients);
+    if (search) ingredients = ingredients.filter(i =>
+      (i.name||'').toLowerCase().includes(search) ||
+      (i.brandName||'').toLowerCase().includes(search)
+    );
     tbody.innerHTML = ingredients.length ? ingredients.map(i => `<tr>
       <td><strong>${i.name}</strong></td>
       <td>${i.brandName||'—'}</td>
@@ -1756,42 +1795,12 @@
       <td>${i.shelfLifeDays||'—'} ngày</td>
       <td>${i.parLevel?i.parLevel.toLocaleString('vi-VN'):'—'}</td>
       <td><button class="tw-action delete" onclick="twDeleteIngredient('${i.id}')">🗑️</button></td>
-    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--h5c-text-secondary)">Chưa có nguyên liệu</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--h5c-text-secondary);padding:20px">Chưa có nguyên liệu nào. Thêm mới ở form bên trên.</td></tr>';
   };
-
-  window.twShowIngredientModal = function() {
-    document.getElementById('twModalContent').innerHTML = `
-      <div class="modal-header">
-        <h3>🧪 Quản lý Nguyên liệu</h3>
-        <button class="modal-close" onclick="twCloseModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div style="padding:14px;background:var(--h5c-bg-subtle);border-radius:8px;margin-bottom:16px">
-          <div class="tw-modal-row">
-            <div class="tw-modal-group"><label class="tw-modal-label">Tên nguyên liệu *</label><input class="input" id="twIngName" placeholder="VD: Sữa tươi"/></div>
-            <div class="tw-modal-group"><label class="tw-modal-label">Tên thương mại / NSX</label><input class="input" id="twIngBrand" placeholder="VD: Vinamilk 1L"/></div>
-          </div>
-          <div class="tw-modal-row" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end">
-            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Đơn vị</label><input class="input" id="twIngUnit" placeholder="g, ml, cái"/></div>
-            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Vòng đời (ngày)</label><input class="input" type="number" id="twIngShelf" placeholder="30"/></div>
-            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Par level</label><input class="input" type="number" id="twIngPar" placeholder="500"/></div>
-            <button class="btn btn-primary" onclick="twAddIngredient()" style="height:38px">+ Thêm</button>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table class="table">
-            <thead><tr><th>Tên NVL</th><th>Thương mại</th><th>ĐV</th><th>Vòng đời</th><th>Par level</th><th></th></tr></thead>
-            <tbody id="twIngredientBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="twCloseModal()">Đóng</button>
-      </div>
-    `;
-    document.getElementById('twModal').style.display = 'flex';
-    twRenderIngredientTable();
-  };
+  // Backward-compat alias (used by old callers)
+  window.twRenderIngredientTable = window.twRenderIngredientsPage;
+  // Legacy modal entry point — now redirects to dedicated tab
+  window.twShowIngredientModal = function() { twSwitchTab('ingredients'); };
 
   window.twAddIngredient = function() {
     const nameEl  = document.getElementById('twIngName');
@@ -1808,9 +1817,9 @@
     let list = get(KEYS.ingredients);
     list.push({ id: genId('ING'), name, brandName, unit: unit||'g', shelfLifeDays, parLevel, createdAt: new Date().toISOString() });
     set(KEYS.ingredients, list);
-    // Clear form fields + refresh only the table body (modal stays open, no focus loss)
+    // Clear form fields + refresh only the table body (no page reload, no focus loss)
     nameEl.value = ''; brandEl.value = ''; unitEl.value = ''; shelfEl.value = ''; parEl.value = '';
-    twRenderIngredientTable();
+    twRenderIngredientsPage();
     nameEl.focus();
     showToast('Đã thêm nguyên liệu', 'success');
   };
@@ -1860,7 +1869,7 @@
     const ing = get(KEYS.ingredients).find(i => i.id === id);
     if (!confirm(`Xóa nguyên liệu "${ing?.name||''}"?`)) return;
     set(KEYS.ingredients, get(KEYS.ingredients).filter(i => i.id !== id));
-    twRenderIngredientTable();
+    twRenderIngredientsPage();
     showToast('Đã xóa nguyên liệu', 'success');
   };
 
