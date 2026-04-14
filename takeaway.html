@@ -152,7 +152,10 @@
         <button class="tw-tab active" data-tab="dashboard" onclick="twSwitchTab('dashboard')">📊 Tổng quan</button>
         <button class="tw-tab" data-tab="branches" onclick="twSwitchTab('branches')">🏪 Chi nhánh</button>
         <button class="tw-tab" data-tab="menu" onclick="twSwitchTab('menu')">📋 Menu</button>
-        <button class="tw-tab" data-tab="inventory" onclick="twSwitchTab('inventory')">📦 Kho hàng</button>
+        <button class="tw-tab" data-tab="suppliers" onclick="twSwitchTab('suppliers')">🤝 Nhà cung cấp</button>
+        <button class="tw-tab" data-tab="stock-in" onclick="twSwitchTab('stock-in')">📥 Nhập kho</button>
+        <button class="tw-tab" data-tab="stock-out" onclick="twSwitchTab('stock-out')">📤 Xuất kho</button>
+        <button class="tw-tab" data-tab="inventory" onclick="twSwitchTab('inventory')">📦 Tồn kho</button>
         <button class="tw-tab" data-tab="orders" onclick="twSwitchTab('orders')">🧾 Đơn hàng</button>
         <button class="tw-tab" data-tab="shifts" onclick="twSwitchTab('shifts')">⏰ Ca làm</button>
         <button class="tw-tab" data-tab="expenses" onclick="twSwitchTab('expenses')">💰 Chi phí</button>
@@ -228,15 +231,110 @@
               <tr>
                 <th>Tên món</th>
                 <th>Danh mục</th>
-                <th>Size</th>
+                <th>Sizes</th>
                 <th>Giá bán</th>
-                <th>Giá vốn</th>
+                <th>Giá vốn (auto)</th>
                 <th>Trạng thái</th>
-                <th>Định lượng</th>
-                <th style="width:80px">Thao tác</th>
+                <th style="width:90px">Thao tác</th>
               </tr>
             </thead>
             <tbody id="twMenuBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- TAB: Suppliers                             -->
+      <!-- ═══════════════════════════════════════════ -->
+      <div class="tw-panel" id="panel-suppliers">
+        <div class="tw-header">
+          <div class="tw-filters">
+            <input type="text" class="tw-filter" placeholder="Tìm NCC..." id="twSupSearch" oninput="twRenderSuppliers()"/>
+            <select class="tw-filter" id="twSupTypeFilter" onchange="twRenderSuppliers()">
+              <option value="">Tất cả loại</option>
+              <option value="nvl">NVL chính</option>
+              <option value="bao_bi">Bao bì</option>
+              <option value="thiet_bi">Thiết bị</option>
+              <option value="dich_vu">Dịch vụ</option>
+              <option value="khac">Khác</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="twShowSupplierModal()">+ Thêm NCC</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="table" id="twSupTable">
+            <thead>
+              <tr>
+                <th>STT</th><th>Mã NCC</th><th>Tên NCC</th><th>Loại</th>
+                <th>SĐT</th><th>Email</th><th>Người LH</th><th>Địa chỉ</th>
+                <th>Quan hệ</th><th>Điều khoản TT</th><th>Hạn mức</th>
+                <th>Tiền nhập</th><th>Đã TT</th><th>Công nợ</th>
+                <th>Trễ/Đúng</th><th>Xếp hạng</th><th>Ghi chú</th>
+                <th style="width:90px">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="twSupBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- TAB: Stock In (Nhập kho)                   -->
+      <!-- ═══════════════════════════════════════════ -->
+      <div class="tw-panel" id="panel-stock-in">
+        <div class="tw-header">
+          <div class="tw-filters">
+            <input type="text" class="tw-filter" placeholder="Tìm mã/NVL..." id="twSiSearch" oninput="twRenderStockIn()"/>
+            <select class="tw-filter" id="twSiSupplier" onchange="twRenderStockIn()"><option value="">Tất cả NCC</option></select>
+            <input type="date" class="tw-filter" id="twSiFrom" onchange="twRenderStockIn()"/>
+            <input type="date" class="tw-filter" id="twSiTo" onchange="twRenderStockIn()"/>
+          </div>
+          <button class="btn btn-primary" onclick="twShowStockImportModal()">+ Nhập kho</button>
+        </div>
+        <div class="tw-kpi-grid" id="twSiKpi" style="margin-bottom:16px"></div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Mã Nhập</th><th>Tên NVL</th><th>NCC</th><th>Ngày nhập</th>
+                <th>SL nhập</th><th>ĐV</th><th>Giá/ĐV</th><th>Thành tiền</th>
+                <th>HSD</th><th>Tình trạng</th><th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody id="twSiBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- TAB: Stock Out (Xuất kho)                  -->
+      <!-- ═══════════════════════════════════════════ -->
+      <div class="tw-panel" id="panel-stock-out">
+        <div class="tw-header">
+          <div class="tw-filters">
+            <input type="text" class="tw-filter" placeholder="Tìm mã/NVL..." id="twSoSearch" oninput="twRenderStockOut()"/>
+            <select class="tw-filter" id="twSoType" onchange="twRenderStockOut()">
+              <option value="">Tất cả loại</option>
+              <option value="distribute">Phân phối CN</option>
+              <option value="dispose">Hao hụt/Hủy</option>
+              <option value="sale">Bán hàng</option>
+            </select>
+            <input type="date" class="tw-filter" id="twSoFrom" onchange="twRenderStockOut()"/>
+            <input type="date" class="tw-filter" id="twSoTo" onchange="twRenderStockOut()"/>
+          </div>
+          <button class="btn btn-secondary" onclick="twShowDistributionModal()">📤 Phân phối CN</button>
+        </div>
+        <div class="tw-kpi-grid" id="twSoKpi" style="margin-bottom:16px"></div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Ngày xuất</th><th>Mã Lô</th><th>Tên NVL</th>
+                <th>SL xuất</th><th>ĐV</th><th>Giá/ĐV</th><th>Thành tiền</th>
+                <th>Loại</th><th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody id="twSoBody"></tbody>
           </table>
         </div>
       </div>
@@ -264,7 +362,9 @@
               <tr>
                 <th>Nguyên liệu</th>
                 <th>Đơn vị</th>
-                <th>Tồn kho</th>
+                <th>Tồn thực tế</th>
+                <th>Par level</th>
+                <th>Cần đặt</th>
                 <th>Giá TB (WAC)</th>
                 <th>Giá trị tồn</th>
                 <th>Lô còn</th>
@@ -487,6 +587,9 @@
     shiftTransactions:'tw_shift_transactions',
     dailyInventory:   'tw_daily_inventory',
     stockLots:        'tw_stock_lots',
+    suppliers:        'tw_suppliers',
+    supplierPayments: 'tw_supplier_payments',
+    stockOut:         'tw_stock_out',
   };
 
   const DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
@@ -540,7 +643,7 @@
 
   // Tabs visible per role
   const STAFF_TABS = ['dashboard','orders','shifts','daily-nvl'];
-  const ALL_TABS = ['dashboard','branches','menu','inventory','orders','shifts','expenses','daily-nvl','reports'];
+  const ALL_TABS = ['dashboard','branches','menu','suppliers','stock-in','stock-out','inventory','orders','shifts','expenses','daily-nvl','reports'];
 
   function applyRoleUI() {
     const role = getSessionRole();
@@ -584,6 +687,9 @@
       case 'dashboard': twRenderDashboard(); break;
       case 'branches':  twRenderBranches(); break;
       case 'menu':      twRenderMenu(); break;
+      case 'suppliers': twRenderSuppliers(); break;
+      case 'stock-in':  twRenderStockIn(); break;
+      case 'stock-out': twRenderStockOut(); break;
       case 'inventory': twRenderInventory(); break;
       case 'orders':    twRenderOrders(); break;
       case 'shifts':    twRenderShifts(); break;
@@ -798,10 +904,16 @@
   // ═══════════════════════════════════════════
   // TAB: MENU — CRUD
   // ═══════════════════════════════════════════
+  // Normalize old menu items: ensure variants[] exists. Old items have flat .size .price .cost
+  function twNormalizeMenuItem(i) {
+    if (i.variants && Array.isArray(i.variants) && i.variants.length) return i;
+    return { ...i, variants: [{ size: i.size||'M', price: i.price||0, cost: i.cost||0, recipe: [] }] };
+  }
+
   window.twRenderMenu = function() {
     const search = (document.getElementById('twMenuSearch')?.value || '').toLowerCase();
     const cat = document.getElementById('twMenuCatFilter')?.value || '';
-    let items = get(KEYS.menuItems);
+    let items = get(KEYS.menuItems).map(twNormalizeMenuItem);
     if (search) items = items.filter(i => (i.name||'').toLowerCase().includes(search));
     if (cat) items = items.filter(i => i.category === cat);
 
@@ -810,25 +922,32 @@
       tbody.innerHTML = '<tr><td colspan="7"><div class="tw-empty"><div class="icon">📋</div><p>Chưa có món nào trong menu</p></div></td></tr>';
       return;
     }
-    const recipes = get(KEYS.recipes);
     tbody.innerHTML = items.map(i => {
-      const recipe = recipes.find(r => r.menuItemId === i.id);
-      const ingCount = recipe ? (recipe.ingredients||[]).length : 0;
-      const autoCost = twCalcMenuItemCost(i.id);
-      const costDisplay = autoCost > 0
-        ? `<strong>${fmtMoney(autoCost)}</strong><br><small style="color:#888">auto</small>`
-        : (i.cost ? fmtMoney(i.cost)+'<br><small style="color:#888">thủ công</small>' : '—');
+      const sizesHtml = i.variants.map(v => {
+        const cost = twCalcVariantCost(v);
+        const noRecipe = !v.recipe || v.recipe.length === 0;
+        return `<div style="font-size:12px;padding:3px 0;border-bottom:1px dashed var(--h5c-border)">
+          <strong>${v.size}</strong> · ${fmtMoney(v.price)} · vốn ${cost?fmtMoney(cost):'<span style="color:#c44536">⚠ chưa có recipe</span>'}
+        </div>`;
+      }).join('');
+      const priceRange = (() => {
+        const prices = i.variants.map(v => v.price||0).filter(p => p > 0);
+        if (!prices.length) return '—';
+        const min = Math.min(...prices), max = Math.max(...prices);
+        return min === max ? fmtMoney(min) : fmtMoney(min)+' – '+fmtMoney(max);
+      })();
+      const totalCost = i.variants.reduce((s,v) => s + twCalcVariantCost(v), 0);
+      const avgCost = totalCost && i.variants.length ? Math.round(totalCost / i.variants.length) : 0;
       return `<tr>
       <td><strong>${i.name||'—'}</strong></td>
       <td>${CATEGORY_LABELS[i.category]||i.category||'—'}</td>
-      <td>${i.size||'M'}</td>
-      <td>${fmtMoney(i.price)}</td>
-      <td>${costDisplay}</td>
+      <td>${sizesHtml}</td>
+      <td>${priceRange}</td>
+      <td>${avgCost?'<strong>'+fmtMoney(avgCost)+'</strong><br><small style="color:#888">TB '+i.variants.length+' size</small>':'—'}</td>
       <td><span class="tw-badge ${i.status==='active'?'active':'inactive'}">${i.status==='active'?'Đang bán':'Ngưng'}</span></td>
-      <td><button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="twShowRecipeModal('${i.id}')">🧪 ${ingCount ? ingCount + ' NL' : 'Chưa có'}</button></td>
       <td>
         <div class="tw-actions">
-          <button class="tw-action edit" onclick="twEditMenu('${i.id}')">✏️</button>
+          <button class="tw-action edit" onclick="twEditMenu('${i.id}')" title="Sửa món + recipe">✏️</button>
           <button class="tw-action delete" onclick="twDeleteMenu('${i.id}')">🗑️</button>
         </div>
       </td>
@@ -836,64 +955,70 @@
     }).join('');
   };
 
+  window.twCalcVariantCost = function(variant) {
+    if (!variant || !variant.recipe) return 0;
+    let total = 0;
+    variant.recipe.forEach(ri => { total += (ri.qty||0) * twWeightedAvgPrice(ri.ingredientId); });
+    return Math.round(total);
+  };
+
+  // Working draft for menu modal (variants in memory before save)
+  let twMenuDraft = null;
+
   window.twShowMenuModal = function(itemId) {
-    const i = itemId ? get(KEYS.menuItems).find(x => x.id === itemId) : null;
+    const raw = itemId ? get(KEYS.menuItems).find(x => x.id === itemId) : null;
+    const i = raw ? twNormalizeMenuItem(raw) : null;
+    twMenuDraft = i ? JSON.parse(JSON.stringify(i)) : {
+      name: '', category: 'coffee', status: 'active', image: '', description: '',
+      variants: [{ size: 'M', price: 0, cost: 0, recipe: [] }]
+    };
+
     document.getElementById('twModalContent').innerHTML = `
       <div class="modal-header">
         <h3>${i ? 'Sửa món' : 'Thêm món mới'}</h3>
         <button class="modal-close" onclick="twCloseModal()">✕</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="max-height:70vh;overflow-y:auto">
         <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Tên món *</label>
-            <input class="input" id="twMenuName" value="${i?i.name:''}" placeholder="VD: Cà phê sữa đá"/>
+            <input class="input" id="twMenuName" value="${twMenuDraft.name}" placeholder="VD: Cà phê sữa đá"/>
           </div>
           <div class="tw-modal-group">
             <label class="tw-modal-label">Danh mục</label>
             <select class="input" id="twMenuCat">
-              <option value="coffee" ${i&&i.category==='coffee'?'selected':''}>Cà phê</option>
-              <option value="tea" ${i&&i.category==='tea'?'selected':''}>Trà</option>
-              <option value="juice" ${i&&i.category==='juice'?'selected':''}>Nước ép</option>
-              <option value="food" ${i&&i.category==='food'?'selected':''}>Đồ ăn</option>
-              <option value="other" ${i&&i.category==='other'?'selected':''}>Khác</option>
+              <option value="coffee" ${twMenuDraft.category==='coffee'?'selected':''}>Cà phê</option>
+              <option value="tea" ${twMenuDraft.category==='tea'?'selected':''}>Trà</option>
+              <option value="juice" ${twMenuDraft.category==='juice'?'selected':''}>Nước ép</option>
+              <option value="food" ${twMenuDraft.category==='food'?'selected':''}>Đồ ăn</option>
+              <option value="other" ${twMenuDraft.category==='other'?'selected':''}>Khác</option>
             </select>
-          </div>
-        </div>
-        <div class="tw-modal-row three">
-          <div class="tw-modal-group">
-            <label class="tw-modal-label">Size</label>
-            <select class="input" id="twMenuSize">
-              <option value="S" ${i&&i.size==='S'?'selected':''}>S</option>
-              <option value="M" ${i&&i.size==='M'?'selected':(!i?'selected':'')}>M</option>
-              <option value="L" ${i&&i.size==='L'?'selected':''}>L</option>
-            </select>
-          </div>
-          <div class="tw-modal-group">
-            <label class="tw-modal-label">Giá bán (VNĐ) *</label>
-            <input class="input" type="number" id="twMenuPrice" value="${i?i.price:''}" placeholder="35000"/>
-          </div>
-          <div class="tw-modal-group">
-            <label class="tw-modal-label">Giá vốn (VNĐ)</label>
-            <input class="input" type="number" id="twMenuCost" value="${i?i.cost||'':''}" placeholder="12000"/>
           </div>
         </div>
         <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Trạng thái</label>
             <select class="input" id="twMenuStatus">
-              <option value="active" ${i&&i.status==='active'?'selected':(!i?'selected':'')}>Đang bán</option>
-              <option value="inactive" ${i&&i.status==='inactive'?'selected':''}>Ngưng bán</option>
+              <option value="active" ${twMenuDraft.status==='active'?'selected':''}>Đang bán</option>
+              <option value="inactive" ${twMenuDraft.status==='inactive'?'selected':''}>Ngưng bán</option>
             </select>
           </div>
           <div class="tw-modal-group">
             <label class="tw-modal-label">Hình ảnh (URL)</label>
-            <input class="input" id="twMenuImage" value="${i?i.image||'':''}" placeholder="https://..."/>
+            <input class="input" id="twMenuImage" value="${twMenuDraft.image||''}" placeholder="https://..."/>
           </div>
         </div>
         <div class="tw-modal-group">
           <label class="tw-modal-label">Mô tả</label>
-          <textarea class="input" id="twMenuDesc" rows="2" placeholder="Mô tả ngắn...">${i?i.description||'':''}</textarea>
+          <textarea class="input" id="twMenuDesc" rows="2">${twMenuDraft.description||''}</textarea>
+        </div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:2px solid var(--h5c-border)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h4 style="margin:0;font-size:14px;font-weight:700">📐 Sizes & Định lượng nguyên liệu</h4>
+            <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="twAddVariant()">+ Thêm size</button>
+          </div>
+          <div id="twVariantsContainer"></div>
         </div>
       </div>
       <div class="modal-footer">
@@ -902,24 +1027,104 @@
       </div>
     `;
     document.getElementById('twModal').style.display = 'flex';
+    twRenderVariants();
+  };
+
+  window.twRenderVariants = function() {
+    const ings = get(KEYS.ingredients);
+    const container = document.getElementById('twVariantsContainer');
+    if (!container) return;
+    if (!twMenuDraft.variants.length) {
+      container.innerHTML = '<p style="text-align:center;color:var(--h5c-text-secondary);padding:16px">Chưa có size nào. Bấm "+ Thêm size" để bắt đầu.</p>';
+      return;
+    }
+    container.innerHTML = twMenuDraft.variants.map((v, vi) => {
+      const cost = twCalcVariantCost(v);
+      const ingRows = (v.recipe||[]).map((ri, ri_i) => `
+        <div style="display:grid;grid-template-columns:1fr 100px 40px;gap:6px;margin-bottom:6px">
+          <select class="input" onchange="twUpdateRecipeIng(${vi},${ri_i},'ingredientId',this.value)">
+            ${ings.map(ing => `<option value="${ing.id}" ${ing.id===ri.ingredientId?'selected':''}>${ing.name} (${ing.unit})</option>`).join('')}
+          </select>
+          <input class="input" type="number" step="any" value="${ri.qty||''}" placeholder="SL" oninput="twUpdateRecipeIng(${vi},${ri_i},'qty',this.value)"/>
+          <button class="tw-action delete" onclick="twRemoveRecipeIng(${vi},${ri_i})">✕</button>
+        </div>
+      `).join('');
+      return `
+        <div style="border:1.5px solid var(--h5c-border);border-radius:8px;padding:14px;margin-bottom:12px;background:var(--h5c-bg-subtle)">
+          <div style="display:grid;grid-template-columns:80px 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:12px">
+            <div class="tw-modal-group" style="margin:0">
+              <label class="tw-modal-label">Size</label>
+              <input class="input" value="${v.size}" oninput="twUpdateVariant(${vi},'size',this.value)" placeholder="S/M/L"/>
+            </div>
+            <div class="tw-modal-group" style="margin:0">
+              <label class="tw-modal-label">Giá bán *</label>
+              <input class="input" type="number" value="${v.price||''}" oninput="twUpdateVariant(${vi},'price',this.value)" placeholder="35000"/>
+            </div>
+            <div class="tw-modal-group" style="margin:0">
+              <label class="tw-modal-label">Giá vốn (auto)</label>
+              <input class="input" value="${cost?fmtMoney(cost):'—'}" readonly style="background:#fff;font-weight:700"/>
+            </div>
+            <button class="tw-action delete" onclick="twRemoveVariant(${vi})" title="Xóa size">🗑️</button>
+          </div>
+          <div style="font-size:12px;color:var(--h5c-text-secondary);margin-bottom:8px;font-weight:600">🧪 Nguyên liệu cho size ${v.size}:</div>
+          ${ingRows || '<p style="font-size:12px;color:#888;text-align:center;padding:8px">Chưa có NVL</p>'}
+          <button class="btn btn-secondary" style="font-size:11px;padding:5px 10px;margin-top:4px" onclick="twAddRecipeIng(${vi})">+ Thêm NVL</button>
+        </div>
+      `;
+    }).join('');
+  };
+
+  window.twAddVariant = function() {
+    twMenuDraft.variants.push({ size: '', price: 0, cost: 0, recipe: [] });
+    twRenderVariants();
+  };
+  window.twRemoveVariant = function(vi) {
+    if (!confirm('Xóa size này?')) return;
+    twMenuDraft.variants.splice(vi, 1);
+    twRenderVariants();
+  };
+  window.twUpdateVariant = function(vi, field, val) {
+    if (field === 'price') val = parseFloat(val) || 0;
+    twMenuDraft.variants[vi][field] = val;
+    if (field === 'price') return; // no re-render needed for price
+  };
+  window.twAddRecipeIng = function(vi) {
+    const ings = get(KEYS.ingredients);
+    if (!ings.length) { showToast('Tạo nguyên liệu trước', 'warning'); return; }
+    twMenuDraft.variants[vi].recipe = twMenuDraft.variants[vi].recipe || [];
+    twMenuDraft.variants[vi].recipe.push({ ingredientId: ings[0].id, qty: 0 });
+    twRenderVariants();
+  };
+  window.twRemoveRecipeIng = function(vi, ri) {
+    twMenuDraft.variants[vi].recipe.splice(ri, 1);
+    twRenderVariants();
+  };
+  window.twUpdateRecipeIng = function(vi, ri, field, val) {
+    if (field === 'qty') val = parseFloat(val) || 0;
+    twMenuDraft.variants[vi].recipe[ri][field] = val;
+    if (field === 'qty') {
+      // re-render to update auto cost display for this variant
+      twRenderVariants();
+    }
   };
 
   window.twSaveMenu = function(editId) {
     const name = document.getElementById('twMenuName').value.trim();
-    const price = parseInt(document.getElementById('twMenuPrice').value) || 0;
-    if (!name || !price) { showToast('Vui lòng nhập tên và giá bán', 'warning'); return; }
+    if (!name) { showToast('Nhập tên món', 'warning'); return; }
+    if (!twMenuDraft.variants.length) { showToast('Phải có ít nhất 1 size', 'warning'); return; }
+    const invalid = twMenuDraft.variants.find(v => !v.size || !v.price);
+    if (invalid) { showToast('Mỗi size phải có tên size và giá bán', 'warning'); return; }
 
-    let items = get(KEYS.menuItems);
     const data = {
-      name, price,
+      name,
       category:    document.getElementById('twMenuCat').value,
-      size:        document.getElementById('twMenuSize').value,
-      cost:        parseInt(document.getElementById('twMenuCost').value) || 0,
       status:      document.getElementById('twMenuStatus').value,
       image:       document.getElementById('twMenuImage').value.trim(),
       description: document.getElementById('twMenuDesc').value.trim(),
+      variants:    twMenuDraft.variants,
     };
 
+    let items = get(KEYS.menuItems);
     if (editId) {
       const idx = items.findIndex(i => i.id === editId);
       if (idx >= 0) items[idx] = { ...items[idx], ...data, updatedAt: new Date().toISOString() };
@@ -927,6 +1132,7 @@
       items.push({ id: genId('MI'), ...data, createdAt: new Date().toISOString() });
     }
     set(KEYS.menuItems, items);
+    twMenuDraft = null;
     twCloseModal();
     twRenderMenu();
     showToast(editId ? 'Đã cập nhật món' : 'Đã thêm món mới', 'success');
@@ -1047,13 +1253,17 @@
 
     const tbody = document.getElementById('twInvBody');
     if (!stock.length) {
-      tbody.innerHTML = '<tr><td colspan="9"><div class="tw-empty"><div class="icon">📦</div><p>Chưa có dữ liệu kho</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11"><div class="tw-empty"><div class="icon">📦</div><p>Chưa có dữ liệu kho</p></div></td></tr>';
       return;
     }
     const now = Date.now();
     tbody.innerHTML = stock.map(s => {
       const ing = ingredients.find(i => i.id === s.ingredientId) || {};
-      const low = s.qty <= (s.minQty||0);
+      const par = ing.parLevel || 0;
+      const min = s.minQty || 0;
+      const low = s.qty <= min;
+      const belowPar = par > 0 && s.qty < par;
+      const needOrder = belowPar ? Math.max(0, par - s.qty) : 0;
       const lots = twGetActiveLots(s.ingredientId);
       const avg = twWeightedAvgPrice(s.ingredientId);
       const value = avg * (s.qty||0);
@@ -1067,15 +1277,21 @@
           if (daysLeft<=3) expColor = 'background:rgba(230,126,34,.08)';
         }
       }
-      return `<tr style="${low?'background:rgba(196,69,54,.05)':expColor}">
-        <td><strong>${ing.name||s.ingredientId}</strong></td>
+      const rowBg = low?'background:rgba(196,69,54,.08)':(belowPar?'background:rgba(236,197,75,.08)':expColor);
+      const statusBadge = low ? '<span class="tw-badge cancelled">Sắp hết</span>'
+        : belowPar ? '<span class="tw-badge" style="background:#e67e22;color:#fff">Dưới Par</span>'
+        : '<span class="tw-badge active">Đủ</span>';
+      return `<tr style="${rowBg}">
+        <td><strong>${ing.name||s.ingredientId}</strong>${ing.brandName?'<br><small style="color:#888">'+ing.brandName+'</small>':''}</td>
         <td>${ing.unit||'—'}</td>
-        <td>${(s.qty||0).toLocaleString('vi-VN')}</td>
+        <td><strong>${(s.qty||0).toLocaleString('vi-VN')}</strong></td>
+        <td>${par?par.toLocaleString('vi-VN'):'—'}</td>
+        <td>${needOrder?'<strong style="color:var(--h5c-terracotta)">+'+needOrder.toLocaleString('vi-VN')+'</strong>':'—'}</td>
         <td>${avg?fmtMoney(Math.round(avg)):'—'}</td>
         <td>${value?fmtMoney(Math.round(value)):'—'}</td>
         <td><button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="twShowLotsModal('${s.ingredientId}')">${lots.length} lô</button></td>
         <td>${nearest}</td>
-        <td><span class="tw-badge ${low?'cancelled':'active'}">${low?'Sắp hết':'Đủ'}</span></td>
+        <td>${statusBadge}</td>
         <td><button class="tw-action" onclick="twShowLotsModal('${s.ingredientId}')" title="Xem lô">📋</button></td>
       </tr>`;
     }).join('');
@@ -1163,15 +1379,353 @@
     set(KEYS.expenses, exps);
 
     // 3. Mark lot disposed
+    const disposedQty = lot.remainingQty;
     lot.status = 'disposed';
-    lot.disposedQty = lot.remainingQty;
+    lot.disposedQty = disposedQty;
     lot.remainingQty = 0;
     lot.disposedAt = new Date().toISOString();
     set(KEYS.stockLots, lots);
 
+    // 4. Log stock-out
+    let outs = get(KEYS.stockOut);
+    outs.push({
+      id: genId('OUT'), type: 'dispose',
+      ingredientId: lot.ingredientId, lotId: lot.id, lotCode: lot.code,
+      qty: disposedQty,
+      unitPrice: lot.unitPrice||0,
+      totalCost: lossValue,
+      date: new Date().toISOString().slice(0,10),
+      note: 'Hủy lô hết hạn / hao hụt',
+      createdAt: new Date().toISOString()
+    });
+    set(KEYS.stockOut, outs);
+
     showToast(`Đã hủy lô, ghi chi phí ${fmtMoney(lossValue)}`, 'success');
     twShowLotsModal(lot.ingredientId);
     twRenderInventory();
+  };
+
+  // ═══════════════════════════════════════════
+  // SUPPLIER MANAGEMENT
+  // ═══════════════════════════════════════════
+  const SUPPLIER_TYPES = { nvl:'NVL chính', bao_bi:'Bao bì', thiet_bi:'Thiết bị', dich_vu:'Dịch vụ', khac:'Khác' };
+
+  function twSupplierStats(supplierId) {
+    const lots = get(KEYS.stockLots).filter(l => l.supplierId === supplierId);
+    const payments = get(KEYS.supplierPayments).filter(p => p.supplierId === supplierId);
+    const totalImport = lots.reduce((s,l) => s + (l.totalCost||0), 0);
+    const totalPaid = payments.reduce((s,p) => s + (p.amount||0), 0);
+    const debt = totalImport - totalPaid;
+    let onTime = 0, late = 0;
+    payments.forEach(p => { if (p.onTime === true) onTime++; else if (p.onTime === false) late++; });
+    const totalPay = onTime + late;
+    const rating = totalPay === 0 ? '—'
+      : onTime/totalPay >= 0.9 ? '⭐⭐⭐⭐⭐'
+      : onTime/totalPay >= 0.7 ? '⭐⭐⭐⭐'
+      : onTime/totalPay >= 0.5 ? '⭐⭐⭐'
+      : onTime/totalPay >= 0.3 ? '⭐⭐' : '⭐';
+    return { totalImport, totalPaid, debt, onTime, late, rating };
+  }
+
+  window.twRenderSuppliers = function() {
+    const search = (document.getElementById('twSupSearch')?.value || '').toLowerCase();
+    const typeFilter = document.getElementById('twSupTypeFilter')?.value || '';
+    let list = get(KEYS.suppliers);
+    if (search) list = list.filter(s => (s.name||'').toLowerCase().includes(search) || (s.code||'').toLowerCase().includes(search));
+    if (typeFilter) list = list.filter(s => s.type === typeFilter);
+
+    const tbody = document.getElementById('twSupBody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="18"><div class="tw-empty"><div class="icon">🤝</div><p>Chưa có nhà cung cấp</p></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map((s, idx) => {
+      const st = twSupplierStats(s.id);
+      const debtColor = st.debt > 0 ? 'color:var(--h5c-terracotta);font-weight:700' : '';
+      return `<tr>
+        <td>${idx+1}</td>
+        <td><strong>${s.code||'—'}</strong></td>
+        <td><strong>${s.name||'—'}</strong></td>
+        <td>${SUPPLIER_TYPES[s.type]||'—'}</td>
+        <td>${s.phone||'—'}</td>
+        <td>${s.email||'—'}</td>
+        <td>${s.contactPerson||'—'}</td>
+        <td>${s.address||'—'}</td>
+        <td>${s.relationship||'—'}</td>
+        <td>${s.paymentTerms||'—'}</td>
+        <td>${s.creditLimit?fmtMoney(s.creditLimit):'—'}</td>
+        <td>${fmtMoney(st.totalImport)}</td>
+        <td>${fmtMoney(st.totalPaid)}</td>
+        <td style="${debtColor}">${fmtMoney(st.debt)}</td>
+        <td><span style="color:var(--h5c-terracotta)">${st.late}</span> / <span style="color:var(--h5c-sage)">${st.onTime}</span></td>
+        <td>${st.rating}</td>
+        <td>${s.note||'—'}</td>
+        <td>
+          <div class="tw-actions">
+            <button class="tw-action edit" onclick="twShowSupplierModal('${s.id}')">✏️</button>
+            <button class="tw-action" onclick="twShowSupplierPayModal('${s.id}')" title="Ghi nhận thanh toán">💰</button>
+            <button class="tw-action delete" onclick="twDeleteSupplier('${s.id}')">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  };
+
+  window.twShowSupplierModal = function(supId) {
+    const s = supId ? get(KEYS.suppliers).find(x => x.id === supId) : null;
+    document.getElementById('twModalContent').innerHTML = `
+      <div class="modal-header">
+        <h3>${s?'Sửa NCC':'Thêm nhà cung cấp'}</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Mã NCC *</label><input class="input" id="twSupCode" value="${s?s.code||'':''}" placeholder="NCC001"/></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Tên NCC *</label><input class="input" id="twSupName" value="${s?s.name||'':''}"/></div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Loại NCC</label>
+            <select class="input" id="twSupType">
+              ${Object.entries(SUPPLIER_TYPES).map(([k,v])=>`<option value="${k}" ${s&&s.type===k?'selected':''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          <div class="tw-modal-group"><label class="tw-modal-label">SĐT</label><input class="input" id="twSupPhone" value="${s?s.phone||'':''}"/></div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Email</label><input class="input" id="twSupEmail" value="${s?s.email||'':''}"/></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Người LH</label><input class="input" id="twSupContact" value="${s?s.contactPerson||'':''}"/></div>
+        </div>
+        <div class="tw-modal-group"><label class="tw-modal-label">Địa chỉ</label><input class="input" id="twSupAddress" value="${s?s.address||'':''}"/></div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Quan hệ</label>
+            <select class="input" id="twSupRel">
+              <option value="">—</option>
+              <option value="Đối tác chiến lược" ${s&&s.relationship==='Đối tác chiến lược'?'selected':''}>Đối tác chiến lược</option>
+              <option value="Thường xuyên" ${s&&s.relationship==='Thường xuyên'?'selected':''}>Thường xuyên</option>
+              <option value="Mới" ${s&&s.relationship==='Mới'?'selected':''}>Mới</option>
+              <option value="Dự phòng" ${s&&s.relationship==='Dự phòng'?'selected':''}>Dự phòng</option>
+            </select>
+          </div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Điều khoản TT</label>
+            <select class="input" id="twSupTerms">
+              <option value="">—</option>
+              <option value="Trả ngay" ${s&&s.paymentTerms==='Trả ngay'?'selected':''}>Trả ngay (COD)</option>
+              <option value="Net 7" ${s&&s.paymentTerms==='Net 7'?'selected':''}>Net 7</option>
+              <option value="Net 15" ${s&&s.paymentTerms==='Net 15'?'selected':''}>Net 15</option>
+              <option value="Net 30" ${s&&s.paymentTerms==='Net 30'?'selected':''}>Net 30</option>
+              <option value="Net 45" ${s&&s.paymentTerms==='Net 45'?'selected':''}>Net 45</option>
+            </select>
+          </div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Hạn mức (VNĐ)</label><input class="input" type="number" id="twSupCredit" value="${s?s.creditLimit||'':''}"/></div>
+        </div>
+        <div class="tw-modal-group"><label class="tw-modal-label">Ghi chú</label><textarea class="input" id="twSupNote" rows="2">${s?s.note||'':''}</textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twSaveSupplier('${supId||''}')">${s?'Cập nhật':'Thêm mới'}</button>
+      </div>
+    `;
+    document.getElementById('twModal').style.display = 'flex';
+  };
+
+  window.twSaveSupplier = function(editId) {
+    const code = document.getElementById('twSupCode').value.trim();
+    const name = document.getElementById('twSupName').value.trim();
+    if (!code || !name) { showToast('Nhập mã và tên NCC', 'warning'); return; }
+    const data = {
+      code, name,
+      type: document.getElementById('twSupType').value,
+      phone: document.getElementById('twSupPhone').value.trim(),
+      email: document.getElementById('twSupEmail').value.trim(),
+      contactPerson: document.getElementById('twSupContact').value.trim(),
+      address: document.getElementById('twSupAddress').value.trim(),
+      relationship: document.getElementById('twSupRel').value,
+      paymentTerms: document.getElementById('twSupTerms').value,
+      creditLimit: parseFloat(document.getElementById('twSupCredit').value) || 0,
+      note: document.getElementById('twSupNote').value.trim(),
+    };
+    let list = get(KEYS.suppliers);
+    if (editId) {
+      const idx = list.findIndex(s => s.id === editId);
+      if (idx >= 0) list[idx] = { ...list[idx], ...data, updatedAt: new Date().toISOString() };
+    } else {
+      list.push({ id: genId('SUP'), ...data, createdAt: new Date().toISOString() });
+    }
+    set(KEYS.suppliers, list);
+    twCloseModal();
+    twRenderSuppliers();
+    showToast(editId?'Đã cập nhật NCC':'Đã thêm NCC', 'success');
+  };
+
+  window.twDeleteSupplier = function(id) {
+    if (!confirm('Xóa nhà cung cấp này?')) return;
+    set(KEYS.suppliers, get(KEYS.suppliers).filter(s => s.id !== id));
+    twRenderSuppliers();
+    showToast('Đã xóa NCC', 'success');
+  };
+
+  window.twShowSupplierPayModal = function(supId) {
+    const s = get(KEYS.suppliers).find(x => x.id === supId);
+    if (!s) return;
+    const stats = twSupplierStats(supId);
+    document.getElementById('twModalContent').innerHTML = `
+      <div class="modal-header"><h3>💰 Ghi nhận thanh toán: ${s.name}</h3><button class="modal-close" onclick="twCloseModal()">✕</button></div>
+      <div class="modal-body">
+        <div style="padding:10px 14px;background:var(--h5c-bg-subtle);border-radius:8px;margin-bottom:12px;font-size:13px">
+          <div>Tổng nhập: <strong>${fmtMoney(stats.totalImport)}</strong></div>
+          <div>Đã thanh toán: <strong>${fmtMoney(stats.totalPaid)}</strong></div>
+          <div>Công nợ còn: <strong style="color:var(--h5c-terracotta)">${fmtMoney(stats.debt)}</strong></div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Số tiền thanh toán *</label><input class="input" type="number" id="twPayAmt"/></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Ngày thanh toán</label><input class="input" type="date" id="twPayDate" value="${new Date().toISOString().slice(0,10)}"/></div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Tình trạng</label>
+            <select class="input" id="twPayOnTime">
+              <option value="true">Đúng hạn</option>
+              <option value="false">Trễ hạn</option>
+            </select>
+          </div>
+        </div>
+        <div class="tw-modal-group"><label class="tw-modal-label">Ghi chú</label><input class="input" id="twPayNote"/></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twSaveSupplierPay('${supId}')">Lưu</button>
+      </div>
+    `;
+    document.getElementById('twModal').style.display = 'flex';
+  };
+
+  window.twSaveSupplierPay = function(supId) {
+    const amount = parseFloat(document.getElementById('twPayAmt').value) || 0;
+    if (!amount) { showToast('Nhập số tiền', 'warning'); return; }
+    let list = get(KEYS.supplierPayments);
+    list.push({
+      id: genId('PAY'), supplierId: supId, amount,
+      date: document.getElementById('twPayDate').value,
+      onTime: document.getElementById('twPayOnTime').value === 'true',
+      note: document.getElementById('twPayNote').value.trim(),
+      createdAt: new Date().toISOString()
+    });
+    set(KEYS.supplierPayments, list);
+    twCloseModal();
+    twRenderSuppliers();
+    showToast('Đã ghi nhận thanh toán', 'success');
+  };
+
+  // ═══════════════════════════════════════════
+  // STOCK IN TAB (Nhập kho list)
+  // ═══════════════════════════════════════════
+  window.twRenderStockIn = function() {
+    const search = (document.getElementById('twSiSearch')?.value || '').toLowerCase();
+    const supId = document.getElementById('twSiSupplier')?.value || '';
+    const from = document.getElementById('twSiFrom')?.value || '';
+    const to = document.getElementById('twSiTo')?.value || '';
+
+    // Populate supplier filter
+    const supSel = document.getElementById('twSiSupplier');
+    if (supSel && supSel.options.length <= 1) {
+      get(KEYS.suppliers).forEach(s => {
+        const o = document.createElement('option'); o.value = s.id; o.textContent = s.code+' '+s.name; supSel.appendChild(o);
+      });
+    }
+
+    const ings = get(KEYS.ingredients);
+    const sups = get(KEYS.suppliers);
+    let lots = get(KEYS.stockLots).slice().sort((a,b) => new Date(b.importDate||b.createdAt) - new Date(a.importDate||a.createdAt));
+    if (search) lots = lots.filter(l => {
+      const ing = ings.find(i => i.id === l.ingredientId);
+      return (l.code||'').toLowerCase().includes(search) || (ing?.name||'').toLowerCase().includes(search);
+    });
+    if (supId) lots = lots.filter(l => l.supplierId === supId);
+    if (from) lots = lots.filter(l => (l.importDate||'') >= from);
+    if (to) lots = lots.filter(l => (l.importDate||'') <= to);
+
+    // KPI
+    const totalQty = lots.length;
+    const totalCost = lots.reduce((s,l)=>s+(l.totalCost||0),0);
+    const unpaid = lots.filter(l=>l.payStatus!=='paid').reduce((s,l)=>s+(l.totalCost||0),0);
+    document.getElementById('twSiKpi').innerHTML = `
+      <div class="tw-kpi"><div class="label">Số lô nhập</div><div class="value">${totalQty}</div></div>
+      <div class="tw-kpi"><div class="label">Tổng tiền nhập</div><div class="value">${fmtMoney(totalCost)}</div></div>
+      <div class="tw-kpi"><div class="label">Chưa thanh toán</div><div class="value" style="color:var(--h5c-terracotta)">${fmtMoney(unpaid)}</div></div>
+    `;
+
+    const tbody = document.getElementById('twSiBody');
+    if (!lots.length) { tbody.innerHTML = '<tr><td colspan="11"><div class="tw-empty"><div class="icon">📥</div><p>Chưa có lô nhập</p></div></td></tr>'; return; }
+    tbody.innerHTML = lots.map(l => {
+      const ing = ings.find(i => i.id === l.ingredientId) || {};
+      const sup = sups.find(s => s.id === l.supplierId) || {};
+      const statusBadge = l.payStatus === 'paid' ? '<span class="tw-badge active">Đã TT</span>'
+        : l.payStatus === 'partial' ? '<span class="tw-badge" style="background:#e67e22;color:#fff">TT 1 phần</span>'
+        : '<span class="tw-badge cancelled">Công nợ</span>';
+      return `<tr>
+        <td><strong>${l.code||l.id.slice(-6)}</strong></td>
+        <td>${ing.name||'—'}</td>
+        <td>${sup.name||'—'}</td>
+        <td>${fmtDate(l.importDate)}</td>
+        <td>${(l.qty||0).toLocaleString('vi-VN')}</td>
+        <td>${ing.unit||'—'}</td>
+        <td>${fmtMoney(l.unitPrice||0)}</td>
+        <td><strong>${fmtMoney(l.totalCost||0)}</strong></td>
+        <td>${l.expiryDate?fmtDate(l.expiryDate):'—'}</td>
+        <td>${statusBadge}</td>
+        <td>${l.note||'—'}</td>
+      </tr>`;
+    }).join('');
+  };
+
+  // ═══════════════════════════════════════════
+  // STOCK OUT TAB (Xuất kho list — distributions + disposals + sales)
+  // ═══════════════════════════════════════════
+  window.twRenderStockOut = function() {
+    const search = (document.getElementById('twSoSearch')?.value || '').toLowerCase();
+    const typeFilter = document.getElementById('twSoType')?.value || '';
+    const from = document.getElementById('twSoFrom')?.value || '';
+    const to = document.getElementById('twSoTo')?.value || '';
+
+    const ings = get(KEYS.ingredients);
+    let outs = get(KEYS.stockOut).slice().sort((a,b) => new Date(b.date||b.createdAt) - new Date(a.date||a.createdAt));
+    if (search) outs = outs.filter(o => {
+      const ing = ings.find(i => i.id === o.ingredientId);
+      return (o.lotCode||'').toLowerCase().includes(search) || (ing?.name||'').toLowerCase().includes(search);
+    });
+    if (typeFilter) outs = outs.filter(o => o.type === typeFilter);
+    if (from) outs = outs.filter(o => (o.date||'') >= from);
+    if (to) outs = outs.filter(o => (o.date||'') <= to);
+
+    // KPI
+    const totalCount = outs.length;
+    const totalValue = outs.reduce((s,o)=>s+(o.totalCost||0),0);
+    const wasteValue = outs.filter(o=>o.type==='dispose').reduce((s,o)=>s+(o.totalCost||0),0);
+    document.getElementById('twSoKpi').innerHTML = `
+      <div class="tw-kpi"><div class="label">Tổng phiếu xuất</div><div class="value">${totalCount}</div></div>
+      <div class="tw-kpi"><div class="label">Giá trị xuất</div><div class="value">${fmtMoney(totalValue)}</div></div>
+      <div class="tw-kpi"><div class="label">Hao hụt/Hủy</div><div class="value" style="color:var(--h5c-terracotta)">${fmtMoney(wasteValue)}</div></div>
+    `;
+
+    const TYPE_LABEL = { distribute:'Phân phối CN', dispose:'Hao hụt/Hủy', sale:'Bán hàng' };
+    const tbody = document.getElementById('twSoBody');
+    if (!outs.length) { tbody.innerHTML = '<tr><td colspan="9"><div class="tw-empty"><div class="icon">📤</div><p>Chưa có phiếu xuất</p></div></td></tr>'; return; }
+    tbody.innerHTML = outs.map(o => {
+      const ing = ings.find(i => i.id === o.ingredientId) || {};
+      const typeColor = o.type === 'dispose' ? 'color:var(--h5c-terracotta);font-weight:700' : '';
+      return `<tr>
+        <td>${fmtDate(o.date)}</td>
+        <td>${o.lotCode||'—'}</td>
+        <td><strong>${ing.name||'—'}</strong></td>
+        <td>${(o.qty||0).toLocaleString('vi-VN')}</td>
+        <td>${ing.unit||'—'}</td>
+        <td>${fmtMoney(o.unitPrice||0)}</td>
+        <td><strong>${fmtMoney(o.totalCost||0)}</strong></td>
+        <td style="${typeColor}">${TYPE_LABEL[o.type]||o.type}</td>
+        <td>${o.note||'—'}</td>
+      </tr>`;
+    }).join('');
   };
 
   window.twShowIngredientModal = function() {
@@ -1182,18 +1736,28 @@
         <button class="modal-close" onclick="twCloseModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div style="display:grid;grid-template-columns:1fr 90px 110px auto;gap:8px;margin-bottom:16px">
-          <input class="input" id="twIngName" placeholder="Tên nguyên liệu"/>
-          <input class="input" id="twIngUnit" placeholder="ĐV (g, ml)"/>
-          <input class="input" type="number" id="twIngShelf" placeholder="Hạn (ngày)" title="Số ngày bảo quản kể từ ngày nhập"/>
+        <div style="display:grid;grid-template-columns:1.2fr 1.2fr 70px 100px 100px auto;gap:8px;margin-bottom:16px">
+          <input class="input" id="twIngName" placeholder="Tên nguyên liệu *"/>
+          <input class="input" id="twIngBrand" placeholder="Tên thương mại / NSX"/>
+          <input class="input" id="twIngUnit" placeholder="ĐV"/>
+          <input class="input" type="number" id="twIngShelf" placeholder="Vòng đời (ngày)" title="Số ngày bảo quản kể từ ngày nhập"/>
+          <input class="input" type="number" id="twIngPar" placeholder="Par level" title="Mức tồn kho chuẩn — tự cảnh báo đặt thêm khi xuống dưới"/>
           <button class="btn btn-primary" onclick="twAddIngredient()">+ Thêm</button>
         </div>
-        <div id="twIngList">
-          ${ingredients.length ? ingredients.map(i => `<div class="tw-recipe-item">
-            <span class="name">${i.name}</span>
-            <span class="qty">${i.unit} · HSD ${i.shelfLifeDays||'—'} ngày</span>
-            <button class="tw-action delete" onclick="twDeleteIngredient('${i.id}')" style="margin-left:8px">🗑️</button>
-          </div>`).join('') : '<p style="text-align:center;color:var(--h5c-text-secondary)">Chưa có nguyên liệu</p>'}
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Tên NVL</th><th>Thương mại</th><th>ĐV</th><th>Vòng đời</th><th>Par level</th><th></th></tr></thead>
+            <tbody>
+              ${ingredients.length ? ingredients.map(i => `<tr>
+                <td><strong>${i.name}</strong></td>
+                <td>${i.brandName||'—'}</td>
+                <td>${i.unit||'—'}</td>
+                <td>${i.shelfLifeDays||'—'} ngày</td>
+                <td>${i.parLevel?i.parLevel.toLocaleString('vi-VN'):'—'}</td>
+                <td><button class="tw-action delete" onclick="twDeleteIngredient('${i.id}')">🗑️</button></td>
+              </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--h5c-text-secondary)">Chưa có nguyên liệu</td></tr>'}
+            </tbody>
+          </table>
         </div>
       </div>
       <div class="modal-footer">
@@ -1205,11 +1769,13 @@
 
   window.twAddIngredient = function() {
     const name = document.getElementById('twIngName').value.trim();
+    const brandName = document.getElementById('twIngBrand').value.trim();
     const unit = document.getElementById('twIngUnit').value.trim();
     const shelfLifeDays = parseInt(document.getElementById('twIngShelf').value) || 0;
+    const parLevel = parseFloat(document.getElementById('twIngPar').value) || 0;
     if (!name) { showToast('Nhập tên nguyên liệu', 'warning'); return; }
     let list = get(KEYS.ingredients);
-    list.push({ id: genId('ING'), name, unit: unit||'g', shelfLifeDays, createdAt: new Date().toISOString() });
+    list.push({ id: genId('ING'), name, brandName, unit: unit||'g', shelfLifeDays, parLevel, createdAt: new Date().toISOString() });
     set(KEYS.ingredients, list);
     twShowIngredientModal();
     showToast('Đã thêm nguyên liệu', 'success');
@@ -1228,13 +1794,23 @@
     lots.forEach(l => { totQty += (l.remainingQty||0); totCost += (l.remainingQty||0) * (l.unitPrice||0); });
     return totQty > 0 ? totCost / totQty : 0;
   };
-  window.twCalcMenuItemCost = function(menuItemId) {
-    const recipe = get(KEYS.recipes).find(r => r.menuItemId === menuItemId);
-    if (!recipe) return 0;
+  // Get recipe ingredients for a menu item + optional size.
+  // Tries new variants schema first, then falls back to old KEYS.recipes for legacy data.
+  window.twGetMenuRecipe = function(menuItemId, size) {
+    const item = get(KEYS.menuItems).find(m => m.id === menuItemId);
+    if (item && item.variants && item.variants.length) {
+      const v = size ? (item.variants.find(x => x.size === size) || item.variants[0]) : item.variants[0];
+      return v?.recipe || [];
+    }
+    // Legacy fallback
+    const old = get(KEYS.recipes).find(r => r.menuItemId === menuItemId);
+    return old ? (old.ingredients || []) : [];
+  };
+
+  window.twCalcMenuItemCost = function(menuItemId, size) {
+    const recipe = twGetMenuRecipe(menuItemId, size);
     let total = 0;
-    (recipe.ingredients||[]).forEach(ri => {
-      total += (ri.qty||0) * twWeightedAvgPrice(ri.ingredientId);
-    });
+    recipe.forEach(ri => { total += (ri.qty||0) * twWeightedAvgPrice(ri.ingredientId); });
     return Math.round(total);
   };
   window.twGetExpiringLots = function(daysAhead) {
@@ -1253,6 +1829,7 @@
 
   window.twShowStockImportModal = function() {
     const ingredients = get(KEYS.ingredients);
+    const suppliers = get(KEYS.suppliers);
     const today = new Date().toISOString().slice(0,10);
     document.getElementById('twModalContent').innerHTML = `
       <div class="modal-header">
@@ -1262,24 +1839,41 @@
       <div class="modal-body">
         <div class="tw-modal-row">
           <div class="tw-modal-group">
+            <label class="tw-modal-label">Nhà cung cấp</label>
+            <select class="input" id="twStockSupplier">
+              <option value="">— Không gán NCC —</option>
+              ${suppliers.map(s => `<option value="${s.id}">${s.code||''} ${s.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="tw-modal-group">
             <label class="tw-modal-label">Nguyên liệu *</label>
             <select class="input" id="twStockIng" onchange="twOnStockIngChange()">
               ${ingredients.map(i => `<option value="${i.id}" data-shelf="${i.shelfLifeDays||0}">${i.name} (${i.unit})</option>`).join('')}
             </select>
           </div>
+        </div>
+        <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Số lượng nhập *</label>
             <input class="input" type="number" id="twStockQty" placeholder="1000" oninput="twOnStockCalcTotal()"/>
           </div>
-        </div>
-        <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Đơn giá nhập (VNĐ/ĐV) *</label>
             <input class="input" type="number" id="twStockPrice" placeholder="50" oninput="twOnStockCalcTotal()"/>
           </div>
+        </div>
+        <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Thành tiền</label>
             <input class="input" id="twStockTotal" readonly style="background:var(--h5c-bg-subtle);font-weight:700"/>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Tình trạng</label>
+            <select class="input" id="twStockStatus">
+              <option value="paid">Đã thanh toán</option>
+              <option value="unpaid" selected>Chưa thanh toán (công nợ)</option>
+              <option value="partial">Thanh toán 1 phần</option>
+            </select>
           </div>
         </div>
         <div class="tw-modal-row">
@@ -1340,16 +1934,23 @@
     const importDate = document.getElementById('twStockImportDate').value || new Date().toISOString().slice(0,10);
     const expiryDate = document.getElementById('twStockExpiry').value || '';
     const note = document.getElementById('twStockNote').value.trim();
+    const supplierId = document.getElementById('twStockSupplier').value || '';
+    const payStatus = document.getElementById('twStockStatus').value || 'unpaid';
+    const totalCost = qty * unitPrice;
 
-    // 1. Create new lot
+    // 1. Create new lot (with import code)
     let lots = get(KEYS.stockLots);
+    const code = 'IN-' + Date.now().toString(36).toUpperCase().slice(-6);
     lots.push({
       id: genId('LOT'),
+      code,
       ingredientId: ingId,
+      supplierId,
       qty, remainingQty: qty,
-      unitPrice, totalCost: qty * unitPrice,
+      unitPrice, totalCost,
       importDate, expiryDate,
       status: 'active',
+      payStatus,
       note,
       createdAt: new Date().toISOString()
     });
@@ -1441,6 +2042,19 @@
     let dists = get(KEYS.distributions);
     dists.push({ id: genId('DIST'), branchId, ingredientId: ingId, qty, date: new Date().toISOString(), by: currentUser() });
     set(KEYS.distributions, dists);
+
+    // Log stock-out
+    const avg = twWeightedAvgPrice(ingId);
+    let outs = get(KEYS.stockOut);
+    outs.push({
+      id: genId('OUT'), type: 'distribute',
+      ingredientId: ingId, branchId, qty,
+      unitPrice: avg, totalCost: avg * qty,
+      date: new Date().toISOString().slice(0,10),
+      note: 'Phân phối → ' + (get(KEYS.branches).find(b=>b.id===branchId)?.name||branchId),
+      createdAt: new Date().toISOString()
+    });
+    set(KEYS.stockOut, outs);
 
     twCloseModal();
     twRenderInventory();
@@ -2151,7 +2765,6 @@
     const date = document.getElementById('twNvlDate')?.value || today();
     const ingredients = get(KEYS.ingredients);
     const dailyInv = get(KEYS.dailyInventory);
-    const recipes = get(KEYS.recipes);
 
     if (!branchId) {
       document.getElementById('twNvlAlerts').innerHTML = '<div class="tw-alert warning">⚠️ Vui lòng chọn chi nhánh để xem báo cáo NVL</div>';
@@ -2170,12 +2783,10 @@
     const plannedUsage = {}; // ingredientId -> qty
     dayOrders.forEach(o => {
       (o.items || []).forEach(item => {
-        const recipe = recipes.find(r => r.menuItemId === item.menuItemId);
-        if (recipe) {
-          (recipe.ingredients || []).forEach(ri => {
-            plannedUsage[ri.ingredientId] = (plannedUsage[ri.ingredientId] || 0) + ri.qty * item.qty;
-          });
-        }
+        const recipe = twGetMenuRecipe(item.menuItemId, item.size);
+        recipe.forEach(ri => {
+          plannedUsage[ri.ingredientId] = (plannedUsage[ri.ingredientId] || 0) + ri.qty * item.qty;
+        });
       });
     });
 
