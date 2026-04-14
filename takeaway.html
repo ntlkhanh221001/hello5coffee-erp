@@ -167,6 +167,7 @@
         <div class="tw-kpi-grid" id="twKpiGrid">
           <!-- rendered by JS -->
         </div>
+        <div id="twExpiryAlert" style="margin-top:16px"></div>
         <div class="card" style="margin-top:16px">
           <h3 style="margin:0 0 16px;font-size:15px;font-weight:700">Doanh số 7 ngày gần nhất</h3>
           <canvas id="twChart7d" height="200"></canvas>
@@ -264,9 +265,12 @@
                 <th>Nguyên liệu</th>
                 <th>Đơn vị</th>
                 <th>Tồn kho</th>
-                <th>Mức tối thiểu</th>
+                <th>Giá TB (WAC)</th>
+                <th>Giá trị tồn</th>
+                <th>Lô còn</th>
+                <th>HSD gần nhất</th>
                 <th>Trạng thái</th>
-                <th>Cập nhật lần cuối</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody id="twInvBody"></tbody>
@@ -482,6 +486,7 @@
     partnerConfig:    'tw_partner_config',
     shiftTransactions:'tw_shift_transactions',
     dailyInventory:   'tw_daily_inventory',
+    stockLots:        'tw_stock_lots',
   };
 
   const DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
@@ -630,6 +635,49 @@
       <div class="tw-kpi"><div class="label">Chi nhánh hoạt động</div><div class="value">${branches.length}</div></div>
       <div class="tw-kpi"><div class="label">Chi phí tháng này</div><div class="value">${fmtMoney(monthTotal)}</div></div>
     `;
+
+    // Expiry alerts
+    const alertEl = document.getElementById('twExpiryAlert');
+    if (alertEl) {
+      const ings = get(KEYS.ingredients);
+      const expiring = twGetExpiringLots(3);
+      const now = Date.now();
+      const expired = expiring.filter(l => new Date(l.expiryDate).getTime() <= now);
+      const soon = expiring.filter(l => new Date(l.expiryDate).getTime() > now);
+      if (expiring.length === 0) {
+        alertEl.innerHTML = '';
+      } else {
+        const rows = expiring.map(l => {
+          const ing = ings.find(i => i.id === l.ingredientId) || {};
+          const daysLeft = Math.ceil((new Date(l.expiryDate)-now)/86400000);
+          const isExp = daysLeft <= 0;
+          return `<tr style="${isExp?'background:rgba(196,69,54,.08)':'background:rgba(230,126,34,.06)'}">
+            <td><strong>${ing.name||'—'}</strong></td>
+            <td>${(l.remainingQty||0).toLocaleString('vi-VN')} ${ing.unit||''}</td>
+            <td>${fmtMoney((l.remainingQty||0)*(l.unitPrice||0))}</td>
+            <td>${fmtDate(l.expiryDate)}</td>
+            <td><span class="tw-badge ${isExp?'cancelled':''}" style="${isExp?'':'background:#e67e22;color:#fff'}">${isExp?'HẾT HẠN':daysLeft+' ngày'}</span></td>
+            <td><button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="twDisposeLot('${l.id}')">🗑️ Hủy</button></td>
+          </tr>`;
+        }).join('');
+        alertEl.innerHTML = `
+          <div class="card" style="border-left:4px solid ${expired.length?'#c44536':'#e67e22'}">
+            <h3 style="margin:0 0 12px;font-size:15px;font-weight:700;color:${expired.length?'#c44536':'#e67e22'}">
+              ⚠️ Cảnh báo NVL ${expired.length?'hết hạn':'sắp hết hạn'}
+              <span style="font-size:12px;font-weight:400;color:var(--h5c-text-secondary)">
+                (${expired.length} hết hạn · ${soon.length} sắp hết hạn trong 3 ngày)
+              </span>
+            </h3>
+            <div class="table-wrapper">
+              <table class="table">
+                <thead><tr><th>Nguyên liệu</th><th>Còn lại</th><th>Giá trị</th><th>HSD</th><th>Tình trạng</th><th></th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+    }
   }
 
   // ═══════════════════════════════════════════
@@ -766,12 +814,16 @@
     tbody.innerHTML = items.map(i => {
       const recipe = recipes.find(r => r.menuItemId === i.id);
       const ingCount = recipe ? (recipe.ingredients||[]).length : 0;
+      const autoCost = twCalcMenuItemCost(i.id);
+      const costDisplay = autoCost > 0
+        ? `<strong>${fmtMoney(autoCost)}</strong><br><small style="color:#888">auto</small>`
+        : (i.cost ? fmtMoney(i.cost)+'<br><small style="color:#888">thủ công</small>' : '—');
       return `<tr>
       <td><strong>${i.name||'—'}</strong></td>
       <td>${CATEGORY_LABELS[i.category]||i.category||'—'}</td>
       <td>${i.size||'M'}</td>
       <td>${fmtMoney(i.price)}</td>
-      <td>${fmtMoney(i.cost)}</td>
+      <td>${costDisplay}</td>
       <td><span class="tw-badge ${i.status==='active'?'active':'inactive'}">${i.status==='active'?'Đang bán':'Ngưng'}</span></td>
       <td><button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="twShowRecipeModal('${i.id}')">🧪 ${ingCount ? ingCount + ' NL' : 'Chưa có'}</button></td>
       <td>
@@ -995,21 +1047,131 @@
 
     const tbody = document.getElementById('twInvBody');
     if (!stock.length) {
-      tbody.innerHTML = '<tr><td colspan="6"><div class="tw-empty"><div class="icon">📦</div><p>Chưa có dữ liệu kho</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9"><div class="tw-empty"><div class="icon">📦</div><p>Chưa có dữ liệu kho</p></div></td></tr>';
       return;
     }
+    const now = Date.now();
     tbody.innerHTML = stock.map(s => {
       const ing = ingredients.find(i => i.id === s.ingredientId) || {};
       const low = s.qty <= (s.minQty||0);
-      return `<tr style="${low?'background:rgba(196,69,54,.05)':''}">
+      const lots = twGetActiveLots(s.ingredientId);
+      const avg = twWeightedAvgPrice(s.ingredientId);
+      const value = avg * (s.qty||0);
+      let nearest = '—', expColor = '';
+      if (lots.length) {
+        const sorted = lots.filter(l=>l.expiryDate).sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
+        if (sorted.length) {
+          const d = new Date(sorted[0].expiryDate);
+          const daysLeft = Math.ceil((d-now)/86400000);
+          nearest = fmtDate(sorted[0].expiryDate) + ' <small style="color:'+(daysLeft<=0?'#c44536':daysLeft<=3?'#e67e22':'#888')+'">('+(daysLeft<=0?'hết hạn':daysLeft+'d')+')</small>';
+          if (daysLeft<=3) expColor = 'background:rgba(230,126,34,.08)';
+        }
+      }
+      return `<tr style="${low?'background:rgba(196,69,54,.05)':expColor}">
         <td><strong>${ing.name||s.ingredientId}</strong></td>
         <td>${ing.unit||'—'}</td>
         <td>${(s.qty||0).toLocaleString('vi-VN')}</td>
-        <td>${(s.minQty||0).toLocaleString('vi-VN')}</td>
+        <td>${avg?fmtMoney(Math.round(avg)):'—'}</td>
+        <td>${value?fmtMoney(Math.round(value)):'—'}</td>
+        <td><button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="twShowLotsModal('${s.ingredientId}')">${lots.length} lô</button></td>
+        <td>${nearest}</td>
         <td><span class="tw-badge ${low?'cancelled':'active'}">${low?'Sắp hết':'Đủ'}</span></td>
-        <td>${fmtDate(s.updatedAt)}</td>
+        <td><button class="tw-action" onclick="twShowLotsModal('${s.ingredientId}')" title="Xem lô">📋</button></td>
       </tr>`;
     }).join('');
+  };
+
+  // ═══════════════════════════════════════════
+  // LOT DETAIL MODAL (per ingredient)
+  // ═══════════════════════════════════════════
+  window.twShowLotsModal = function(ingredientId) {
+    const ing = get(KEYS.ingredients).find(i => i.id === ingredientId) || {};
+    const lots = get(KEYS.stockLots).filter(l => l.ingredientId === ingredientId)
+      .sort((a,b) => new Date(b.importDate||b.createdAt) - new Date(a.importDate||a.createdAt));
+    const now = Date.now();
+    const rows = lots.length ? lots.map(l => {
+      const daysLeft = l.expiryDate ? Math.ceil((new Date(l.expiryDate)-now)/86400000) : null;
+      const isExpired = daysLeft !== null && daysLeft <= 0;
+      const isSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 3;
+      const disposed = l.status === 'disposed';
+      const badge = disposed ? '<span class="tw-badge cancelled">Đã hủy</span>'
+        : isExpired ? '<span class="tw-badge cancelled">Hết hạn</span>'
+        : isSoon ? '<span class="tw-badge" style="background:#e67e22;color:#fff">Sắp HH</span>'
+        : '<span class="tw-badge active">OK</span>';
+      const canDispose = !disposed && (l.remainingQty||0) > 0;
+      return `<tr style="${disposed?'opacity:.5':(isExpired||isSoon?'background:rgba(230,126,34,.06)':'')}">
+        <td>${fmtDate(l.importDate||l.createdAt)}</td>
+        <td>${(l.qty||0).toLocaleString('vi-VN')}</td>
+        <td><strong>${(l.remainingQty||0).toLocaleString('vi-VN')}</strong></td>
+        <td>${fmtMoney(l.unitPrice||0)}</td>
+        <td>${fmtMoney(l.totalCost||0)}</td>
+        <td>${l.expiryDate?fmtDate(l.expiryDate)+(daysLeft!==null?` <small>(${daysLeft<=0?'hết':daysLeft+'d'})</small>`:''):'—'}</td>
+        <td>${badge}</td>
+        <td>${canDispose?`<button class="tw-action delete" onclick="twDisposeLot('${l.id}')" title="Hủy lô (ghi vào chi phí)">🗑️</button>`:'—'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--h5c-text-secondary)">Chưa có lô nào</td></tr>';
+
+    const avg = twWeightedAvgPrice(ingredientId);
+    document.getElementById('twModalContent').innerHTML = `
+      <div class="modal-header">
+        <h3>📋 Lô nhập: ${ing.name||ingredientId}</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="padding:10px 14px;background:var(--h5c-bg-subtle);border-radius:8px;margin-bottom:12px;font-size:13px">
+          <strong>Giá vốn TB (WAC):</strong> ${avg?fmtMoney(Math.round(avg))+'/'+(ing.unit||'ĐV'):'Chưa có lô hoạt động'}
+          ${ing.shelfLifeDays?` · <strong>Hạn lưu kho:</strong> ${ing.shelfLifeDays} ngày`:''}
+        </div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Ngày nhập</th><th>SL nhập</th><th>Còn lại</th><th>Đơn giá</th><th>Thành tiền</th><th>HSD</th><th>TT</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Đóng</button>
+      </div>
+    `;
+    document.getElementById('twModal').style.display = 'flex';
+  };
+
+  window.twDisposeLot = function(lotId) {
+    let lots = get(KEYS.stockLots);
+    const lot = lots.find(l => l.id === lotId);
+    if (!lot) return;
+    const lossValue = (lot.remainingQty||0) * (lot.unitPrice||0);
+    const ing = get(KEYS.ingredients).find(i => i.id === lot.ingredientId) || {};
+    if (!confirm(`Hủy lô "${ing.name}"?\n\nSL còn: ${lot.remainingQty} ${ing.unit||''}\nGiá trị thiệt hại: ${fmtMoney(lossValue)}\n\nSẽ được ghi vào chi phí (hao hụt/hết hạn).`)) return;
+
+    // 1. Reduce central stock
+    let stock = get(KEYS.stockCentral);
+    const s = stock.find(x => x.ingredientId === lot.ingredientId);
+    if (s) { s.qty = Math.max(0, (s.qty||0) - (lot.remainingQty||0)); s.updatedAt = new Date().toISOString(); }
+    set(KEYS.stockCentral, stock);
+
+    // 2. Create expense record
+    let exps = get(KEYS.expenses);
+    exps.push({
+      id: genId('EXP'),
+      category: 'waste',
+      amount: lossValue,
+      note: `Hủy lô hết hạn: ${ing.name} (${lot.remainingQty} ${ing.unit||''}) — Lô ${lot.id}`,
+      date: new Date().toISOString().slice(0,10),
+      createdAt: new Date().toISOString()
+    });
+    set(KEYS.expenses, exps);
+
+    // 3. Mark lot disposed
+    lot.status = 'disposed';
+    lot.disposedQty = lot.remainingQty;
+    lot.remainingQty = 0;
+    lot.disposedAt = new Date().toISOString();
+    set(KEYS.stockLots, lots);
+
+    showToast(`Đã hủy lô, ghi chi phí ${fmtMoney(lossValue)}`, 'success');
+    twShowLotsModal(lot.ingredientId);
+    twRenderInventory();
   };
 
   window.twShowIngredientModal = function() {
@@ -1020,15 +1182,16 @@
         <button class="modal-close" onclick="twCloseModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-          <input class="input" id="twIngName" placeholder="Tên nguyên liệu" style="flex:1"/>
-          <input class="input" id="twIngUnit" placeholder="Đơn vị (g, ml, cái)" style="width:100px"/>
+        <div style="display:grid;grid-template-columns:1fr 90px 110px auto;gap:8px;margin-bottom:16px">
+          <input class="input" id="twIngName" placeholder="Tên nguyên liệu"/>
+          <input class="input" id="twIngUnit" placeholder="ĐV (g, ml)"/>
+          <input class="input" type="number" id="twIngShelf" placeholder="Hạn (ngày)" title="Số ngày bảo quản kể từ ngày nhập"/>
           <button class="btn btn-primary" onclick="twAddIngredient()">+ Thêm</button>
         </div>
         <div id="twIngList">
           ${ingredients.length ? ingredients.map(i => `<div class="tw-recipe-item">
             <span class="name">${i.name}</span>
-            <span class="qty">${i.unit}</span>
+            <span class="qty">${i.unit} · HSD ${i.shelfLifeDays||'—'} ngày</span>
             <button class="tw-action delete" onclick="twDeleteIngredient('${i.id}')" style="margin-left:8px">🗑️</button>
           </div>`).join('') : '<p style="text-align:center;color:var(--h5c-text-secondary)">Chưa có nguyên liệu</p>'}
         </div>
@@ -1043,12 +1206,44 @@
   window.twAddIngredient = function() {
     const name = document.getElementById('twIngName').value.trim();
     const unit = document.getElementById('twIngUnit').value.trim();
+    const shelfLifeDays = parseInt(document.getElementById('twIngShelf').value) || 0;
     if (!name) { showToast('Nhập tên nguyên liệu', 'warning'); return; }
     let list = get(KEYS.ingredients);
-    list.push({ id: genId('ING'), name, unit: unit||'g', createdAt: new Date().toISOString() });
+    list.push({ id: genId('ING'), name, unit: unit||'g', shelfLifeDays, createdAt: new Date().toISOString() });
     set(KEYS.ingredients, list);
     twShowIngredientModal();
     showToast('Đã thêm nguyên liệu', 'success');
+  };
+
+  // ═══════════════════════════════════════════
+  // LOT-BASED COST HELPERS (Weighted Average)
+  // ═══════════════════════════════════════════
+  window.twGetActiveLots = function(ingredientId) {
+    return get(KEYS.stockLots)
+      .filter(l => l.ingredientId === ingredientId && (l.remainingQty||0) > 0 && l.status !== 'disposed');
+  };
+  window.twWeightedAvgPrice = function(ingredientId) {
+    const lots = twGetActiveLots(ingredientId);
+    let totQty = 0, totCost = 0;
+    lots.forEach(l => { totQty += (l.remainingQty||0); totCost += (l.remainingQty||0) * (l.unitPrice||0); });
+    return totQty > 0 ? totCost / totQty : 0;
+  };
+  window.twCalcMenuItemCost = function(menuItemId) {
+    const recipe = get(KEYS.recipes).find(r => r.menuItemId === menuItemId);
+    if (!recipe) return 0;
+    let total = 0;
+    (recipe.ingredients||[]).forEach(ri => {
+      total += (ri.qty||0) * twWeightedAvgPrice(ri.ingredientId);
+    });
+    return Math.round(total);
+  };
+  window.twGetExpiringLots = function(daysAhead) {
+    const now = Date.now();
+    const limit = now + (daysAhead||3) * 86400000;
+    return get(KEYS.stockLots).filter(l => {
+      if (!l.expiryDate || (l.remainingQty||0) <= 0 || l.status === 'disposed') return false;
+      return new Date(l.expiryDate).getTime() <= limit;
+    });
   };
 
   window.twDeleteIngredient = function(id) {
@@ -1058,37 +1253,54 @@
 
   window.twShowStockImportModal = function() {
     const ingredients = get(KEYS.ingredients);
+    const today = new Date().toISOString().slice(0,10);
     document.getElementById('twModalContent').innerHTML = `
       <div class="modal-header">
-        <h3>📦 Nhập kho tổng</h3>
+        <h3>📦 Nhập kho tổng (tạo lô mới)</h3>
         <button class="modal-close" onclick="twCloseModal()">✕</button>
       </div>
       <div class="modal-body">
         <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Nguyên liệu *</label>
-            <select class="input" id="twStockIng">
-              ${ingredients.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('')}
+            <select class="input" id="twStockIng" onchange="twOnStockIngChange()">
+              ${ingredients.map(i => `<option value="${i.id}" data-shelf="${i.shelfLifeDays||0}">${i.name} (${i.unit})</option>`).join('')}
             </select>
           </div>
           <div class="tw-modal-group">
             <label class="tw-modal-label">Số lượng nhập *</label>
-            <input class="input" type="number" id="twStockQty" placeholder="1000"/>
+            <input class="input" type="number" id="twStockQty" placeholder="1000" oninput="twOnStockCalcTotal()"/>
           </div>
         </div>
         <div class="tw-modal-row">
           <div class="tw-modal-group">
-            <label class="tw-modal-label">Giá nhập (VNĐ)</label>
-            <input class="input" type="number" id="twStockPrice" placeholder="50000"/>
+            <label class="tw-modal-label">Đơn giá nhập (VNĐ/ĐV) *</label>
+            <input class="input" type="number" id="twStockPrice" placeholder="50" oninput="twOnStockCalcTotal()"/>
           </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Thành tiền</label>
+            <input class="input" id="twStockTotal" readonly style="background:var(--h5c-bg-subtle);font-weight:700"/>
+          </div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Ngày nhập</label>
+            <input class="input" type="date" id="twStockImportDate" value="${today}" onchange="twOnStockIngChange()"/>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Hạn sử dụng</label>
+            <input class="input" type="date" id="twStockExpiry" title="Tự tính theo hạn lưu kho của NVL, có thể sửa"/>
+          </div>
+        </div>
+        <div class="tw-modal-row">
           <div class="tw-modal-group">
             <label class="tw-modal-label">Mức tối thiểu</label>
             <input class="input" type="number" id="twStockMin" placeholder="200"/>
           </div>
-        </div>
-        <div class="tw-modal-group">
-          <label class="tw-modal-label">Ghi chú</label>
-          <input class="input" id="twStockNote" placeholder="Nhà cung cấp, lô hàng..."/>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Ghi chú</label>
+            <input class="input" id="twStockNote" placeholder="NCC, số lô..."/>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1097,30 +1309,71 @@
       </div>
     `;
     document.getElementById('twModal').style.display = 'flex';
+    twOnStockIngChange();
+  };
+
+  window.twOnStockIngChange = function() {
+    const sel = document.getElementById('twStockIng');
+    const opt = sel.options[sel.selectedIndex];
+    const shelf = parseInt(opt?.dataset.shelf) || 0;
+    const importDate = document.getElementById('twStockImportDate').value || new Date().toISOString().slice(0,10);
+    if (shelf > 0) {
+      const d = new Date(importDate);
+      d.setDate(d.getDate() + shelf);
+      document.getElementById('twStockExpiry').value = d.toISOString().slice(0,10);
+    }
+  };
+
+  window.twOnStockCalcTotal = function() {
+    const qty = parseFloat(document.getElementById('twStockQty').value) || 0;
+    const price = parseFloat(document.getElementById('twStockPrice').value) || 0;
+    document.getElementById('twStockTotal').value = fmtMoney(qty * price);
   };
 
   window.twSaveStockImport = function() {
     const ingId = document.getElementById('twStockIng').value;
-    const qty = parseInt(document.getElementById('twStockQty').value) || 0;
+    const qty = parseFloat(document.getElementById('twStockQty').value) || 0;
+    const unitPrice = parseFloat(document.getElementById('twStockPrice').value) || 0;
     if (!ingId || !qty) { showToast('Chọn nguyên liệu và số lượng', 'warning'); return; }
+    if (!unitPrice) { showToast('Nhập đơn giá để tính giá vốn', 'warning'); return; }
 
+    const importDate = document.getElementById('twStockImportDate').value || new Date().toISOString().slice(0,10);
+    const expiryDate = document.getElementById('twStockExpiry').value || '';
+    const note = document.getElementById('twStockNote').value.trim();
+
+    // 1. Create new lot
+    let lots = get(KEYS.stockLots);
+    lots.push({
+      id: genId('LOT'),
+      ingredientId: ingId,
+      qty, remainingQty: qty,
+      unitPrice, totalCost: qty * unitPrice,
+      importDate, expiryDate,
+      status: 'active',
+      note,
+      createdAt: new Date().toISOString()
+    });
+    set(KEYS.stockLots, lots);
+
+    // 2. Update aggregate stockCentral for display/min-qty tracking
     let stock = get(KEYS.stockCentral);
     const existing = stock.find(s => s.ingredientId === ingId);
+    const minQty = parseInt(document.getElementById('twStockMin').value) || 0;
     if (existing) {
       existing.qty = (existing.qty||0) + qty;
-      existing.minQty = parseInt(document.getElementById('twStockMin').value) || existing.minQty || 0;
+      if (minQty) existing.minQty = minQty;
       existing.updatedAt = new Date().toISOString();
     } else {
       stock.push({
-        id: genId('SC'), ingredientId: ingId, qty,
-        minQty: parseInt(document.getElementById('twStockMin').value) || 0,
+        id: genId('SC'), ingredientId: ingId, qty, minQty,
         updatedAt: new Date().toISOString()
       });
     }
     set(KEYS.stockCentral, stock);
+
     twCloseModal();
     twRenderInventory();
-    showToast('Đã nhập kho thành công', 'success');
+    showToast('Đã tạo lô nhập (' + fmtMoney(qty * unitPrice) + ')', 'success');
   };
 
   window.twShowDistributionModal = function() {
