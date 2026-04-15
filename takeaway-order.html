@@ -107,6 +107,23 @@
     .sdr .lbl{color:var(--text2)}
     .sdr .val{font-weight:600;text-align:right;max-width:60%}
 
+    /* ── Menu gallery ── */
+    .menu-gallery{padding:12px 14px 4px;background:var(--bg)}
+    .gallery-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+    .gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .gallery-item{border-radius:10px;overflow:hidden;cursor:pointer;aspect-ratio:3/4;background:var(--border);position:relative;box-shadow:var(--shadow)}
+    .gallery-item img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
+    .gallery-item:active img{transform:scale(.97)}
+    .gallery-zoom{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;display:none;align-items:center;justify-content:center;padding:16px}
+    .gallery-zoom.open{display:flex}
+    .gallery-zoom img{max-width:100%;max-height:90vh;border-radius:10px;object-fit:contain}
+    .gallery-zoom-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    /* Desktop: larger gallery */
+    @media(min-width:600px){
+      .gallery-grid{max-width:600px;margin:0 auto}
+      .gallery-item{aspect-ratio:2/3}
+    }
+
     /* ── Loading ── */
     #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:14px}
     .spin{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--sage);border-radius:50%;animation:spin 1s linear infinite}
@@ -135,8 +152,32 @@
   </div>
 </div>
 
+<!-- LIGHTBOX -->
+<div class="gallery-zoom" id="gallery-zoom" onclick="closeZoom()">
+  <button class="gallery-zoom-close" onclick="closeZoom()">✕</button>
+  <img id="zoom-img" src="" alt=""/>
+</div>
+
 <!-- SCREEN 1: MENU -->
 <div id="screen-menu" class="screen">
+  <!-- Menu image gallery -->
+  <div class="menu-gallery">
+    <div class="gallery-title">📸 Thực đơn</div>
+    <div class="gallery-grid">
+      <div class="gallery-item" onclick="openZoom('menu-img-1.jpg')">
+        <img src="menu-img-1.jpg" alt="Cà phê đen đá, nâu đá, bạc xỉu" loading="lazy"
+             onerror="this.parentElement.style.display='none'"/>
+      </div>
+      <div class="gallery-item" onclick="openZoom('menu-img-2.jpg')">
+        <img src="menu-img-2.jpg" alt="Cà phê kem béo, muối, cốt dừa, sữa chua" loading="lazy"
+             onerror="this.parentElement.style.display='none'"/>
+      </div>
+      <div class="gallery-item" onclick="openZoom('menu-img-3.jpg')">
+        <img src="menu-img-3.jpg" alt="Coldbrew các loại" loading="lazy"
+             onerror="this.parentElement.style.display='none'"/>
+      </div>
+    </div>
+  </div>
   <div class="cat-tabs" id="cat-tabs"></div>
   <div class="menu-section" id="menu-section"></div>
 </div>
@@ -529,6 +570,18 @@ function resetOrder() {
   btn.disabled=false; btn.textContent='✅ Xác nhận đặt hàng';
   showScreen('menu');
 }
+
+// ── Gallery lightbox ─────────────────────────────────────
+function openZoom(src) {
+  $('#zoom-img').src = src;
+  $('#gallery-zoom').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeZoom() {
+  $('#gallery-zoom').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
 
 // ── Go ────────────────────────────────────────────────────
 init();
