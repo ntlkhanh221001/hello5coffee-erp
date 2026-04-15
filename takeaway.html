@@ -4134,6 +4134,7 @@
             date: (pub.createdAt||'').slice(0,10) || today(),
             createdAt: pub.createdAt || new Date().toISOString(),
             createdBy: pub.customer?.name || 'Online',
+            customer_code: pub.customer_code || '',
           };
           orders.push(order);
           set(KEYS.orders, orders);
