@@ -475,12 +475,10 @@
             <input type="date" class="tw-filter" id="twOrderDateTo" onchange="twRenderOrders()"/>
             <select class="tw-filter" id="twOrderStatus" onchange="twRenderOrders()">
               <option value="">Tất cả trạng thái</option>
-              <option value="scheduled">📅 Hẹn lịch</option>
-              <option value="pending">Chờ pha</option>
-              <option value="preparing">Đang pha</option>
-              <option value="ready">Sẵn sàng</option>
-              <option value="completed">Hoàn thành</option>
-              <option value="cancelled">Đã hủy</option>
+              <option value="pending_confirm">⏳ Chờ xác nhận</option>
+              <option value="confirmed">✅ Đã xác nhận</option>
+              <option value="completed">🏁 Hoàn thành</option>
+              <option value="cancelled">❌ Đã hủy</option>
             </select>
           </div>
           <button class="btn btn-primary" onclick="twShowOrderModal()" style="font-size:15px;padding:12px 24px;font-weight:700;box-shadow:var(--h5c-shadow-md)">🧾 + Tạo đơn hàng mới</button>
@@ -833,8 +831,14 @@
   };
 
   const STATUS_LABELS = {
-    scheduled:'📅 Hẹn lịch', pending:'Chờ pha', preparing:'Đang pha', ready:'Sẵn sàng',
-    completed:'Hoàn thành', cancelled:'Đã hủy'
+    // New 3-state flow
+    pending_confirm: '⏳ Chờ xác nhận',
+    confirmed:       '✅ Đã xác nhận',
+    completed:       '🏁 Hoàn thành',
+    cancelled:       '❌ Đã hủy',
+    // Legacy (backward compat)
+    scheduled:'📅 Hẹn lịch', pending:'Chờ pha', preparing:'Đang pha',
+    ready:'Sẵn sàng', new:'🆕 Mới',
   };
 
   // ═══════════════════════════════════════════
@@ -2573,10 +2577,16 @@
         <td>
           <div class="tw-actions">
             <button class="tw-action view" onclick="twViewOrder('${o.id}')">👁️</button>
-            ${o.status==='scheduled'?`<button class="tw-action edit" title="Bắt đầu pha" onclick="twUpdateOrderStatus('${o.id}','pending')">▶️</button>`:''}
-            ${o.status==='pending'?`<button class="tw-action edit" title="Đang pha" onclick="twUpdateOrderStatus('${o.id}','preparing')">▶️</button>`:''}
-            ${o.status==='preparing'?`<button class="tw-action edit" title="Sẵn sàng" onclick="twUpdateOrderStatus('${o.id}','ready')">✅</button>`:''}
-            ${o.status==='ready'?`<button class="tw-action edit" title="Hoàn thành" onclick="twUpdateOrderStatus('${o.id}','completed')">🏁</button>`:''}
+            ${o.status==='pending_confirm' && o.source==='online'
+              ? `<button class="tw-action edit" title="Xác nhận đơn" onclick="twUpdateOrderStatus('${o.id}','confirmed')">✅</button>`
+              : ''}
+            ${o.status==='pending_confirm' && o.source!=='online'
+              ? `<button class="tw-action edit" title="Xác nhận" onclick="twUpdateOrderStatus('${o.id}','confirmed')">✅</button>
+                 <button class="tw-action" title="Hoàn thành luôn" onclick="twUpdateOrderStatus('${o.id}','completed')" style="background:var(--h5c-sage,#5a7a5e);color:#fff;border-radius:6px;padding:4px 8px;border:none;cursor:pointer;font-size:13px">🏁</button>`
+              : ''}
+            ${o.status==='confirmed'
+              ? `<button class="tw-action edit" title="Hoàn thành" onclick="twUpdateOrderStatus('${o.id}','completed')">🏁</button>`
+              : ''}
           </div>
         </td>
       </tr>`;
@@ -2713,6 +2723,24 @@
     }
   };
 
+  // ═══════════════════════════════════════════
+  // ORDER CODE GENERATOR
+  // Format: DH-ON/OFF-[branchNum]-[DDMMYYYY]-[seq]
+  // ═══════════════════════════════════════════
+  function twGenOrderCode(source, branchId, deliveryDate) {
+    const type       = source === 'online' ? 'ON' : 'OFF';
+    const allBranches = get(KEYS.branches);
+    const branchIdx  = allBranches.findIndex(b => b.id === branchId);
+    const branchNum  = String(branchIdx >= 0 ? branchIdx + 1 : 1).padStart(2, '0');
+    const date       = (deliveryDate || today()).slice(0, 10);   // YYYY-MM-DD
+    const [y, m, d]  = date.split('-');
+    const dateStr    = `${d||'00'}${m||'00'}${y||'0000'}`;
+    // Sequence = orders on the same date + 1
+    const dayCount   = get(KEYS.orders).filter(o => (o.date||'').slice(0,10) === date).length;
+    const seq        = String(dayCount + 1).padStart(2, '0');
+    return `DH-${type}-${branchNum}-${dateStr}-${seq}`;
+  }
+
   window.twSaveOrder = function() {
     const branchId = document.getElementById('twOrdBranch').value;
     if (!branchId) { showToast('Chọn chi nhánh', 'warning'); return; }
@@ -2737,21 +2765,23 @@
 
     const total = items.reduce((s,i) => s + i.price * i.qty, 0);
     const orders = get(KEYS.orders);
-    const code = 'TW' + String(orders.length + 1).padStart(5,'0');
+    const deliveryDate = isScheduled ? scheduledAt.slice(0,10) : today();
+    const code = twGenOrderCode('offline', branchId, deliveryDate);
     orders.push({
       id: genId('ORD'), code, branchId, items, total,
       paymentMethod: document.getElementById('twOrdPay').value,
       note: document.getElementById('twOrdNote').value.trim(),
       isScheduled, scheduledAt,
-      status: isScheduled ? 'scheduled' : 'pending',
-      date: today(),
+      source: 'offline',
+      status: 'pending_confirm',
+      date: deliveryDate,
       createdAt: new Date().toISOString(),
       createdBy: currentUser(),
     });
     set(KEYS.orders, orders);
     twCloseModal();
     twRenderOrders();
-    showToast(isScheduled ? `Đã hẹn lịch đơn ${code}` : `Đã tạo đơn ${code}`, 'success');
+    showToast(`Đã tạo đơn ${code}`, 'success');
   };
 
   window.twViewOrder = function(id) {
@@ -4070,7 +4100,8 @@
 
           // Convert public order → tw_orders format and save
           const orders = get(KEYS.orders);
-          const code = pub.code || ('TW' + String(orders.length+1).padStart(5,'0'));
+          const deliveryDate = pub.isScheduled ? (pub.scheduledAt||'').slice(0,10) : (pub.createdAt||'').slice(0,10);
+          const code = twGenOrderCode('online', pub.branchId || '', deliveryDate);
           const order = {
             id: genId('ORD'), _publicId: pub.id, code,
             branchId: pub.branchId || '',
@@ -4084,7 +4115,7 @@
             ].filter(Boolean).join(' | '),
             isScheduled: pub.isScheduled || false,
             scheduledAt: pub.scheduledAt || '',
-            status: pub.isScheduled ? 'scheduled' : 'new',
+            status: 'pending_confirm',
             source: 'online',
             customerName: pub.customer?.name || '',
             customerPhone: pub.customer?.phone || '',

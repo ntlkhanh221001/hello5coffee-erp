@@ -479,7 +479,13 @@ async function submitOrder() {
 
   try {
     const id   = genId();
-    const code = 'PO'+String(Date.now()).slice(-5);
+    // Code format: DH-ON-[branchNum]-[DDMMYYYY delivery]-[seq from timestamp]
+    const branchIdx = branches.findIndex(b => b.id === branchId);
+    const bNum = String(branchIdx >= 0 ? branchIdx+1 : 1).padStart(2,'0');
+    const dDate = (scheduledAt || new Date().toISOString()).slice(0,10);
+    const [dy, dm, dd] = dDate.split('-');
+    const seq  = String(Date.now()).slice(-2); // last 2 digits of timestamp as rough seq
+    const code = `DH-ON-${bNum}-${dd||'00'}${dm||'00'}${dy||'0000'}-${seq}`;
     const order = {
       id, code, createdAt: new Date().toISOString(), status:'new', source:'online',
       customer: {name,phone,note},
