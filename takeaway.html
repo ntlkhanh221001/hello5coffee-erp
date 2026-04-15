@@ -1959,7 +1959,12 @@
         <td style="color:var(--h5c-text-secondary)">${pkg}</td>
         <td>${i.shelfLifeDays||'—'} ngày</td>
         <td>${i.parLevel?i.parLevel.toLocaleString('vi-VN'):'—'}</td>
-        <td><button class="tw-action delete" onclick="twDeleteIngredient('${i.id}')">🗑️</button></td>
+        <td>
+          <div class="tw-actions">
+            <button class="tw-action edit" onclick="twEditIngredient('${i.id}')">✏️</button>
+            <button class="tw-action delete" onclick="twDeleteIngredient('${i.id}')">🗑️</button>
+          </div>
+        </td>
       </tr>`;
     }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--h5c-text-secondary);padding:20px">Chưa có nguyên liệu nào. Thêm mới ở form bên trên.</td></tr>';
   };
@@ -2043,6 +2048,63 @@
     set(KEYS.ingredients, get(KEYS.ingredients).filter(i => i.id !== id));
     twRenderIngredientsPage();
     showToast('Đã xóa nguyên liệu', 'success');
+  };
+
+  window.twEditIngredient = function(id) {
+    const i = get(KEYS.ingredients).find(x => x.id === id);
+    if (!i) return;
+    const unitOpts = ['g','kg','ml','l','cái','chiếc','hộp','gói','chai','lon','túi','thùng','khác']
+      .map(u => `<option value="${u}" ${u===i.unit?'selected':''}>${u}</option>`).join('');
+    const pkgUnitOpts = ['','chai','hộp','gói','túi','lon','thùng','kg','l','khác']
+      .map(u => `<option value="${u}" ${u===(i.pkgUnit||'')?'selected':''}>${u||'— không có —'}</option>`).join('');
+    twOpenModal(`
+      <div class="modal-header">
+        <h3>✏️ Chỉnh sửa nguyên liệu</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Tên nguyên liệu *</label><input class="input" id="twIngEditName" value="${i.name||''}"/></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Thương hiệu</label><input class="input" id="twIngEditBrand" value="${i.brandName||''}"/></div>
+        </div>
+        <div class="tw-modal-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="tw-modal-group"><label class="tw-modal-label">Đơn vị tính</label><select class="input" id="twIngEditUnit">${unitOpts}</select></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Định lượng / gói nhập</label><input class="input" type="number" id="twIngEditPkgSize" value="${i.pkgSize||''}"/></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Đơn vị gói nhập</label><select class="input" id="twIngEditPkgUnit">${pkgUnitOpts}</select></div>
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group"><label class="tw-modal-label">Vòng đời (ngày)</label><input class="input" type="number" id="twIngEditShelf" value="${i.shelfLifeDays||''}"/></div>
+          <div class="tw-modal-group"><label class="tw-modal-label">Par level</label><input class="input" type="number" id="twIngEditPar" value="${i.parLevel||''}"/></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="twSaveIngredientEdit('${id}')">💾 Lưu</button>
+      </div>
+    `);
+  };
+
+  window.twSaveIngredientEdit = function(id) {
+    const name = document.getElementById('twIngEditName')?.value.trim();
+    if (!name) { showToast('Nhập tên nguyên liệu', 'warning'); return; }
+    const list = get(KEYS.ingredients);
+    const idx = list.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    list[idx] = {
+      ...list[idx],
+      name,
+      brandName:    document.getElementById('twIngEditBrand')?.value.trim() || '',
+      unit:         document.getElementById('twIngEditUnit')?.value || 'g',
+      pkgSize:      parseFloat(document.getElementById('twIngEditPkgSize')?.value) || 0,
+      pkgUnit:      document.getElementById('twIngEditPkgUnit')?.value || '',
+      shelfLifeDays:parseInt(document.getElementById('twIngEditShelf')?.value) || 0,
+      parLevel:     parseFloat(document.getElementById('twIngEditPar')?.value) || 0,
+      updatedAt:    new Date().toISOString(),
+    };
+    set(KEYS.ingredients, list);
+    twCloseModal();
+    twRenderIngredientsPage();
+    showToast('Đã cập nhật nguyên liệu', 'success');
   };
 
   window.twShowStockImportModal = function() {
