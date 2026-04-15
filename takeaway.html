@@ -2593,6 +2593,7 @@
             ${o.status==='confirmed'
               ? `<button class="tw-action edit" title="Hoàn thành" onclick="twUpdateOrderStatus('${o.id}','completed')">🏁</button>`
               : ''}
+            <button class="tw-action delete" title="Xóa đơn" onclick="twDeleteOrder('${o.id}','${(o.code||o.id).replace(/'/g,'')}')" style="color:#e53e3e">🗑️</button>
           </div>
         </td>
       </tr>`;
@@ -2840,6 +2841,14 @@
     set(KEYS.orders, orders);
     twRenderOrders();
     showToast('Cập nhật trạng thái: ' + STATUS_LABELS[newStatus], 'success');
+  };
+
+  window.twDeleteOrder = function(id, code) {
+    if (!confirm(`Xóa đơn hàng "${code}"?\nHành động này không thể hoàn tác.`)) return;
+    const orders = get(KEYS.orders).filter(o => o.id !== id);
+    set(KEYS.orders, orders);
+    twRenderOrders();
+    showToast(`Đã xóa đơn ${code}`, 'success');
   };
 
   // ═══════════════════════════════════════════
