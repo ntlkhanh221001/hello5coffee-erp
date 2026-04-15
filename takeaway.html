@@ -277,8 +277,8 @@
             <div class="tw-modal-group"><label class="tw-modal-label">Tên nguyên liệu *</label><input class="input" id="twIngName" placeholder="VD: Sữa tươi"/></div>
             <div class="tw-modal-group"><label class="tw-modal-label">Thương hiệu</label><input class="input" id="twIngBrand" placeholder="VD: Vinamilk"/></div>
           </div>
-          <div class="tw-modal-row" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end">
-            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Đơn vị</label>
+          <div class="tw-modal-row" style="grid-template-columns:1fr 1fr 1fr;align-items:end">
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Đơn vị tính (công thức)</label>
               <select class="input" id="twIngUnit">
                 <option value="g">g (gram)</option>
                 <option value="kg">kg (ki-lô-gam)</option>
@@ -295,6 +295,23 @@
                 <option value="khác">khác</option>
               </select>
             </div>
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Định lượng / gói nhập</label><input class="input" type="number" id="twIngPkgSize" placeholder="VD: 1000"/></div>
+            <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Đơn vị gói nhập</label>
+              <select class="input" id="twIngPkgUnit">
+                <option value="">— không có —</option>
+                <option value="chai">chai</option>
+                <option value="hộp">hộp</option>
+                <option value="gói">gói</option>
+                <option value="túi">túi</option>
+                <option value="lon">lon</option>
+                <option value="thùng">thùng</option>
+                <option value="kg">kg</option>
+                <option value="l">l</option>
+                <option value="khác">khác</option>
+              </select>
+            </div>
+          </div>
+          <div class="tw-modal-row" style="grid-template-columns:1fr 1fr auto;align-items:end;margin-top:8px">
             <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Vòng đời (ngày)</label><input class="input" type="number" id="twIngShelf" placeholder="30"/></div>
             <div class="tw-modal-group" style="margin:0"><label class="tw-modal-label">Par level</label><input class="input" type="number" id="twIngPar" placeholder="500"/></div>
             <button class="btn btn-primary" onclick="twAddIngredient()" style="height:38px">+ Thêm</button>
@@ -303,7 +320,7 @@
 
         <div class="table-wrapper">
           <table class="table">
-            <thead><tr><th>Tên NVL</th><th>Thương mại</th><th>ĐV</th><th>Vòng đời</th><th>Par level</th><th style="width:80px">Thao tác</th></tr></thead>
+            <thead><tr><th>Tên NVL</th><th>Thương hiệu</th><th>ĐV tính</th><th>Quy cách gói</th><th>Vòng đời</th><th>Par level</th><th style="width:80px">Thao tác</th></tr></thead>
             <tbody id="twIngredientBody"></tbody>
           </table>
         </div>
@@ -457,6 +474,7 @@
             <input type="date" class="tw-filter" id="twOrderDateTo" onchange="twRenderOrders()"/>
             <select class="tw-filter" id="twOrderStatus" onchange="twRenderOrders()">
               <option value="">Tất cả trạng thái</option>
+              <option value="scheduled">📅 Hẹn lịch</option>
               <option value="pending">Chờ pha</option>
               <option value="preparing">Đang pha</option>
               <option value="ready">Sẵn sàng</option>
@@ -814,7 +832,7 @@
   };
 
   const STATUS_LABELS = {
-    pending:'Chờ pha', preparing:'Đang pha', ready:'Sẵn sàng',
+    scheduled:'📅 Hẹn lịch', pending:'Chờ pha', preparing:'Đang pha', ready:'Sẵn sàng',
     completed:'Hoàn thành', cancelled:'Đã hủy'
   };
 
@@ -1932,14 +1950,18 @@
       (i.name||'').toLowerCase().includes(search) ||
       (i.brandName||'').toLowerCase().includes(search)
     );
-    tbody.innerHTML = ingredients.length ? ingredients.map(i => `<tr>
-      <td><strong>${i.name}</strong></td>
-      <td>${i.brandName||'—'}</td>
-      <td>${i.unit||'—'}</td>
-      <td>${i.shelfLifeDays||'—'} ngày</td>
-      <td>${i.parLevel?i.parLevel.toLocaleString('vi-VN'):'—'}</td>
-      <td><button class="tw-action delete" onclick="twDeleteIngredient('${i.id}')">🗑️</button></td>
-    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--h5c-text-secondary);padding:20px">Chưa có nguyên liệu nào. Thêm mới ở form bên trên.</td></tr>';
+    tbody.innerHTML = ingredients.length ? ingredients.map(i => {
+      const pkg = (i.pkgSize && i.pkgUnit) ? `${i.pkgSize} ${i.unit}/${i.pkgUnit}` : (i.pkgSize ? `${i.pkgSize} ${i.unit}/gói` : '—');
+      return `<tr>
+        <td><strong>${i.name}</strong></td>
+        <td>${i.brandName||'—'}</td>
+        <td>${i.unit||'—'}</td>
+        <td style="color:var(--h5c-text-secondary)">${pkg}</td>
+        <td>${i.shelfLifeDays||'—'} ngày</td>
+        <td>${i.parLevel?i.parLevel.toLocaleString('vi-VN'):'—'}</td>
+        <td><button class="tw-action delete" onclick="twDeleteIngredient('${i.id}')">🗑️</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--h5c-text-secondary);padding:20px">Chưa có nguyên liệu nào. Thêm mới ở form bên trên.</td></tr>';
   };
   // Backward-compat alias (used by old callers)
   window.twRenderIngredientTable = window.twRenderIngredientsPage;
@@ -1947,22 +1969,28 @@
   window.twShowIngredientModal = function() { twSwitchTab('ingredients'); };
 
   window.twAddIngredient = function() {
-    const nameEl  = document.getElementById('twIngName');
-    const brandEl = document.getElementById('twIngBrand');
-    const unitEl  = document.getElementById('twIngUnit');
-    const shelfEl = document.getElementById('twIngShelf');
-    const parEl   = document.getElementById('twIngPar');
+    const nameEl    = document.getElementById('twIngName');
+    const brandEl   = document.getElementById('twIngBrand');
+    const unitEl    = document.getElementById('twIngUnit');
+    const pkgSizeEl = document.getElementById('twIngPkgSize');
+    const pkgUnitEl = document.getElementById('twIngPkgUnit');
+    const shelfEl   = document.getElementById('twIngShelf');
+    const parEl     = document.getElementById('twIngPar');
     const name = nameEl.value.trim();
     if (!name) { showToast('Nhập tên nguyên liệu', 'warning'); nameEl.focus(); return; }
-    const brandName = brandEl.value.trim();
-    const unit = unitEl.value.trim();
+    const brandName   = brandEl.value.trim();
+    const unit        = unitEl.value || 'g';
+    const pkgSize     = parseFloat(pkgSizeEl.value) || 0;
+    const pkgUnit     = pkgUnitEl.value || '';
     const shelfLifeDays = parseInt(shelfEl.value) || 0;
-    const parLevel = parseFloat(parEl.value) || 0;
+    const parLevel    = parseFloat(parEl.value) || 0;
     let list = get(KEYS.ingredients);
-    list.push({ id: genId('ING'), name, brandName, unit: unit||'g', shelfLifeDays, parLevel, createdAt: new Date().toISOString() });
+    list.push({ id: genId('ING'), name, brandName, unit, pkgSize, pkgUnit, shelfLifeDays, parLevel, createdAt: new Date().toISOString() });
     set(KEYS.ingredients, list);
     // Clear form fields + refresh only the table body (no page reload, no focus loss)
-    nameEl.value = ''; brandEl.value = ''; unitEl.value = 'g'; shelfEl.value = ''; parEl.value = '';
+    nameEl.value = ''; brandEl.value = ''; unitEl.value = 'g';
+    pkgSizeEl.value = ''; pkgUnitEl.value = '';
+    shelfEl.value = ''; parEl.value = '';
     twRenderIngredientsPage();
     nameEl.focus();
     showToast('Đã thêm nguyên liệu', 'success');
@@ -2291,14 +2319,18 @@
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${itemNames}">${itemNames||'—'}</td>
         <td>${fmtMoney(o.total)}</td>
         <td>${o.paymentMethod==='cash'?'💵 Tiền mặt':'💳 Chuyển khoản'}</td>
-        <td><span class="tw-badge ${o.status}">${STATUS_LABELS[o.status]||o.status}</span></td>
+        <td>
+          <span class="tw-badge ${o.status}">${STATUS_LABELS[o.status]||o.status}</span>
+          ${o.isScheduled && o.scheduledAt ? `<br><small style="color:var(--h5c-text-secondary);font-size:11px">⏰ ${fmtDateTime(o.scheduledAt)}</small>` : ''}
+        </td>
         <td>${fmtDateTime(o.createdAt)}</td>
         <td>
           <div class="tw-actions">
             <button class="tw-action view" onclick="twViewOrder('${o.id}')">👁️</button>
-            ${o.status==='pending'?`<button class="tw-action edit" onclick="twUpdateOrderStatus('${o.id}','preparing')">▶️</button>`:''}
-            ${o.status==='preparing'?`<button class="tw-action edit" onclick="twUpdateOrderStatus('${o.id}','ready')">✅</button>`:''}
-            ${o.status==='ready'?`<button class="tw-action edit" onclick="twUpdateOrderStatus('${o.id}','completed')">🏁</button>`:''}
+            ${o.status==='scheduled'?`<button class="tw-action edit" title="Bắt đầu pha" onclick="twUpdateOrderStatus('${o.id}','pending')">▶️</button>`:''}
+            ${o.status==='pending'?`<button class="tw-action edit" title="Đang pha" onclick="twUpdateOrderStatus('${o.id}','preparing')">▶️</button>`:''}
+            ${o.status==='preparing'?`<button class="tw-action edit" title="Sẵn sàng" onclick="twUpdateOrderStatus('${o.id}','ready')">✅</button>`:''}
+            ${o.status==='ready'?`<button class="tw-action edit" title="Hoàn thành" onclick="twUpdateOrderStatus('${o.id}','completed')">🏁</button>`:''}
           </div>
         </td>
       </tr>`;
@@ -2374,7 +2406,14 @@
           <label class="tw-modal-label">Ghi chú khách</label>
           <input class="input" id="twOrdNote" placeholder="Ít đường, thêm đá..."/>
         </div>
-        <div style="text-align:right;font-size:18px;font-weight:700;padding:14px 0;border-top:2px solid var(--h5c-border);margin-top:12px">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--h5c-border);margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;font-size:14px">
+            <input type="checkbox" id="twOrdIsScheduled" onchange="twToggleScheduled()" style="width:16px;height:16px;cursor:pointer"/>
+            📅 Đặt trước / Hẹn lịch giao
+          </label>
+          <input type="datetime-local" class="input" id="twOrdScheduledAt" style="display:none;max-width:220px"/>
+        </div>
+        <div style="text-align:right;font-size:18px;font-weight:700;padding:14px 0;border-top:2px solid var(--h5c-border);margin-top:4px">
           Tổng: <span id="twOrdTotal" style="color:var(--h5c-sage)">0đ</span>
         </div>
       </div>
@@ -2416,9 +2455,25 @@
     if (totalEl) totalEl.textContent = fmtMoney(total);
   };
 
+  window.twToggleScheduled = function() {
+    const checked = document.getElementById('twOrdIsScheduled')?.checked;
+    const dtEl = document.getElementById('twOrdScheduledAt');
+    if (!dtEl) return;
+    dtEl.style.display = checked ? '' : 'none';
+    if (checked && !dtEl.value) {
+      // Default to tomorrow 08:00
+      const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0);
+      dtEl.value = d.toISOString().slice(0,16);
+    }
+  };
+
   window.twSaveOrder = function() {
     const branchId = document.getElementById('twOrdBranch').value;
     if (!branchId) { showToast('Chọn chi nhánh', 'warning'); return; }
+
+    const isScheduled = document.getElementById('twOrdIsScheduled')?.checked || false;
+    const scheduledAt = isScheduled ? (document.getElementById('twOrdScheduledAt')?.value || '') : '';
+    if (isScheduled && !scheduledAt) { showToast('Chọn thời gian hẹn lịch', 'warning'); return; }
 
     const items = [];
     document.querySelectorAll('#twOrdMenuTable tbody tr[data-order-row]').forEach(tr => {
@@ -2441,7 +2496,8 @@
       id: genId('ORD'), code, branchId, items, total,
       paymentMethod: document.getElementById('twOrdPay').value,
       note: document.getElementById('twOrdNote').value.trim(),
-      status: 'pending',
+      isScheduled, scheduledAt,
+      status: isScheduled ? 'scheduled' : 'pending',
       date: today(),
       createdAt: new Date().toISOString(),
       createdBy: currentUser(),
@@ -2449,7 +2505,7 @@
     set(KEYS.orders, orders);
     twCloseModal();
     twRenderOrders();
-    showToast('Đã tạo đơn ' + code, 'success');
+    showToast(isScheduled ? `Đã hẹn lịch đơn ${code}` : `Đã tạo đơn ${code}`, 'success');
   };
 
   window.twViewOrder = function(id) {
