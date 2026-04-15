@@ -247,7 +247,9 @@
 <div id="screen-success" class="screen">
   <div class="success-wrap">
     <div class="s-ico">✅</div>
+    <p style="margin:0 0 4px;font-size:13px;color:#666">Mã đặt hàng của bạn</p>
     <div class="s-code" id="s-code"></div>
+    <p style="margin:0 0 16px;font-size:11px;color:#999">Đọc mã này cho nhân viên để xác nhận đơn</p>
     <p class="s-msg">Đơn hàng đã được gửi!<br>Chúng tôi sẽ xác nhận trong giây lát.</p>
     <div class="s-detail" id="s-detail"></div>
     <button class="cta" style="max-width:340px" onclick="resetOrder()">🛒 Đặt thêm</button>
@@ -527,8 +529,10 @@ async function submitOrder() {
     const [dy, dm, dd] = dDate.split('-');
     const seq  = String(Date.now()).slice(-2); // last 2 digits of timestamp as rough seq
     const code = `DH-ON-${bNum}-${dd||'00'}${dm||'00'}${dy||'0000'}-${seq}`;
+    // 7-char customer-facing code (uppercase letters + digits, easy to read aloud)
+    const customer_code = Array.from({length:7}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
     const order = {
-      id, code, createdAt: new Date().toISOString(), status:'new', source:'online',
+      id, code, customer_code, createdAt: new Date().toISOString(), status:'new', source:'online',
       customer: {name,phone,note},
       orderType, deliveryAddress, pickupBranchId,
       scheduledAt, isScheduled: timeType==='scheduled',
@@ -544,7 +548,7 @@ async function submitOrder() {
 
 // ── Success ───────────────────────────────────────────────
 function showSuccess(o) {
-  $('#s-code').textContent = o.code;
+  $('#s-code').textContent = o.customer_code || o.code;
   const br = branches.find(b => b.id===o.branchId);
   const timeStr = o.isScheduled
     ? new Date(o.scheduledAt).toLocaleString('vi-VN',{dateStyle:'short',timeStyle:'short'})

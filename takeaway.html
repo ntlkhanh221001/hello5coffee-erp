@@ -489,6 +489,7 @@
             <thead>
               <tr>
                 <th>Mã đơn</th>
+                <th>Mã Đơn Khách</th>
                 <th>Chi nhánh</th>
                 <th>Món</th>
                 <th>Tổng tiền</th>
@@ -2554,7 +2555,7 @@
     const branches = get(KEYS.branches);
     const tbody = document.getElementById('twOrderBody');
     if (!orders.length) {
-      tbody.innerHTML = '<tr><td colspan="8"><div class="tw-empty"><div class="icon">🧾</div><p>Chưa có đơn hàng</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9"><div class="tw-empty"><div class="icon">🧾</div><p>Chưa có đơn hàng</p></div></td></tr>';
       return;
     }
     tbody.innerHTML = orders.map(o => {
@@ -2564,6 +2565,11 @@
         <td>
           <strong>${o.code||o.id}</strong>
           ${o.source==='online'?'<br><span style="font-size:10px;background:#e8f4fd;color:#2b6cb0;padding:1px 5px;border-radius:4px;font-weight:600">🌐 Online</span>':''}
+        </td>
+        <td>
+          ${o.customer_code
+            ? `<span style="font-family:monospace;font-weight:700;font-size:14px;letter-spacing:1px;color:#5a7a5e">${o.customer_code}</span>`
+            : '<span style="color:#bbb">—</span>'}
         </td>
         <td>${br?br.name:'—'}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${itemNames}">${itemNames||'—'}</td>
@@ -2794,6 +2800,10 @@
         <button class="modal-close" onclick="twCloseModal()">✕</button>
       </div>
       <div class="modal-body">
+        ${o.customer_code ? `<div style="text-align:center;background:#eef3ee;border-radius:8px;padding:10px 16px;margin-bottom:14px">
+          <div style="font-size:11px;color:#666;margin-bottom:4px">Mã Đơn Khách</div>
+          <div style="font-family:monospace;font-size:22px;font-weight:800;letter-spacing:2px;color:#5a7a5e">${o.customer_code}</div>
+        </div>` : ''}
         <div class="tw-modal-row">
           <div><strong>Chi nhánh:</strong> ${br?br.name:'—'}</div>
           <div><strong>Trạng thái:</strong> <span class="tw-badge ${o.status}">${STATUS_LABELS[o.status]}</span></div>
