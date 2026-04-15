@@ -240,6 +240,7 @@
           </div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-secondary" onclick="twSwitchTab('ingredients')">🧪 Nguyên liệu</button>
+            <button class="btn btn-secondary" onclick="twShowMenuImportModal()">📤 Nhập Excel</button>
             <button class="btn btn-primary" onclick="twShowMenuModal()">+ Thêm món</button>
           </div>
         </div>
@@ -1356,6 +1357,185 @@
     set(KEYS.menuItems, get(KEYS.menuItems).filter(i => i.id !== id));
     twRenderMenu();
     showToast('Đã xóa món', 'success');
+  };
+
+  // ═══════════════════════════════════════════
+  // MENU BULK IMPORT (Excel / CSV)
+  // ═══════════════════════════════════════════
+  async function twLoadSheetJS() {
+    if (window.XLSX) return true;
+    return new Promise(resolve => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    });
+  }
+
+  window.twDownloadMenuTemplate = async function() {
+    if (!await twLoadSheetJS()) { showToast('Không tải được thư viện Excel', 'error'); return; }
+    const data = [
+      ['Tên món', 'Danh mục', 'Size', 'Giá bán (đ)', 'Mô tả', 'Trạng thái'],
+      ['Cà phê sữa đá', 'coffee', 'S', 25000, 'Cà phê đậm, đá nhiều', 'active'],
+      ['Cà phê sữa đá', 'coffee', 'M', 30000, '', 'active'],
+      ['Cà phê sữa đá', 'coffee', 'L', 35000, '', 'active'],
+      ['Trà đào cam sả', 'tea', 'M', 35000, 'Thanh mát', 'active'],
+      ['Trà đào cam sả', 'tea', 'L', 40000, '', 'active'],
+      ['Nước ép cam', 'juice', 'M', 40000, '', 'active'],
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{wch:22},{wch:12},{wch:8},{wch:14},{wch:28},{wch:12}];
+    // Freeze header row
+    ws['!freeze'] = { xSplit:0, ySplit:1 };
+    XLSX.utils.book_append_sheet(wb, ws, 'Menu');
+    XLSX.writeFile(wb, 'H5C_Menu_Template.xlsx');
+  };
+
+  window.twShowMenuImportModal = function() {
+    twOpenModal(`
+      <div class="modal-header">
+        <h3>📤 Nhập menu từ Excel</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height:80vh;overflow-y:auto">
+        <div style="background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-md);padding:14px;margin-bottom:16px;font-size:13px">
+          <p style="margin:0 0 6px;font-weight:600">📋 Định dạng file:</p>
+          <p style="margin:0 0 4px;color:var(--h5c-text-secondary)">File <strong>.xlsx / .xls / .csv</strong> với các cột:</p>
+          <code style="display:block;margin:6px 0;color:var(--h5c-sage);font-size:12px">Tên món &nbsp;|&nbsp; Danh mục &nbsp;|&nbsp; Size &nbsp;|&nbsp; Giá bán &nbsp;|&nbsp; Mô tả &nbsp;|&nbsp; Trạng thái</code>
+          <p style="margin:0;color:var(--h5c-text-secondary)">Nhiều dòng cùng <em>"Tên món"</em> = nhiều size của 1 món.<br>
+          Danh mục: <code>coffee</code> / <code>tea</code> / <code>juice</code> / <code>food</code> / <code>other</code></p>
+          <button class="btn btn-secondary" style="margin-top:10px;font-size:12px" onclick="twDownloadMenuTemplate()">⬇️ Tải file mẫu (.xlsx)</button>
+        </div>
+        <div class="tw-modal-group">
+          <label class="tw-modal-label">Chọn file Excel</label>
+          <input type="file" id="twMenuImportFile" accept=".xlsx,.xls,.csv" class="input" onchange="twPreviewMenuImport(this.files[0])"/>
+        </div>
+        <div id="twMenuImportPreview" style="margin-top:12px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="twCloseModal()">Hủy</button>
+        <button class="btn btn-primary" id="twMenuImportConfirmBtn" style="display:none" onclick="twConfirmMenuImport()">✅ Nhập vào menu</button>
+      </div>
+    `);
+  };
+
+  window.twPreviewMenuImport = async function(file) {
+    if (!file) return;
+    const preview = document.getElementById('twMenuImportPreview');
+    if (!preview) return;
+    preview.innerHTML = '<p style="color:var(--h5c-text-secondary);font-size:13px">⏳ Đang đọc file...</p>';
+
+    if (!await twLoadSheetJS()) {
+      preview.innerHTML = '<p style="color:red">Không tải được thư viện đọc Excel. Kiểm tra kết nối mạng.</p>';
+      return;
+    }
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) { preview.innerHTML = '<p style="color:orange">File rỗng hoặc không đọc được dữ liệu.</p>'; return; }
+
+      // Flexible column detection
+      const norm = k => String(k).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'');
+      const colMap = {};
+      Object.keys(rows[0]).forEach(k => {
+        const n = norm(k);
+        if (!colMap.name     && (n.includes('ten') || n.includes('mon')))         colMap.name = k;
+        if (!colMap.category && (n.includes('danhmuc') || n.includes('loai')))    colMap.category = k;
+        if (!colMap.size     && n.includes('size'))                                colMap.size = k;
+        if (!colMap.price    && (n.includes('gia') || n.includes('price')))        colMap.price = k;
+        if (!colMap.desc     && (n.includes('mo') || n.includes('desc')))          colMap.desc = k;
+        if (!colMap.status   && (n.includes('trang') || n.includes('status')))     colMap.status = k;
+      });
+      if (!colMap.name) { preview.innerHTML = '<p style="color:red">❌ Không tìm thấy cột <strong>"Tên món"</strong>. Vui lòng dùng file mẫu.</p>'; return; }
+
+      const CAT_MAP = {
+        'ca phe':'coffee','cafe':'coffee','coffee':'coffee',
+        'tra':'tea','tea':'tea',
+        'nuoc ep':'juice','juice':'juice',
+        'do an':'food','food':'food',
+        'khac':'other','other':'other',
+      };
+      const itemMap = {};
+      const errors = [];
+
+      rows.forEach((row, ri) => {
+        const name = String(row[colMap.name]||'').trim();
+        if (!name) return;
+        const rawCat = norm(String(row[colMap.category]||''));
+        const category = CAT_MAP[rawCat] || 'other';
+        const size  = String(row[colMap.size]||'M').trim() || 'M';
+        const price = parseInt(String(row[colMap.price]||'0').replace(/[^\d]/g,'')) || 0;
+        const desc  = colMap.desc ? String(row[colMap.desc]||'').trim() : '';
+        const rawStatus = norm(String(row[colMap.status]||'active'));
+        const status = (rawStatus === '' || rawStatus.includes('active') || rawStatus.includes('hoat')) ? 'active' : 'inactive';
+
+        if (!price) errors.push(`Dòng ${ri+2}: "${name}" (${size}) thiếu giá`);
+        if (!itemMap[name]) itemMap[name] = { name, category, status, description: desc, variants: [] };
+        // Avoid duplicate size within same item
+        if (!itemMap[name].variants.find(v => v.size === size))
+          itemMap[name].variants.push({ size, price, recipe: [] });
+      });
+
+      const items = Object.values(itemMap).filter(i => i.variants.length);
+      if (!items.length) { preview.innerHTML = '<p style="color:red">Không đọc được món nào hợp lệ.</p>'; return; }
+
+      window._twImportPending = items;
+      const existingNames = new Set(get(KEYS.menuItems).map(m => m.name));
+      const newCount  = items.filter(i => !existingNames.has(i.name)).length;
+      const updCount  = items.filter(i =>  existingNames.has(i.name)).length;
+
+      preview.innerHTML = `
+        <div style="font-size:13px;margin-bottom:10px;padding:10px;background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-sm)">
+          Đọc được <strong>${items.length} món</strong> —
+          <span style="color:var(--h5c-sage);font-weight:600">${newCount} món mới</span>
+          ${updCount ? `, <span style="color:orange;font-weight:600">${updCount} món sẽ được cập nhật</span>` : ''}
+          ${errors.length ? `<br><span style="color:var(--h5c-danger,#e53e3e);font-size:12px">⚠️ ${errors.length} dòng thiếu giá sẽ bỏ qua: ${errors.slice(0,2).join(' · ')}${errors.length>2?' ...':''}</span>` : ''}
+        </div>
+        <div style="max-height:280px;overflow-y:auto">
+          <table class="table" style="font-size:12px">
+            <thead><tr><th>Tên món</th><th>Danh mục</th><th>Sizes & Giá</th><th>Trạng thái</th></tr></thead>
+            <tbody>
+              ${items.map(i => `<tr${existingNames.has(i.name)?' style="background:rgba(255,193,7,.12)"':''}>
+                <td><strong>${i.name}</strong>${existingNames.has(i.name)?'<br><small style="color:orange">↻ cập nhật</small>':''}</td>
+                <td>${CATEGORY_LABELS[i.category]||i.category}</td>
+                <td style="line-height:1.8">${i.variants.map(v=>`<span class="tw-badge">${v.size}</span> ${fmtMoney(v.price)}`).join('&nbsp; ')}</td>
+                <td>${i.status==='active'?'✅ Hoạt động':'⏸ Ngừng'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+
+      const btn = document.getElementById('twMenuImportConfirmBtn');
+      if (btn) btn.style.display = '';
+    } catch(e) {
+      preview.innerHTML = `<p style="color:red">❌ Lỗi đọc file: ${e.message}</p>`;
+    }
+  };
+
+  window.twConfirmMenuImport = function() {
+    const pending = window._twImportPending;
+    if (!pending?.length) return;
+    let items = get(KEYS.menuItems);
+    let added = 0, updated = 0;
+    pending.forEach(imp => {
+      const idx = items.findIndex(m => m.name === imp.name);
+      if (idx >= 0) {
+        items[idx] = { ...items[idx], ...imp, updatedAt: new Date().toISOString() };
+        updated++;
+      } else {
+        items.push({ id: genId('MI'), ...imp, createdAt: new Date().toISOString() });
+        added++;
+      }
+    });
+    set(KEYS.menuItems, items);
+    window._twImportPending = null;
+    twCloseModal();
+    twRenderMenu();
+    showToast(`✅ Nhập thành công: ${added} món mới, ${updated} cập nhật`, 'success');
   };
 
   // ═══════════════════════════════════════════
