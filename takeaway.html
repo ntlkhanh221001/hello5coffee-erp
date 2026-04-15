@@ -1016,6 +1016,7 @@
       <td>${fmtDate(b.createdAt)}</td>
       <td>
         <div class="tw-actions">
+          <button class="tw-action" title="QR đặt hàng" onclick="twShowBranchOrderLink('${b.id}','${(b.name||'').replace(/'/g,'')}')">🔗</button>
           <button class="tw-action edit" title="Sửa" onclick="twEditBranch('${b.id}')">✏️</button>
           <button class="tw-action delete" title="Xóa" onclick="twDeleteBranch('${b.id}')">🗑️</button>
         </div>
@@ -2556,7 +2557,10 @@
       const br = branches.find(b => b.id === o.branchId);
       const itemNames = (o.items||[]).map(i => i.name + ' x' + i.qty).join(', ');
       return `<tr>
-        <td><strong>${o.code||o.id}</strong></td>
+        <td>
+          <strong>${o.code||o.id}</strong>
+          ${o.source==='online'?'<br><span style="font-size:10px;background:#e8f4fd;color:#2b6cb0;padding:1px 5px;border-radius:4px;font-weight:600">🌐 Online</span>':''}
+        </td>
         <td>${br?br.name:'—'}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${itemNames}">${itemNames||'—'}</td>
         <td>${fmtMoney(o.total)}</td>
@@ -4040,7 +4044,93 @@
     populateBranchDropdowns();
     applyRoleUI();
     twRenderDashboard();
+    twInitPublicOrdersListener();
   }
+
+  // ═══════════════════════════════════════════
+  // PUBLIC ORDER LISTENER (from takeaway-order.html)
+  // ═══════════════════════════════════════════
+  function twInitPublicOrdersListener() {
+    // Wait for Firebase (initialized by firebase-sync.js)
+    if (!window.firebase || !window.firebase.apps.length) {
+      setTimeout(twInitPublicOrdersListener, 600); return;
+    }
+    const db = firebase.firestore();
+    // Track which IDs we've already imported to avoid duplicates
+    const _seen = new Set(get(KEYS.orders).filter(o => o.source==='online').map(o => o._publicId||o.id));
+
+    db.collection('tw_public_orders')
+      .where('status', '==', 'new')
+      .onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type !== 'added') return;
+          const pub = change.doc.data();
+          if (_seen.has(pub.id)) return;
+          _seen.add(pub.id);
+
+          // Convert public order → tw_orders format and save
+          const orders = get(KEYS.orders);
+          const code = pub.code || ('TW' + String(orders.length+1).padStart(5,'0'));
+          const order = {
+            id: genId('ORD'), _publicId: pub.id, code,
+            branchId: pub.branchId || '',
+            items: pub.items || [],
+            total: pub.total || 0,
+            paymentMethod: 'pending',
+            note: [
+              pub.customer?.note,
+              pub.orderType==='delivery' ? '🚚 Giao: '+pub.deliveryAddress : '🏪 Lấy tại quán',
+              pub.customer?.phone ? '📞 '+pub.customer.phone : ''
+            ].filter(Boolean).join(' | '),
+            isScheduled: pub.isScheduled || false,
+            scheduledAt: pub.scheduledAt || '',
+            status: pub.isScheduled ? 'scheduled' : 'new',
+            source: 'online',
+            customerName: pub.customer?.name || '',
+            customerPhone: pub.customer?.phone || '',
+            orderType: pub.orderType || 'delivery',
+            deliveryAddress: pub.deliveryAddress || '',
+            date: (pub.createdAt||'').slice(0,10) || today(),
+            createdAt: pub.createdAt || new Date().toISOString(),
+            createdBy: pub.customer?.name || 'Online',
+          };
+          orders.push(order);
+          set(KEYS.orders, orders);
+
+          // Mark as synced in Firestore so it won't re-trigger
+          db.collection('tw_public_orders').doc(pub.id)
+            .update({ status: 'synced' }).catch(()=>{});
+
+          // Notify staff
+          showToast(`🌐 Đơn online mới: ${code} — ${pub.customer?.name} (${fmtMoney(pub.total)})`, 'info', 8000);
+
+          // Refresh orders tab if open
+          const ordersPanel = document.getElementById('panel-orders');
+          if (ordersPanel?.classList.contains('active')) twRenderOrders();
+        });
+      }, err => console.warn('H5C: Public orders listener error', err));
+  }
+
+  // ═══════════════════════════════════════════
+  // QR / LINK CHO BRANCH
+  // ═══════════════════════════════════════════
+  window.twShowBranchOrderLink = function(branchId, branchName) {
+    const base = window.location.origin + window.location.pathname.replace('takeaway.html','').replace('takeaway','');
+    const url  = base + 'takeaway-order.html' + (branchId ? '?branch='+branchId : '');
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(url);
+    twOpenModal(`
+      <div class="modal-header">
+        <h3>🔗 Link đặt hàng — ${branchName}</h3>
+        <button class="modal-close" onclick="twCloseModal()">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center">
+        <img src="${qrUrl}" style="border-radius:8px;margin-bottom:16px;border:1px solid var(--h5c-border)" width="220" height="220" alt="QR"/>
+        <div style="background:var(--h5c-bg-subtle);border-radius:8px;padding:10px 14px;margin-bottom:14px;word-break:break-all;font-size:13px;text-align:left">${url}</div>
+        <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${url}').then(()=>showToast('Đã copy link!','success'))">📋 Copy link</button>
+        <p style="margin-top:12px;font-size:12px;color:var(--h5c-text-secondary)">Khách quét QR hoặc mở link để đặt hàng — không cần đăng nhập</p>
+      </div>
+    `);
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
