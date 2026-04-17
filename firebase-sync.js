@@ -45,6 +45,17 @@
   let _syncReady = false;
 
   // ──────────────────────────────────────────────
+  // PUBLIC READINESS API — pages có thể await trước khi
+  // attach listener riêng, tránh race với pull ban đầu
+  // ──────────────────────────────────────────────
+  let _resolveReady;
+  const _readyPromise = new Promise(res => { _resolveReady = res; });
+  window.H5CSync = window.H5CSync || {};
+  window.H5CSync.ready = _readyPromise;
+  window.H5CSync.isReady = function() { return _syncReady; };
+  window.H5CSync.getDb = function() { return _db; };
+
+  // ──────────────────────────────────────────────
   // STEP 1: Override localStorage.setItem NGAY LẬP TỨC
   // ──────────────────────────────────────────────
   const _origSetItem    = localStorage.setItem.bind(localStorage);
@@ -292,7 +303,11 @@
   async function init() {
     console.log('H5C Sync v3: Starting (localStorage intercept)...');
     const loaded = await loadFirebaseSDK();
-    if (!loaded) { console.error('H5C Sync: SDK load failed — LOCAL ONLY'); return; }
+    if (!loaded) {
+      console.error('H5C Sync: SDK load failed — LOCAL ONLY');
+      if (_resolveReady) _resolveReady(false);
+      return;
+    }
 
     try {
       if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
@@ -303,7 +318,11 @@
           console.warn('H5C Sync: Persistence error:', e.code || e.message);
       }
       console.log('H5C Sync: Firebase initialized ✅');
-    } catch(e) { console.error('H5C Sync: Init error:', e); return; }
+    } catch(e) {
+      console.error('H5C Sync: Init error:', e);
+      if (_resolveReady) _resolveReady(false);
+      return;
+    }
 
     const pulledKeys = await pullFromFirestore();
     // Loại bỏ các key đã được pull từ Firestore khỏi write queue
@@ -313,6 +332,7 @@
     _flushQueue();
     startRealtimeSync();
     _syncReady = true;
+    if (_resolveReady) _resolveReady(true);
     console.log('H5C Sync: Ready! ✅');
 
     setTimeout(() => {

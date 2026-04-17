@@ -4099,65 +4099,87 @@
   // ═══════════════════════════════════════════
   // PUBLIC ORDER LISTENER (from takeaway-order.html)
   // ═══════════════════════════════════════════
-  function twInitPublicOrdersListener() {
-    // Wait for Firebase (initialized by firebase-sync.js)
+  async function twInitPublicOrdersListener() {
+    // Chờ firebase-sync.js pull xong để tránh race ghi đè tw_orders
+    try {
+      if (window.H5CSync && window.H5CSync.ready) {
+        const ok = await window.H5CSync.ready;
+        if (!ok) { console.warn('H5C: Sync not ready — public orders listener disabled'); return; }
+      } else {
+        // Fallback nếu H5CSync chưa inject: poll
+        let tries = 0;
+        while (!(window.firebase && window.firebase.apps.length) && tries < 50) {
+          await new Promise(r => setTimeout(r, 200)); tries++;
+        }
+      }
+    } catch(e) { console.warn('H5C: Sync ready wait failed', e); }
+
     if (!window.firebase || !window.firebase.apps.length) {
-      setTimeout(twInitPublicOrdersListener, 600); return;
+      console.warn('H5C: Firebase not available — public orders listener disabled'); return;
     }
     const db = firebase.firestore();
-    // Track which IDs we've already imported to avoid duplicates
-    const _seen = new Set(get(KEYS.orders).filter(o => o.source==='online').map(o => o._publicId||o.id));
+
+    // Mutex cục bộ tránh import trùng khi nhiều doc thay đổi song song
+    let _importing = Promise.resolve();
+
+    async function importPublicOrder(pub) {
+      // Luôn đọc lại localStorage MỚI NHẤT trước khi ghi (firebase-sync có thể vừa pull về)
+      const orders = get(KEYS.orders) || [];
+      // Re-check duplicate từ storage (không cache) — chống race đa tab
+      if (orders.some(o => o._publicId === pub.id)) return;
+
+      const deliveryDate = pub.isScheduled ? (pub.scheduledAt||'').slice(0,10) : (pub.createdAt||'').slice(0,10);
+      const code = twGenOrderCode('online', pub.branchId || '', deliveryDate);
+      const order = {
+        id: genId('ORD'), _publicId: pub.id, code,
+        branchId: pub.branchId || '',
+        items: pub.items || [],
+        total: pub.total || 0,
+        paymentMethod: 'pending',
+        note: [
+          pub.customer?.note,
+          pub.orderType==='delivery' ? '🚚 Giao: '+pub.deliveryAddress : '🏪 Lấy tại quán',
+          pub.customer?.phone ? '📞 '+pub.customer.phone : ''
+        ].filter(Boolean).join(' | '),
+        isScheduled: pub.isScheduled || false,
+        scheduledAt: pub.scheduledAt || '',
+        status: 'pending_confirm',
+        source: 'online',
+        customerName: pub.customer?.name || '',
+        customerPhone: pub.customer?.phone || '',
+        orderType: pub.orderType || 'delivery',
+        deliveryAddress: pub.deliveryAddress || '',
+        date: (pub.createdAt||'').slice(0,10) || today(),
+        createdAt: pub.createdAt || new Date().toISOString(),
+        createdBy: pub.customer?.name || 'Online',
+        customer_code: pub.customer_code || '',
+      };
+      orders.push(order);
+      set(KEYS.orders, orders);
+
+      // Mark synced (không atomic được 2 collection, nhưng _publicId check ở trên đã chặn trùng)
+      try {
+        await db.collection('tw_public_orders').doc(pub.id).update({ status: 'synced', _syncedAt: Date.now() });
+      } catch(e) { /* ignore */ }
+
+      showToast(`🌐 Đơn online mới: ${code} — ${pub.customer?.name} (${fmtMoney(pub.total)})`, 'info', 8000);
+      // Luôn render lại orders panel (không điều kiện active) để khi user chuyển tab đã có sẵn
+      try { twRenderOrders(); } catch(e) {}
+      try { twRenderDashboard(); } catch(e) {}
+    }
 
     db.collection('tw_public_orders')
       .where('status', '==', 'new')
       .onSnapshot(snapshot => {
         snapshot.docChanges().forEach(change => {
-          if (change.type !== 'added') return;
+          // Xử lý cả 'added' và 'modified' (phòng trường hợp doc đã tồn tại nhưng chưa sync)
+          if (change.type !== 'added' && change.type !== 'modified') return;
           const pub = change.doc.data();
-          if (_seen.has(pub.id)) return;
-          _seen.add(pub.id);
-
-          // Convert public order → tw_orders format and save
-          const orders = get(KEYS.orders);
-          const deliveryDate = pub.isScheduled ? (pub.scheduledAt||'').slice(0,10) : (pub.createdAt||'').slice(0,10);
-          const code = twGenOrderCode('online', pub.branchId || '', deliveryDate);
-          const order = {
-            id: genId('ORD'), _publicId: pub.id, code,
-            branchId: pub.branchId || '',
-            items: pub.items || [],
-            total: pub.total || 0,
-            paymentMethod: 'pending',
-            note: [
-              pub.customer?.note,
-              pub.orderType==='delivery' ? '🚚 Giao: '+pub.deliveryAddress : '🏪 Lấy tại quán',
-              pub.customer?.phone ? '📞 '+pub.customer.phone : ''
-            ].filter(Boolean).join(' | '),
-            isScheduled: pub.isScheduled || false,
-            scheduledAt: pub.scheduledAt || '',
-            status: 'pending_confirm',
-            source: 'online',
-            customerName: pub.customer?.name || '',
-            customerPhone: pub.customer?.phone || '',
-            orderType: pub.orderType || 'delivery',
-            deliveryAddress: pub.deliveryAddress || '',
-            date: (pub.createdAt||'').slice(0,10) || today(),
-            createdAt: pub.createdAt || new Date().toISOString(),
-            createdBy: pub.customer?.name || 'Online',
-            customer_code: pub.customer_code || '',
-          };
-          orders.push(order);
-          set(KEYS.orders, orders);
-
-          // Mark as synced in Firestore so it won't re-trigger
-          db.collection('tw_public_orders').doc(pub.id)
-            .update({ status: 'synced' }).catch(()=>{});
-
-          // Notify staff
-          showToast(`🌐 Đơn online mới: ${code} — ${pub.customer?.name} (${fmtMoney(pub.total)})`, 'info', 8000);
-
-          // Refresh orders tab if open
-          const ordersPanel = document.getElementById('panel-orders');
-          if (ordersPanel?.classList.contains('active')) twRenderOrders();
+          if (!pub || !pub.id) return;
+          // Chain qua mutex để các import chạy tuần tự, tránh ghi đè nhau
+          _importing = _importing.then(() => importPublicOrder(pub)).catch(e => {
+            console.warn('H5C: Import public order failed', pub.id, e);
+          });
         });
       }, err => console.warn('H5C: Public orders listener error', err));
   }
