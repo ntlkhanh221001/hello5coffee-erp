@@ -539,6 +539,32 @@ async function submitOrder() {
       branchId, items, total: cartTotal()
     };
     await db.collection('tw_public_orders').doc(id).set(order);
+
+    // Fire-and-forget: gửi email thông báo (không block UI)
+    try {
+      const br = branches.find(b => b.id === branchId);
+      fetch('/api/send-order-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: order.code,
+          customer_code: order.customer_code,
+          customerName: name,
+          customerPhone: phone,
+          total: order.total,
+          items: order.items,
+          orderType: order.orderType,
+          deliveryAddress: order.deliveryAddress,
+          note: note,
+          branchName: br ? br.name : '',
+          isScheduled: order.isScheduled,
+          scheduledAt: order.scheduledAt,
+          source: 'online',
+          createdAt: order.createdAt
+        })
+      }).catch(() => {}); // Không báo lỗi cho khách nếu email fail
+    } catch(e) { /* ignore */ }
+
     showSuccess(order);
   } catch(e) {
     alert('Lỗi gửi đơn: '+e.message+'\nVui lòng thử lại.');

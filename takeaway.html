@@ -2774,7 +2774,7 @@
     const orders = get(KEYS.orders);
     const deliveryDate = isScheduled ? scheduledAt.slice(0,10) : today();
     const code = twGenOrderCode('offline', branchId, deliveryDate);
-    orders.push({
+    const newOrder = {
       id: genId('ORD'), code, branchId, items, total,
       paymentMethod: document.getElementById('twOrdPay').value,
       note: document.getElementById('twOrdNote').value.trim(),
@@ -2784,11 +2784,37 @@
       date: deliveryDate,
       createdAt: new Date().toISOString(),
       createdBy: currentUser(),
-    });
+    };
+    orders.push(newOrder);
     set(KEYS.orders, orders);
     twCloseModal();
     twRenderOrders();
     showToast(`Đã tạo đơn ${code}`, 'success');
+
+    // Fire-and-forget: email notification
+    try {
+      const br = get(KEYS.branches).find(b => b.id === branchId);
+      fetch('/api/send-order-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: newOrder.code,
+          customer_code: '',
+          customerName: newOrder.createdBy || 'Nhân viên',
+          customerPhone: '',
+          total: newOrder.total,
+          items: newOrder.items,
+          orderType: 'pickup',
+          deliveryAddress: '',
+          note: newOrder.note,
+          branchName: br ? br.name : '',
+          isScheduled: newOrder.isScheduled,
+          scheduledAt: newOrder.scheduledAt,
+          source: 'offline',
+          createdAt: newOrder.createdAt
+        })
+      }).catch(() => {});
+    } catch(e) { /* ignore */ }
   };
 
   window.twViewOrder = function(id) {

@@ -1,0 +1,9 @@
+{
+  "name": "hello5coffee-erp",
+  "version": "1.0.0",
+  "description": "Hello 5 Coffee ERP — internal management system",
+  "private": true,
+  "dependencies": {
+    "nodemailer": "^6.9.16"
+  }
+}
