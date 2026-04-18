@@ -215,6 +215,19 @@
     <div id="del-fields">
       <div class="fg"><label class="fl">Địa chỉ giao hàng <span class="req">*</span></label>
         <textarea class="fi" id="f-addr" rows="2" placeholder="Số nhà, tên đường, phường, quận..."></textarea></div>
+      <div class="fg" style="margin-top:2px">
+        <button type="button" id="calc-ship-btn" onclick="calcShipFee()"
+          style="width:100%;padding:11px 13px;background:var(--sage-bg);color:var(--sage);border:1.5px solid var(--sage);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:left;font-family:inherit;transition:opacity .15s">
+          📍 Tính phí giao hàng
+        </button>
+        <div id="ship-info" style="display:none;margin-top:8px;padding:10px 13px;border-radius:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <span id="ship-dist" style="font-size:13px;color:var(--text2)"></span>
+            <span id="ship-fee-lbl" style="font-size:13px;font-weight:700"></span>
+          </div>
+        </div>
+        <div id="ship-err" style="display:none;font-size:12px;color:var(--danger);margin-top:6px;padding-left:2px"></div>
+      </div>
     </div>
     <div id="pick-fields" style="display:none">
       <div class="fg"><label class="fl">Chọn chi nhánh <span class="req">*</span></label>
@@ -284,10 +297,17 @@ const FB_CONFIG = {
 };
 const CAT_LABELS = {coffee:'☕ Cà phê',tea:'🍵 Trà',juice:'🍊 Nước ép',food:'🍱 Đồ ăn',other:'✨ Khác'};
 const CAT_ORDER  = ['coffee','tea','juice','food','other'];
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiaDVjZ2xvYmFsIiwiYSI6ImNtbzQ3OTJqa' +
+  'DFieHAycHE0c2J0dm12Y2sifQ.u-XKgqOqIzp_xgiy1pdk4g';
+const SHIP_TIERS = [
+  {maxKm:2, fee:15000},{maxKm:5, fee:25000},{maxKm:10, fee:35000},
+  {maxKm:20, fee:55000},{maxKm:Infinity, fee:null}
+];
 
-let db, menuItems=[], branches=[], cart={};
+let db, menuItems=[], branches=[], cart={}, shipFee=0, shipKm=null, shipCalcing=false;
 let curScreen='menu', orderType='delivery', timeType='now', activeCat='';
-let urlBranchId='';
+let urlBranchId='', shipConfig=null;
+const _branchCoordCache = {};
 
 // ── Helpers ──────────────────────────────────────────────
 const $  = s => document.querySelector(s);
@@ -301,12 +321,19 @@ async function init() {
     if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     db = firebase.firestore();
 
-    const [mSnap, bSnap] = await Promise.all([
+    const [mSnap, bSnap, cfgSnap] = await Promise.all([
       db.collection('h5c_data').doc('tw_menu_items').get(),
       db.collection('h5c_data').doc('tw_branches').get(),
+      db.collection('h5c_data').doc('tw_ship_config').get(),
     ]);
-    menuItems = (mSnap.data()?.value || []).filter(m => m.status === 'active');
-    branches  = (bSnap.data()?.value || []).filter(b => b.status === 'active');
+    menuItems  = (mSnap.data()?.value || []).filter(m => m.status === 'active');
+    branches   = (bSnap.data()?.value || []).filter(b => b.status === 'active');
+    shipConfig = cfgSnap.data()?.value || null;
+
+    // Keep ship config in sync when admin changes it
+    db.collection('h5c_data').doc('tw_ship_config').onSnapshot(snap => {
+      shipConfig = snap.data()?.value || null;
+    });
 
     // Realtime menu listener
     db.collection('h5c_data').doc('tw_menu_items').onSnapshot(snap => {
@@ -463,6 +490,7 @@ function setOrderType(t) {
   $('#rc-pick').classList.toggle('sel', t==='pickup');
   $('#del-fields').style.display  = t==='delivery' ? '' : 'none';
   $('#pick-fields').style.display = t==='pickup'   ? '' : 'none';
+  if (t !== 'delivery') { shipFee=0; shipKm=null; renderSummary(); }
 }
 function setTimeType(t) {
   timeType = t;
@@ -481,11 +509,19 @@ function fillBranchSelect() {
   if (urlBranchId) sel.dispatchEvent(new Event('change'));
 }
 function renderSummary() {
+  const sub = cartTotal();
+  const fee = orderType === 'delivery' ? shipFee : 0;
+  const grand = sub + fee;
+  const shipRow = orderType === 'delivery'
+    ? (shipKm !== null
+        ? `<div class="sr"><span>🚚 Phí giao hàng <span style="color:var(--text2);font-weight:400">(~${shipKm.toFixed(1)} km)</span></span><span>${fee > 0 ? fm(fee) : '<span style="color:var(--danger);font-size:12px">Liên hệ nhân viên</span>'}</span></div>`
+        : `<div class="sr" style="opacity:.55"><span>🚚 Phí giao hàng</span><span style="font-size:12px;color:var(--text2)">Nhấn "Tính phí" ↑</span></div>`)
+    : '';
   $('#chk-summary').innerHTML =
     Object.values(cart).map(v =>
       `<div class="sr"><span>${v.item?.name} (${v.size}) × ${v.qty}</span><span>${fm(v.price*v.qty)}</span></div>`
-    ).join('') +
-    `<div class="sr tot"><span>Tổng cộng</span><span class="amt">${fm(cartTotal())}</span></div>`;
+    ).join('') + shipRow +
+    `<div class="sr tot"><span>Tổng cộng</span><span class="amt">${fm(grand)}</span></div>`;
 }
 
 // ── Submit ────────────────────────────────────────────────
@@ -531,12 +567,16 @@ async function submitOrder() {
     const code = `DH-ON-${bNum}-${dd||'00'}${dm||'00'}${dy||'0000'}-${seq}`;
     // 7-char customer-facing code (uppercase letters + digits, easy to read aloud)
     const customer_code = Array.from({length:7}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+    const fee = orderType === 'delivery' ? shipFee : 0;
     const order = {
       id, code, customer_code, createdAt: new Date().toISOString(), status:'new', source:'online',
       customer: {name,phone,note},
       orderType, deliveryAddress, pickupBranchId,
       scheduledAt, isScheduled: timeType==='scheduled',
-      branchId, items, total: cartTotal()
+      branchId, items,
+      itemsTotal: cartTotal(), shipFee: fee,
+      shipKm: orderType === 'delivery' ? shipKm : null,
+      total: cartTotal() + fee
     };
     await db.collection('tw_public_orders').doc(id).set(order);
 
@@ -586,6 +626,7 @@ function showSuccess(o) {
     ${o.orderType==='delivery'?`<div class="sdr"><span class="lbl">Địa chỉ</span><span class="val">${o.deliveryAddress}</span></div>`:''}
     ${o.orderType==='pickup'&&br?`<div class="sdr"><span class="lbl">Chi nhánh</span><span class="val">${br.name}</span></div>`:''}
     <div class="sdr"><span class="lbl">Thời gian</span><span class="val">${timeStr}</span></div>
+    ${o.orderType==='delivery'&&o.shipFee?`<div class="sdr"><span class="lbl">Phí ship</span><span class="val">${fm(o.shipFee)}${o.shipKm?' (~'+o.shipKm.toFixed(1)+'km)':''}</span></div>`:''}
     <div class="sdr"><span class="lbl">Tổng tiền</span><span class="val" style="color:var(--sage);font-size:15px">${fm(o.total)}</span></div>
     ${o.customer.note?`<div class="sdr"><span class="lbl">Ghi chú</span><span class="val">${o.customer.note}</span></div>`:''}
   `;
@@ -594,8 +635,10 @@ function showSuccess(o) {
 
 function resetOrder() {
   cart={};
+  shipFee=0; shipKm=null;
   ['#f-name','#f-phone','#f-note','#f-addr'].forEach(s => { if ($(s)) $(s).value=''; });
   setOrderType('delivery'); setTimeType('now');
+  hideShipUI();
   const btn = $('#submit-btn');
   btn.disabled=false; btn.textContent='✅ Xác nhận đặt hàng';
   showScreen('menu');
@@ -612,6 +655,126 @@ function closeZoom() {
   document.body.style.overflow = '';
 }
 document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
+
+// ── Shipping fee (Mapbox) ────────────────────────────────
+async function mbGeocode(address) {
+  const q = encodeURIComponent(address);
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&language=vi&country=VN&limit=1`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (!d.features?.length) return null;
+  const [lon, lat] = d.features[0].center;
+  return {lat, lon};
+}
+
+async function getBranchCoord(br) {
+  if (br.lat && br.lng) return {lat: br.lat, lon: br.lng};
+  if (_branchCoordCache[br.id]) return _branchCoordCache[br.id];
+  const coord = await mbGeocode(br.address);
+  if (coord) _branchCoordCache[br.id] = coord;
+  return coord;
+}
+
+async function mbDriveKm(from, to) {
+  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lon},${from.lat};${to.lon},${to.lat}?access_token=${MAPBOX_TOKEN}&geometries=geojson`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (!d.routes?.length) return null;
+  return d.routes[0].distance / 1000;
+}
+
+async function calcShipFee() {
+  if (shipCalcing) return;
+  const addr = ($('#f-addr')?.value || '').trim();
+  if (addr.length < 10) { showShipErr('Vui lòng nhập địa chỉ đầy đủ (số nhà, đường, quận...)'); return; }
+  const brId = urlBranchId || branches[0]?.id;
+  const br = branches.find(b => b.id === brId);
+  if (!br?.address) { showShipErr('Chi nhánh chưa có địa chỉ, phí ship sẽ được xác nhận sau'); return; }
+
+  shipCalcing = true;
+  const btn = $('#calc-ship-btn');
+  if (btn) { btn.textContent = '⏳ Đang tính...'; btn.disabled = true; }
+  const info = $('#ship-info'), err = $('#ship-err');
+  if (info) info.style.display = 'none';
+  if (err) err.style.display = 'none';
+
+  try {
+    const [brCoord, custCoord] = await Promise.all([
+      getBranchCoord(br),
+      mbGeocode(addr)
+    ]);
+    if (!brCoord) { showShipErr('Không xác định được vị trí chi nhánh'); return; }
+    if (!custCoord) { showShipErr('Không tìm được địa chỉ. Hãy nhập chi tiết hơn (số nhà, tên đường, quận, tỉnh/thành).'); return; }
+
+    const km = await mbDriveKm(brCoord, custCoord);
+    if (km === null) { showShipErr('Không tính được tuyến đường. Vui lòng thử lại.'); return; }
+
+    const tiers = (shipConfig?.tiers?.length) ? shipConfig.tiers : SHIP_TIERS;
+    const tier = tiers.find(t => t.maxKm == null || km <= t.maxKm);
+    shipKm = km;
+
+    const baseFee = (tier?.fee != null) ? tier.fee : null; // null = liên hệ
+    let finalFee = baseFee;
+
+    if (baseFee !== null) {
+      const orderVal = cartTotal();
+      const cupCount = Object.values(cart).reduce((s,v) => s + v.qty, 0);
+      for (const d of (shipConfig?.discounts || [])) {
+        const applies = (d.type === 'order_value' && orderVal >= d.threshold)
+                     || (d.type === 'cups'        && cupCount >= d.threshold);
+        if (applies) finalFee = Math.min(finalFee, d.fee);
+      }
+    }
+
+    shipFee = finalFee ?? 0;
+    showShipResult(km, finalFee, baseFee !== finalFee ? baseFee : null);
+    renderSummary();
+  } catch(e) {
+    showShipErr('Không thể tính phí ship. Vui lòng thử lại.');
+  } finally {
+    shipCalcing = false;
+    if (btn) { btn.textContent = '🔄 Tính lại phí ship'; btn.disabled = false; }
+  }
+}
+
+function showShipResult(km, fee, origFee = null) {
+  const info = $('#ship-info'), err = $('#ship-err');
+  if (err) err.style.display = 'none';
+  if (!info) return;
+  const hasDiscount = origFee !== null && origFee !== fee;
+  info.style.display = '';
+  info.style.background = fee === null ? '#fff3e0' : hasDiscount ? '#e8f5e9' : 'var(--sage-bg)';
+  const d = $('#ship-dist'), f = $('#ship-fee-lbl');
+  if (d) d.textContent = '📍 Khoảng cách ~' + km.toFixed(1) + ' km (đường bộ)';
+  if (f) {
+    if (fee === null) {
+      f.textContent = '⚠️ Quá xa – liên hệ nhân viên';
+      f.style.color = 'var(--danger)';
+    } else if (hasDiscount) {
+      f.innerHTML = '🎁 Phí ship: <del style="color:var(--text2);font-weight:400;font-size:11px">' + fm(origFee) + '</del> '
+        + (fee === 0 ? '<strong style="color:#2e7d32">Miễn phí!</strong>' : '<strong style="color:#2e7d32">' + fm(fee) + '</strong>');
+      f.style.color = '';
+    } else {
+      f.textContent = fee === 0 ? '🎁 Miễn phí ship!' : '🚚 Phí ship: ' + fm(fee);
+      f.style.color = fee === 0 ? '#2e7d32' : 'var(--sage)';
+    }
+  }
+}
+
+function showShipErr(msg) {
+  const info = $('#ship-info'), err = $('#ship-err');
+  if (info) info.style.display = 'none';
+  if (!err) return;
+  err.textContent = '⚠️ ' + msg;
+  err.style.display = '';
+}
+
+function hideShipUI() {
+  const info = $('#ship-info'), err = $('#ship-err'), btn = $('#calc-ship-btn');
+  if (info) info.style.display = 'none';
+  if (err) err.style.display = 'none';
+  if (btn) { btn.textContent = '📍 Tính phí giao hàng'; btn.disabled = false; }
+}
 
 // ── Go ────────────────────────────────────────────────────
 init();

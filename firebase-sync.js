@@ -34,7 +34,7 @@
     'tw_branches', 'tw_menu_items', 'tw_ingredients', 'tw_recipes',
     'tw_stock_central', 'tw_stock_branch', 'tw_distributions',
     'tw_shifts', 'tw_orders', 'tw_expenses', 'tw_partner_config',
-    'tw_employees', 'tw_attendance', 'tw_payroll_adj'
+    'tw_employees', 'tw_attendance', 'tw_payroll_adj', 'tw_ship_config'
   ];
 
   const LS_PREFIX = 'h5c_v1_';
