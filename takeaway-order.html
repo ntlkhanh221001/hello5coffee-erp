@@ -306,7 +306,7 @@ const SHIP_TIERS = [
 
 let db, menuItems=[], branches=[], cart={}, shipFee=0, shipKm=null, shipCalcing=false;
 let curScreen='menu', orderType='delivery', timeType='now', activeCat='';
-let urlBranchId='';
+let urlBranchId='', shipConfig=null;
 const _branchCoordCache = {};
 
 // ── Helpers ──────────────────────────────────────────────
@@ -321,12 +321,19 @@ async function init() {
     if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     db = firebase.firestore();
 
-    const [mSnap, bSnap] = await Promise.all([
+    const [mSnap, bSnap, cfgSnap] = await Promise.all([
       db.collection('h5c_data').doc('tw_menu_items').get(),
       db.collection('h5c_data').doc('tw_branches').get(),
+      db.collection('h5c_data').doc('tw_ship_config').get(),
     ]);
-    menuItems = (mSnap.data()?.value || []).filter(m => m.status === 'active');
-    branches  = (bSnap.data()?.value || []).filter(b => b.status === 'active');
+    menuItems  = (mSnap.data()?.value || []).filter(m => m.status === 'active');
+    branches   = (bSnap.data()?.value || []).filter(b => b.status === 'active');
+    shipConfig = cfgSnap.data()?.value || null;
+
+    // Keep ship config in sync when admin changes it
+    db.collection('h5c_data').doc('tw_ship_config').onSnapshot(snap => {
+      shipConfig = snap.data()?.value || null;
+    });
 
     // Realtime menu listener
     db.collection('h5c_data').doc('tw_menu_items').onSnapshot(snap => {
@@ -702,10 +709,25 @@ async function calcShipFee() {
     const km = await mbDriveKm(brCoord, custCoord);
     if (km === null) { showShipErr('Không tính được tuyến đường. Vui lòng thử lại.'); return; }
 
-    const tier = SHIP_TIERS.find(t => km <= t.maxKm);
+    const tiers = (shipConfig?.tiers?.length) ? shipConfig.tiers : SHIP_TIERS;
+    const tier = tiers.find(t => t.maxKm == null || km <= t.maxKm);
     shipKm = km;
-    shipFee = tier?.fee ?? 0;
-    showShipResult(km, tier?.fee ?? null);
+
+    const baseFee = (tier?.fee != null) ? tier.fee : null; // null = liên hệ
+    let finalFee = baseFee;
+
+    if (baseFee !== null) {
+      const orderVal = cartTotal();
+      const cupCount = Object.values(cart).reduce((s,v) => s + v.qty, 0);
+      for (const d of (shipConfig?.discounts || [])) {
+        const applies = (d.type === 'order_value' && orderVal >= d.threshold)
+                     || (d.type === 'cups'        && cupCount >= d.threshold);
+        if (applies) finalFee = Math.min(finalFee, d.fee);
+      }
+    }
+
+    shipFee = finalFee ?? 0;
+    showShipResult(km, finalFee, baseFee !== finalFee ? baseFee : null);
     renderSummary();
   } catch(e) {
     showShipErr('Không thể tính phí ship. Vui lòng thử lại.');
@@ -715,17 +737,27 @@ async function calcShipFee() {
   }
 }
 
-function showShipResult(km, fee) {
+function showShipResult(km, fee, origFee = null) {
   const info = $('#ship-info'), err = $('#ship-err');
   if (err) err.style.display = 'none';
   if (!info) return;
+  const hasDiscount = origFee !== null && origFee !== fee;
   info.style.display = '';
-  info.style.background = fee === null ? '#fff3e0' : 'var(--sage-bg)';
+  info.style.background = fee === null ? '#fff3e0' : hasDiscount ? '#e8f5e9' : 'var(--sage-bg)';
   const d = $('#ship-dist'), f = $('#ship-fee-lbl');
   if (d) d.textContent = '📍 Khoảng cách ~' + km.toFixed(1) + ' km (đường bộ)';
   if (f) {
-    f.textContent = fee === null ? '⚠️ Quá xa – liên hệ nhân viên' : '🚚 Phí ship: ' + fm(fee);
-    f.style.color = fee === null ? 'var(--danger)' : 'var(--sage)';
+    if (fee === null) {
+      f.textContent = '⚠️ Quá xa – liên hệ nhân viên';
+      f.style.color = 'var(--danger)';
+    } else if (hasDiscount) {
+      f.innerHTML = '🎁 Phí ship: <del style="color:var(--text2);font-weight:400;font-size:11px">' + fm(origFee) + '</del> '
+        + (fee === 0 ? '<strong style="color:#2e7d32">Miễn phí!</strong>' : '<strong style="color:#2e7d32">' + fm(fee) + '</strong>');
+      f.style.color = '';
+    } else {
+      f.textContent = fee === 0 ? '🎁 Miễn phí ship!' : '🚚 Phí ship: ' + fm(fee);
+      f.style.color = fee === 0 ? '#2e7d32' : 'var(--sage)';
+    }
   }
 }
 

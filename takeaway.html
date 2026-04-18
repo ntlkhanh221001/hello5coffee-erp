@@ -140,6 +140,7 @@
 @media(max-width:768px){
   .tw-kpi-grid{grid-template-columns:1fr 1fr}
   .tw-tab-bar{width:100%;overflow-x:auto}
+  .ship-cfg-grid{grid-template-columns:1fr!important}
   .tw-modal-row{grid-template-columns:1fr}
   .tw-denom-grid{grid-template-columns:repeat(2,1fr)}
   .tw-cash-summary{grid-template-columns:1fr}
@@ -179,6 +180,7 @@
         <button class="tw-tab" data-tab="expenses" onclick="twSwitchTab('expenses')">💰 Chi phí</button>
         <button class="tw-tab" data-tab="daily-nvl" onclick="twSwitchTab('daily-nvl')">🧮 Kiểm NVL</button>
         <button class="tw-tab" data-tab="reports" onclick="twSwitchTab('reports')">📈 Báo cáo & P&L</button>
+        <button class="tw-tab" data-tab="ship-config" onclick="twSwitchTab('ship-config')">⚙️ Cài đặt Ship</button>
       </div>
 
       <!-- ═══════════════════════════════════════════ -->
@@ -745,6 +747,55 @@
         </div>
       </div>
 
+      <!-- ═══ PANEL: Ship Config ═══ -->
+      <div class="tw-panel" id="panel-ship-config">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start" class="ship-cfg-grid">
+
+          <!-- Bảng phí theo khoảng cách -->
+          <div class="card" style="margin-bottom:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <h3 style="margin:0;font-size:15px;font-weight:700">🗺️ Phí ship theo khoảng cách</h3>
+              <button class="btn btn-secondary" onclick="twAddShipTier()" style="font-size:12px;padding:7px 14px">+ Thêm mức</button>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Từ</th>
+                    <th>Đến (km)</th>
+                    <th>Phí (đ)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="shipTiersBody"></tbody>
+              </table>
+            </div>
+            <p style="font-size:11px;color:var(--h5c-text-secondary);margin-top:10px;line-height:1.6">
+              💡 Để trống <b>Đến</b> = không giới hạn km (quá xa – liên hệ nhân viên).<br>
+              Để trống <b>Phí</b> = hiển thị "Liên hệ nhân viên" với khách.
+            </p>
+          </div>
+
+          <!-- Điều kiện giảm / miễn phí -->
+          <div class="card" style="margin-bottom:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <h3 style="margin:0;font-size:15px;font-weight:700">🎁 Điều kiện miễn / giảm phí</h3>
+              <button class="btn btn-secondary" onclick="twAddShipDiscount()" style="font-size:12px;padding:7px 14px">+ Thêm</button>
+            </div>
+            <div id="shipDiscountsBody"></div>
+            <p style="font-size:11px;color:var(--h5c-text-secondary);margin-top:10px;line-height:1.6">
+              💡 Phí = 0 → Miễn phí hoàn toàn.<br>
+              Nếu đơn thoả nhiều điều kiện → tự động áp dụng mức phí thấp nhất.
+            </p>
+          </div>
+
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+          <button class="btn btn-secondary" onclick="twResetShipConfig()">↺ Khôi phục mặc định</button>
+          <button class="btn btn-primary" onclick="twSaveShipConfig()">💾 Lưu cài đặt ship</button>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
@@ -784,6 +835,7 @@
     employees:        'tw_employees',
     attendance:       'tw_attendance',
     payrollAdj:       'tw_payroll_adj',
+    shipConfig:       'tw_ship_config',
   };
 
   // ── HR constants ──
@@ -855,7 +907,7 @@
 
   // Tabs visible per role
   const STAFF_TABS = ['dashboard','orders','shifts','daily-nvl'];
-  const ALL_TABS = ['dashboard','branches','hr','menu','ingredients','suppliers','stock-in','stock-out','inventory','orders','shifts','expenses','daily-nvl','reports'];
+  const ALL_TABS = ['dashboard','branches','hr','menu','ingredients','suppliers','stock-in','stock-out','inventory','orders','shifts','expenses','daily-nvl','reports','ship-config'];
 
   function applyRoleUI() {
     const role = getSessionRole();
@@ -909,7 +961,8 @@
       case 'expenses':  twRenderExpenses(); break;
       case 'daily-nvl': twRenderDailyNvl(); break;
       case 'hr':        twRenderHr(); break;
-      case 'reports':   twRenderReports(); break;
+      case 'reports':     twRenderReports(); break;
+      case 'ship-config': twRenderShipConfig(); break;
     }
   }
 
@@ -4209,6 +4262,138 @@
         });
       }, err => console.warn('H5C: Public orders listener error', err));
   }
+
+  // ═══════════════════════════════════════════
+  // SHIP CONFIG
+  // ═══════════════════════════════════════════
+  const DEFAULT_SHIP_CONFIG = {
+    tiers: [
+      {maxKm:2,fee:15000},{maxKm:5,fee:25000},{maxKm:10,fee:35000},
+      {maxKm:20,fee:55000},{maxKm:null,fee:null}
+    ],
+    discounts: []
+  };
+
+  function getShipCfg() {
+    const saved = H5C.get(KEYS.shipConfig);
+    if (saved && Array.isArray(saved.tiers) && saved.tiers.length) return saved;
+    return JSON.parse(JSON.stringify(DEFAULT_SHIP_CONFIG));
+  }
+
+  function twRenderShipConfig() {
+    const cfg = getShipCfg();
+    _renderShipTiers(cfg.tiers);
+    _renderShipDiscounts(cfg.discounts || []);
+  }
+
+  function _renderShipTiers(tiers) {
+    const tbody = document.getElementById('shipTiersBody');
+    if (!tbody) return;
+    if (!tiers.length) {
+      tbody.innerHTML = '<tr><td colspan="4"><div class="tw-empty" style="padding:28px"><div class="icon">📋</div><p>Chưa có mức phí</p></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = tiers.map((tier, i) => {
+      const fromKm = i === 0 ? '0' : (tiers[i-1].maxKm != null ? tiers[i-1].maxKm : '—');
+      return `<tr>
+        <td style="color:var(--h5c-text-secondary);font-size:12px">${fromKm} km</td>
+        <td>
+          <input type="number" class="input st-maxkm" value="${tier.maxKm != null ? tier.maxKm : ''}"
+            min="0" step="0.5" style="width:76px" placeholder="∞"
+            oninput="_updateTierFromKm()"/>
+          <span style="font-size:12px;color:var(--h5c-text-secondary)"> km</span>
+        </td>
+        <td>
+          <input type="number" class="input st-fee" value="${tier.fee != null ? tier.fee : ''}"
+            min="0" step="1000" style="width:96px" placeholder="Liên hệ"/>
+          <span style="font-size:12px;color:var(--h5c-text-secondary)"> đ</span>
+        </td>
+        <td><button class="tw-action delete" onclick="this.closest('tr').remove();_updateTierFromKm()" title="Xóa">🗑</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function _renderShipDiscounts(discounts) {
+    const el = document.getElementById('shipDiscountsBody');
+    if (!el) return;
+    if (!discounts.length) {
+      el.innerHTML = '<div class="tw-empty" style="padding:28px"><div class="icon">🎁</div><p>Chưa có điều kiện giảm phí</p></div>';
+      return;
+    }
+    el.innerHTML = discounts.map(d => `
+      <div class="ship-disc-row" style="background:var(--h5c-bg-subtle);border-radius:var(--h5c-radius-sm);padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--h5c-text-secondary)">Khi</span>
+          <select class="input sd-type" style="width:auto" onchange="this.closest('.ship-disc-row').querySelector('.sd-unit').textContent=this.value==='cups'?'cốc':'đ'">
+            <option value="order_value"${d.type==='order_value'?' selected':''}>💰 Giá trị đơn ≥</option>
+            <option value="cups"${d.type==='cups'?' selected':''}>☕ Số cốc ≥</option>
+          </select>
+          <input type="number" class="input sd-threshold" value="${d.threshold}" min="0" style="width:110px"/>
+          <span class="sd-unit" style="font-size:12px;color:var(--h5c-text-secondary)">${d.type==='cups'?'cốc':'đ'}</span>
+          <button class="tw-action delete" onclick="this.closest('.ship-disc-row').remove()" style="margin-left:auto" title="Xóa">🗑</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:4px">
+          <span style="font-size:12px;color:var(--h5c-text-secondary)">→ Phí ship giảm còn</span>
+          <input type="number" class="input sd-fee" value="${d.fee}" min="0" step="1000" style="width:110px" placeholder="0"/>
+          <span style="font-size:12px;color:var(--h5c-text-secondary)">đ &nbsp;<em>(0 = miễn phí)</em></span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window._updateTierFromKm = function() {
+    const rows = [...document.querySelectorAll('#shipTiersBody tr')];
+    rows.forEach((tr, i) => {
+      const fromCell = tr.querySelector('td:first-child');
+      if (!fromCell) return;
+      if (i === 0) { fromCell.textContent = '0 km'; return; }
+      const prevVal = rows[i-1].querySelector('.st-maxkm')?.value;
+      fromCell.textContent = (prevVal ? prevVal : '—') + ' km';
+    });
+  };
+
+  function _collectTiers() {
+    return [...document.querySelectorAll('#shipTiersBody tr')].map(tr => ({
+      maxKm: tr.querySelector('.st-maxkm')?.value !== '' ? parseFloat(tr.querySelector('.st-maxkm').value) : null,
+      fee:   tr.querySelector('.st-fee')?.value   !== '' ? parseInt(tr.querySelector('.st-fee').value)     : null
+    }));
+  }
+
+  function _collectDiscounts() {
+    return [...document.querySelectorAll('#shipDiscountsBody .ship-disc-row')].map(div => ({
+      type:      div.querySelector('.sd-type')?.value || 'order_value',
+      threshold: parseFloat(div.querySelector('.sd-threshold')?.value) || 0,
+      fee:       parseInt(div.querySelector('.sd-fee')?.value) || 0
+    }));
+  }
+
+  window.twAddShipTier = function() {
+    const tiers = _collectTiers();
+    const lastKm = tiers.filter(t => t.maxKm != null).reduce((m, t) => Math.max(m, t.maxKm), 0);
+    tiers.push({maxKm: lastKm + 5, fee: 0});
+    _renderShipTiers(tiers);
+  };
+
+  window.twAddShipDiscount = function() {
+    const d = _collectDiscounts();
+    d.push({type:'order_value', threshold:200000, fee:0});
+    _renderShipDiscounts(d);
+  };
+
+  window.twSaveShipConfig = function() {
+    const tiers = _collectTiers();
+    if (!tiers.length) { showToast('Vui lòng thêm ít nhất 1 mức phí ship', 'error'); return; }
+    const cfg = {tiers, discounts: _collectDiscounts()};
+    set(KEYS.shipConfig, cfg);
+    showToast('✅ Đã lưu cài đặt phí ship!', 'success');
+  };
+
+  window.twResetShipConfig = function() {
+    if (!confirm('Khôi phục về bảng phí mặc định?')) return;
+    set(KEYS.shipConfig, JSON.parse(JSON.stringify(DEFAULT_SHIP_CONFIG)));
+    twRenderShipConfig();
+    showToast('Đã khôi phục mặc định', 'success');
+  };
 
   // ═══════════════════════════════════════════
   // QR / LINK CHO BRANCH
