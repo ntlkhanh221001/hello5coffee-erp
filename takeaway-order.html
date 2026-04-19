@@ -82,6 +82,8 @@
     .rc-ico{font-size:22px;display:block;margin-bottom:3px}
     .rc-lbl{font-size:13px;font-weight:600}
     .divider{height:8px;background:var(--bg);margin:4px -14px 14px}
+    .addr-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:400px){.addr-row{grid-template-columns:1fr}}
 
     /* ── Summary card ── */
     .sum-card{background:var(--surface);border-radius:var(--r);padding:13px 14px;margin:0 14px 14px;box-shadow:var(--shadow)}
@@ -213,8 +215,23 @@
       </div>
     </div>
     <div id="del-fields">
-      <div class="fg"><label class="fl">Địa chỉ giao hàng <span class="req">*</span></label>
-        <textarea class="fi" id="f-addr" rows="2" placeholder="Số nhà, tên đường, phường, quận..."></textarea></div>
+      <div class="addr-row">
+        <div class="fg"><label class="fl">Tỉnh / Thành phố <span class="req">*</span></label>
+          <select class="fi" id="f-city" onchange="onCityChange()">
+            <option value="">— Chọn tỉnh/thành —</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Quận / Huyện <span class="req">*</span></label>
+          <select class="fi" id="f-district" disabled onchange="onAddrChange()">
+            <option value="">— Chọn quận/huyện —</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Địa chỉ chi tiết <span class="req">*</span></label>
+        <input type="text" class="fi" id="f-addr-detail"
+          placeholder="Số nhà, tên đường, phường/xã, tòa nhà..."
+          oninput="onAddrChange()"/>
+      </div>
       <div class="fg" style="margin-top:2px">
         <button type="button" id="calc-ship-btn" onclick="calcShipFee()"
           style="width:100%;padding:11px 13px;background:var(--sage-bg);color:var(--sage);border:1.5px solid var(--sage);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:left;font-family:inherit;transition:opacity .15s">
@@ -297,12 +314,78 @@ const FB_CONFIG = {
 };
 const CAT_LABELS = {coffee:'☕ Cà phê',tea:'🍵 Trà',juice:'🍊 Nước ép',food:'🍱 Đồ ăn',other:'✨ Khác'};
 const CAT_ORDER  = ['coffee','tea','juice','food','other'];
-const MAPBOX_TOKEN = 'pk.eyJ1IjoiaDVjZ2xvYmFsIiwiYSI6ImNtbzQ3OTJqa' +
-  'DFieHAycHE0c2J0dm12Y2sifQ.u-XKgqOqIzp_xgiy1pdk4g';
+const VIETMAP_KEY = '26d21834cca9b1e77867102d018f6057dd5a16acdfb21041';
 const SHIP_TIERS = [
   {maxKm:2, fee:15000},{maxKm:5, fee:25000},{maxKm:10, fee:35000},
-  {maxKm:20, fee:55000},{maxKm:Infinity, fee:null}
+  {maxKm:20, fee:55000},{maxKm:null, fee:null}
 ];
+
+// Dữ liệu hành chính Việt Nam (cấu trúc cũ: tỉnh/huyện)
+const VN_ADMIN = {
+  'An Giang':['Long Xuyên','Châu Đốc','An Phú','Châu Phú','Châu Thành','Chợ Mới','Phú Tân','Thoại Sơn','Tịnh Biên','Tri Tôn'],
+  'Bà Rịa - Vũng Tàu':['Vũng Tàu','Bà Rịa','Châu Đức','Côn Đảo','Đất Đỏ','Long Điền','Tân Thành','Xuyên Mộc'],
+  'Bắc Giang':['Bắc Giang','Hiệp Hòa','Lạng Giang','Lục Nam','Lục Ngạn','Sơn Động','Tân Yên','Việt Yên','Yên Dũng','Yên Thế'],
+  'Bắc Kạn':['Bắc Kạn','Ba Bể','Bạch Thông','Chợ Đồn','Chợ Mới','Na Rì','Ngân Sơn','Pác Nặm'],
+  'Bạc Liêu':['Bạc Liêu','Đông Hải','Giá Rai','Hòa Bình','Hồng Dân','Phước Long','Vĩnh Lợi'],
+  'Bắc Ninh':['Bắc Ninh','Từ Sơn','Gia Bình','Lương Tài','Quế Võ','Thuận Thành','Tiên Du','Yên Phong'],
+  'Bến Tre':['Bến Tre','Ba Tri','Bình Đại','Châu Thành','Chợ Lách','Giồng Trôm','Mỏ Cày Bắc','Mỏ Cày Nam','Thạnh Phú'],
+  'Bình Định':['Quy Nhơn','An Lão','An Nhơn','Hoài Ân','Hoài Nhơn','Phù Cát','Phù Mỹ','Tây Sơn','Tuy Phước','Vân Canh','Vĩnh Thạnh'],
+  'Bình Dương':['Thủ Dầu Một','Bến Cát','Dĩ An','Tân Uyên','Thuận An','Bàu Bàng','Bắc Tân Uyên','Dầu Tiếng','Phú Giáo'],
+  'Bình Phước':['Đồng Xoài','Bình Long','Phước Long','Bù Đăng','Bù Đốp','Bù Gia Mập','Chơn Thành','Đồng Phú','Hớn Quản','Lộc Ninh','Phú Riềng'],
+  'Bình Thuận':['Phan Thiết','La Gi','Bắc Bình','Đức Linh','Hàm Tân','Hàm Thuận Bắc','Hàm Thuận Nam','Phú Quý','Tánh Linh','Tuy Phong'],
+  'Cà Mau':['Cà Mau','Cái Nước','Đầm Dơi','Năm Căn','Ngọc Hiển','Phú Tân','Thới Bình','Trần Văn Thời','U Minh'],
+  'Cần Thơ':['Ninh Kiều','Bình Thủy','Cái Răng','Ô Môn','Thốt Nốt','Cờ Đỏ','Phong Điền','Thới Lai','Vĩnh Thạnh'],
+  'Cao Bằng':['Cao Bằng','Bảo Lâm','Bảo Lạc','Hà Quảng','Hạ Lang','Hòa An','Nguyên Bình','Quảng Hòa','Thạch An','Trùng Khánh'],
+  'Đà Nẵng':['Hải Châu','Cẩm Lệ','Liên Chiểu','Ngũ Hành Sơn','Sơn Trà','Thanh Khê','Hòa Vang','Hoàng Sa'],
+  'Đắk Lắk':['Buôn Ma Thuột','Buôn Hồ','Buôn Đôn','Cư Kuin','Cư M\'gar','Ea H\'leo','Ea Kar','Ea Súp','Krông Ana','Krông Bông','Krông Búk','Krông Năng','Krông Pắc','Lắk','M\'Đrắk'],
+  'Đắk Nông':['Gia Nghĩa','Cư Jút','Đắk Glong','Đắk Mil','Đắk R\'Lấp','Đắk Song','Krông Nô','Tuy Đức'],
+  'Điện Biên':['Điện Biên Phủ','Mường Lay','Điện Biên','Điện Biên Đông','Mường Ảng','Mường Chà','Mường Nhé','Nậm Pồ','Tủa Chùa','Tuần Giáo'],
+  'Đồng Nai':['Biên Hòa','Long Khánh','Cẩm Mỹ','Định Quán','Long Thành','Nhơn Trạch','Tân Phú','Thống Nhất','Trảng Bom','Vĩnh Cửu','Xuân Lộc'],
+  'Đồng Tháp':['Cao Lãnh','Sa Đéc','Hồng Ngự','Châu Thành','Lai Vung','Lấp Vò','Tam Nông','Tân Hồng','Tháp Mười','Thanh Bình'],
+  'Gia Lai':['Pleiku','An Khê','Ayun Pa','Chư Păh','Chư Prông','Chư Pưh','Chư Sê','Đắk Đoa','Đắk Pơ','Đức Cơ','Ia Grai','Ia Pa','K\'Bang','Kông Chro','Krông Pa','Mang Yang','Phú Thiện'],
+  'Hà Giang':['Hà Giang','Bắc Mê','Bắc Quang','Đồng Văn','Hoàng Su Phì','Mèo Vạc','Quản Bạ','Quang Bình','Vị Xuyên','Xín Mần','Yên Minh'],
+  'Hà Nam':['Phủ Lý','Bình Lục','Duy Tiên','Kim Bảng','Lý Nhân','Thanh Liêm'],
+  'Hà Nội':['Ba Đình','Hoàn Kiếm','Tây Hồ','Long Biên','Cầu Giấy','Đống Đa','Hai Bà Trưng','Hoàng Mai','Thanh Xuân','Bắc Từ Liêm','Nam Từ Liêm','Hà Đông','Sóc Sơn','Đông Anh','Gia Lâm','Thanh Trì','Mê Linh','Sơn Tây','Ba Vì','Chương Mỹ','Đan Phượng','Hoài Đức','Mỹ Đức','Phú Xuyên','Phúc Thọ','Quốc Oai','Thạch Thất','Thanh Oai','Thường Tín','Ứng Hòa'],
+  'Hà Tĩnh':['Hà Tĩnh','Hồng Lĩnh','Kỳ Anh','Nghi Xuân','Can Lộc','Cẩm Xuyên','Đức Thọ','Hương Khê','Hương Sơn','Lộc Hà','Thạch Hà','Thị xã Kỳ Anh','Vũ Quang'],
+  'Hải Dương':['Hải Dương','Chí Linh','Bình Giang','Cẩm Giàng','Gia Lộc','Kim Thành','Kinh Môn','Nam Sách','Ninh Giang','Thanh Hà','Thanh Miện','Tứ Kỳ'],
+  'Hải Phòng':['Hồng Bàng','Lê Chân','Ngô Quyền','Kiến An','Dương Kinh','Đồ Sơn','Hải An','An Dương','An Lão','Bạch Long Vĩ','Cát Hải','Kiến Thụy','Thủy Nguyên','Tiên Lãng','Vĩnh Bảo'],
+  'Hậu Giang':['Vị Thanh','Ngã Bảy','Châu Thành','Châu Thành A','Long Mỹ','Phụng Hiệp','Vị Thủy'],
+  'Hòa Bình':['Hòa Bình','Cao Phong','Đà Bắc','Kim Bôi','Lạc Sơn','Lạc Thủy','Lương Sơn','Mai Châu','Tân Lạc','Yên Thủy'],
+  'Hưng Yên':['Hưng Yên','Mỹ Hào','Ân Thi','Khoái Châu','Kim Động','Phù Cừ','Tiên Lữ','Văn Giang','Văn Lâm','Yên Mỹ'],
+  'Khánh Hòa':['Nha Trang','Cam Ranh','Ninh Hòa','Cam Lâm','Diên Khánh','Khánh Sơn','Khánh Vĩnh','Trường Sa','Vạn Ninh'],
+  'Kiên Giang':['Rạch Giá','Hà Tiên','Phú Quốc','An Biên','An Minh','Châu Thành','Giang Thành','Giồng Riềng','Gò Quao','Hòn Đất','Kiên Hải','Kiên Lương','Tân Hiệp','U Minh Thượng','Vĩnh Thuận'],
+  'Kon Tum':['Kon Tum','Đắk Glei','Đắk Hà','Đắk Tô','Ia H\'Drai','Kon Plông','Kon Rẫy','Ngọc Hồi','Sa Thầy','Tu Mơ Rông'],
+  'Lai Châu':['Lai Châu','Mường Tè','Nậm Nhùn','Phong Thổ','Sìn Hồ','Tam Đường','Tân Uyên','Than Uyên'],
+  'Lâm Đồng':['Đà Lạt','Bảo Lộc','Bảo Lâm','Cát Tiên','Đạ Huoai','Đạ Tẻh','Đam Rông','Di Linh','Đơn Dương','Đức Trọng','Lạc Dương','Lâm Hà'],
+  'Lạng Sơn':['Lạng Sơn','Bắc Sơn','Bình Gia','Cao Lộc','Chi Lăng','Đình Lập','Hữu Lũng','Lộc Bình','Tràng Định','Văn Lãng','Văn Quan'],
+  'Lào Cai':['Lào Cai','Sa Pa','Bắc Hà','Bảo Thắng','Bảo Yên','Bát Xát','Mường Khương','Si Ma Cai','Văn Bàn'],
+  'Long An':['Tân An','Kiến Tường','Bến Lức','Cần Đước','Cần Giuộc','Châu Thành','Đức Hòa','Đức Huệ','Mộc Hóa','Tân Hưng','Tân Thạnh','Tân Trụ','Thạnh Hóa','Thủ Thừa','Vĩnh Hưng'],
+  'Nam Định':['Nam Định','Giao Thủy','Hải Hậu','Mỹ Lộc','Nam Trực','Nghĩa Hưng','Trực Ninh','Vụ Bản','Xuân Trường','Ý Yên'],
+  'Nghệ An':['Vinh','Cửa Lò','Hoàng Mai','Thái Hòa','Anh Sơn','Con Cuông','Diễn Châu','Đô Lương','Hưng Nguyên','Kỳ Sơn','Nam Đàn','Nghi Lộc','Nghĩa Đàn','Quế Phong','Quỳ Châu','Quỳ Hợp','Quỳnh Lưu','Tân Kỳ','Thanh Chương','Tương Dương','Yên Thành'],
+  'Ninh Bình':['Ninh Bình','Tam Điệp','Gia Viễn','Hoa Lư','Kim Sơn','Nho Quan','Yên Khánh','Yên Mô'],
+  'Ninh Thuận':['Phan Rang - Tháp Chàm','Bác Ái','Ninh Hải','Ninh Phước','Ninh Sơn','Thuận Bắc','Thuận Nam'],
+  'Phú Thọ':['Việt Trì','Phú Thọ','Cẩm Khê','Đoan Hùng','Hạ Hòa','Lâm Thao','Phù Ninh','Tam Nông','Tân Sơn','Thanh Ba','Thanh Sơn','Thanh Thủy','Yên Lập'],
+  'Phú Yên':['Tuy Hòa','Sông Cầu','Đồng Xuân','Đông Hòa','Phú Hòa','Sơn Hòa','Sông Hinh','Tây Hòa','Tuy An'],
+  'Quảng Bình':['Đồng Hới','Ba Đồn','Bố Trạch','Lệ Thủy','Minh Hóa','Quảng Ninh','Quảng Trạch','Tuyên Hóa'],
+  'Quảng Nam':['Tam Kỳ','Hội An','Điện Bàn','Bắc Trà My','Đại Lộc','Đông Giang','Duy Xuyên','Hiệp Đức','Nam Giang','Nam Trà My','Nông Sơn','Núi Thành','Phú Ninh','Phước Sơn','Quế Sơn','Tây Giang','Thăng Bình','Tiên Phước'],
+  'Quảng Ngãi':['Quảng Ngãi','Đức Phổ','Ba Tơ','Bình Sơn','Lý Sơn','Minh Long','Mộ Đức','Nghĩa Hành','Sơn Hà','Sơn Tây','Sơn Tịnh','Tây Trà','Trà Bồng','Tư Nghĩa'],
+  'Quảng Ninh':['Hạ Long','Cẩm Phả','Uông Bí','Móng Cái','Đông Triều','Quảng Yên','Ba Chẽ','Bình Liêu','Cô Tô','Đầm Hà','Hải Hà','Tiên Yên','Vân Đồn'],
+  'Quảng Trị':['Đông Hà','Quảng Trị','Cam Lộ','Cồn Cỏ','Đakrông','Gio Linh','Hải Lăng','Hướng Hóa','Triệu Phong','Vĩnh Linh'],
+  'Sóc Trăng':['Sóc Trăng','Ngã Năm','Vĩnh Châu','Châu Thành','Cù Lao Dung','Kế Sách','Long Phú','Mỹ Tú','Mỹ Xuyên','Thạnh Trị','Trần Đề'],
+  'Sơn La':['Sơn La','Bắc Yên','Mai Sơn','Mộc Châu','Mường La','Phù Yên','Quỳnh Nhai','Sông Mã','Sốp Cộp','Thuận Châu','Vân Hồ','Yên Châu'],
+  'Tây Ninh':['Tây Ninh','Bến Cầu','Châu Thành','Dương Minh Châu','Gò Dầu','Hòa Thành','Tân Biên','Tân Châu','Trảng Bàng'],
+  'Thái Bình':['Thái Bình','Đông Hưng','Hưng Hà','Kiến Xương','Quỳnh Phụ','Thái Thụy','Tiền Hải','Vũ Thư'],
+  'Thái Nguyên':['Thái Nguyên','Sông Công','Phổ Yên','Đại Từ','Định Hóa','Đồng Hỷ','Phú Bình','Phú Lương','Võ Nhai'],
+  'Thanh Hóa':['Thanh Hóa','Bỉm Sơn','Sầm Sơn','Bá Thước','Cẩm Thủy','Đông Sơn','Hà Trung','Hậu Lộc','Hoằng Hóa','Lang Chánh','Mường Lát','Nga Sơn','Ngọc Lặc','Như Thanh','Như Xuân','Nông Cống','Quan Hóa','Quan Sơn','Quảng Xương','Thiệu Hóa','Thọ Xuân','Thường Xuân','Triệu Sơn','Vĩnh Lộc','Yên Định','Thị xã Nghi Sơn'],
+  'Thừa Thiên Huế':['Huế','Hương Thủy','Hương Trà','A Lưới','Nam Đông','Phong Điền','Phú Lộc','Phú Vang','Quảng Điền'],
+  'Tiền Giang':['Mỹ Tho','Gò Công','Cai Lậy','Cái Bè','Châu Thành','Chợ Gạo','Gò Công Đông','Gò Công Tây','Tân Phước','Tân Phú Đông'],
+  'TP. Hồ Chí Minh':['Quận 1','Quận 3','Quận 4','Quận 5','Quận 6','Quận 7','Quận 8','Quận 10','Quận 11','Quận 12','Bình Thạnh','Gò Vấp','Phú Nhuận','Tân Bình','Tân Phú','Bình Tân','Thủ Đức','Bình Chánh','Cần Giờ','Củ Chi','Hóc Môn','Nhà Bè'],
+  'Trà Vinh':['Trà Vinh','Duyên Hải','Càng Long','Cầu Kè','Cầu Ngang','Châu Thành','Tiểu Cần','Trà Cú'],
+  'Tuyên Quang':['Tuyên Quang','Chiêm Hóa','Hàm Yên','Lâm Bình','Na Hang','Sơn Dương','Yên Sơn'],
+  'Vĩnh Long':['Vĩnh Long','Bình Minh','Bình Tân','Long Hồ','Mang Thít','Tam Bình','Trà Ôn','Vũng Liêm'],
+  'Vĩnh Phúc':['Vĩnh Yên','Phúc Yên','Bình Xuyên','Lập Thạch','Sông Lô','Tam Đảo','Tam Dương','Vĩnh Tường','Yên Lạc'],
+  'Yên Bái':['Yên Bái','Nghĩa Lộ','Lục Yên','Mù Cang Chải','Trạm Tấu','Trấn Yên','Văn Chấn','Văn Yên','Yên Bình']
+};
 
 let db, menuItems=[], branches=[], cart={}, shipFee=0, shipKm=null, shipCalcing=false;
 let curScreen='menu', orderType='delivery', timeType='now', activeCat='';
@@ -342,6 +425,7 @@ async function init() {
     });
 
     fillBranchSelect();
+    initCityDropdown();
 
     $('body').style.minHeight = '100vh';
     $('#loading').style.display = 'none';
@@ -440,6 +524,7 @@ function tapSize(itemId, size, price) {
   if (!cart[key]) { const item = menuItems.find(m => m.id===itemId); cart[key]={item,size,price,qty:0}; }
   cart[key].qty++;
   updateBar(); renderMenu();
+  recalcShipDiscount(); // cập nhật phí nếu discount theo số cốc/giá trị đơn
 }
 function chgQty(key, d) {
   if (!cart[key]) return;
@@ -447,6 +532,7 @@ function chgQty(key, d) {
   if (!cart[key].qty) delete cart[key];
   updateBar();
   if (curScreen==='cart') renderCart();
+  recalcShipDiscount(); // cập nhật phí nếu discount theo số cốc/giá trị đơn
 }
 function cartCount() { return Object.values(cart).reduce((s,v)=>s+v.qty,0); }
 function cartTotal() { return Object.values(cart).reduce((s,v)=>s+v.price*v.qty,0); }
@@ -532,10 +618,15 @@ async function submitOrder() {
   if (!name)  { $('#f-name').focus();  alert('Vui lòng nhập họ tên'); return; }
   if (!phone) { $('#f-phone').focus(); alert('Vui lòng nhập số điện thoại'); return; }
 
-  let deliveryAddress='', pickupBranchId='', branchId=urlBranchId;
+  let deliveryAddress='', pickupBranchId='', branchId=urlBranchId || branches[0]?.id || '';
   if (orderType==='delivery') {
-    deliveryAddress = $('#f-addr').value.trim();
-    if (!deliveryAddress) { $('#f-addr').focus(); alert('Vui lòng nhập địa chỉ giao hàng'); return; }
+    const city     = ($('#f-city')?.value     || '').trim();
+    const district = ($('#f-district')?.value || '').trim();
+    const detail   = ($('#f-addr-detail')?.value || '').trim();
+    if (!city)     { $('#f-city').focus();         alert('Vui lòng chọn tỉnh/thành phố'); return; }
+    if (!district) { $('#f-district').focus();     alert('Vui lòng chọn quận/huyện'); return; }
+    if (!detail)   { $('#f-addr-detail').focus();  alert('Vui lòng nhập địa chỉ chi tiết'); return; }
+    deliveryAddress = getFullAddress();
   } else {
     pickupBranchId = $('#f-branch').value;
     if (!pickupBranchId) { $('#f-branch').focus(); alert('Vui lòng chọn chi nhánh'); return; }
@@ -636,7 +727,10 @@ function showSuccess(o) {
 function resetOrder() {
   cart={};
   shipFee=0; shipKm=null;
-  ['#f-name','#f-phone','#f-note','#f-addr'].forEach(s => { if ($(s)) $(s).value=''; });
+  ['#f-name','#f-phone','#f-note','#f-addr-detail'].forEach(s => { if ($(s)) $(s).value=''; });
+  if ($('#f-city')) $('#f-city').value = '';
+  const distSel = $('#f-district');
+  if (distSel) { distSel.innerHTML = '<option value="">— Chọn quận/huyện —</option>'; distSel.disabled = true; }
   setOrderType('delivery'); setTimeType('now');
   hideShipUI();
   const btn = $('#submit-btn');
@@ -656,39 +750,116 @@ function closeZoom() {
 }
 document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
 
-// ── Shipping fee (Mapbox) ────────────────────────────────
-async function mbGeocode(address) {
+// ── Shipping fee (Vietmap) ───────────────────────────────
+async function vmGeocode(address, focusLat, focusLon) {
   const q = encodeURIComponent(address);
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&language=vi&country=VN&limit=1`;
+  let url = `https://maps.vietmap.vn/api/search/v3?apikey=${VIETMAP_KEY}&text=${q}`;
+  if (focusLat && focusLon) url += `&focus.point.lat=${focusLat}&focus.point.lon=${focusLon}`;
   const r = await fetch(url);
   const d = await r.json();
   if (!d.features?.length) return null;
-  const [lon, lat] = d.features[0].center;
-  return {lat, lon};
+  const feat = d.features[0];
+  if (feat.geometry?.coordinates?.length === 2) {
+    const [lon, lat] = feat.geometry.coordinates;
+    return {lat, lon};
+  }
+  const p = feat.properties;
+  if (p?.lat && p?.lng) return {lat: p.lat, lon: p.lng};
+  return null;
 }
 
 async function getBranchCoord(br) {
   if (br.lat && br.lng) return {lat: br.lat, lon: br.lng};
   if (_branchCoordCache[br.id]) return _branchCoordCache[br.id];
-  const coord = await mbGeocode(br.address);
+  const coord = await vmGeocode(br.address);
   if (coord) _branchCoordCache[br.id] = coord;
   return coord;
 }
 
-async function mbDriveKm(from, to) {
-  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lon},${from.lat};${to.lon},${to.lat}?access_token=${MAPBOX_TOKEN}&geometries=geojson`;
+async function vmRouteKm(from, to) {
+  const url = `https://maps.vietmap.vn/api/route?api-version=1.1&apikey=${VIETMAP_KEY}&point=${from.lat},${from.lon}&point=${to.lat},${to.lon}&vehicle=bike`;
   const r = await fetch(url);
   const d = await r.json();
-  if (!d.routes?.length) return null;
-  return d.routes[0].distance / 1000;
+  if (!d.paths?.length) return null;
+  return d.paths[0].distance / 1000;
+}
+
+// ── Address helpers ──────────────────────────────────────
+function getFullAddress() {
+  const detail   = ($('#f-addr-detail')?.value || '').trim();
+  const district = ($('#f-district')?.value    || '').trim();
+  const city     = ($('#f-city')?.value        || '').trim();
+  return [detail, district, city, 'Việt Nam'].filter(Boolean).join(', ');
+}
+
+function initCityDropdown() {
+  const sel = $('#f-city');
+  if (!sel) return;
+  Object.keys(VN_ADMIN).sort((a,b) => a.localeCompare(b,'vi')).forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+function onCityChange() {
+  const city    = ($('#f-city')?.value || '');
+  const distSel = $('#f-district');
+  if (!distSel) return;
+  distSel.innerHTML = '<option value="">— Chọn quận/huyện —</option>';
+  if (city && VN_ADMIN[city]) {
+    VN_ADMIN[city].forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      distSel.appendChild(opt);
+    });
+    distSel.disabled = false;
+  } else {
+    distSel.disabled = true;
+  }
+  onAddrChange();
+}
+
+function onAddrChange() {
+  // Reset ship khi địa chỉ thay đổi — bắt buộc tính lại
+  shipFee = 0; shipKm = null;
+  hideShipUI();
+  renderSummary();
+}
+
+// Tính phí từ tier (không gọi API) — dùng lại khi cart thay đổi
+function recalcShipDiscount() {
+  if (shipKm === null) return;
+  const tiers  = (shipConfig?.tiers?.length) ? shipConfig.tiers : SHIP_TIERS;
+  const sorted = [...tiers].sort((a,b) => (a.maxKm ?? Infinity) - (b.maxKm ?? Infinity));
+  const tier   = sorted.find(t => t.maxKm == null || shipKm <= t.maxKm);
+  const baseFee = tier?.fee != null ? tier.fee : null;
+  let finalFee  = baseFee;
+  if (baseFee !== null) {
+    const orderVal = cartTotal();
+    const cupCount = Object.values(cart).reduce((s,v) => s + v.qty, 0);
+    for (const d of (shipConfig?.discounts || [])) {
+      const applies = (d.type === 'order_value' && orderVal >= d.threshold)
+                   || (d.type === 'cups'        && cupCount >= d.threshold);
+      if (applies) finalFee = Math.min(finalFee, d.fee);
+    }
+  }
+  shipFee = finalFee ?? 0;
+  showShipResult(shipKm, finalFee, baseFee !== finalFee ? baseFee : null);
+  renderSummary();
 }
 
 async function calcShipFee() {
   if (shipCalcing) return;
-  const addr = ($('#f-addr')?.value || '').trim();
-  if (addr.length < 10) { showShipErr('Vui lòng nhập địa chỉ đầy đủ (số nhà, đường, quận...)'); return; }
-  const brId = urlBranchId || branches[0]?.id;
-  const br = branches.find(b => b.id === brId);
+  const city     = ($('#f-city')?.value     || '').trim();
+  const district = ($('#f-district')?.value || '').trim();
+  const detail   = ($('#f-addr-detail')?.value || '').trim();
+  if (!city)     { showShipErr('Vui lòng chọn tỉnh/thành phố'); return; }
+  if (!district) { showShipErr('Vui lòng chọn quận/huyện'); return; }
+  if (!detail)   { showShipErr('Vui lòng nhập địa chỉ chi tiết (số nhà, tên đường...)'); return; }
+
+  const brId = urlBranchId || branches[0]?.id || '';
+  const br   = branches.find(b => b.id === brId);
   if (!br?.address) { showShipErr('Chi nhánh chưa có địa chỉ, phí ship sẽ được xác nhận sau'); return; }
 
   shipCalcing = true;
@@ -696,25 +867,27 @@ async function calcShipFee() {
   if (btn) { btn.textContent = '⏳ Đang tính...'; btn.disabled = true; }
   const info = $('#ship-info'), err = $('#ship-err');
   if (info) info.style.display = 'none';
-  if (err) err.style.display = 'none';
+  if (err)  err.style.display  = 'none';
 
   try {
-    const [brCoord, custCoord] = await Promise.all([
-      getBranchCoord(br),
-      mbGeocode(addr)
-    ]);
+    // Lấy toạ độ chi nhánh trước để làm focus khi geocode khách
+    const brCoord = await getBranchCoord(br);
     if (!brCoord) { showShipErr('Không xác định được vị trí chi nhánh'); return; }
-    if (!custCoord) { showShipErr('Không tìm được địa chỉ. Hãy nhập chi tiết hơn (số nhà, tên đường, quận, tỉnh/thành).'); return; }
 
-    const km = await mbDriveKm(brCoord, custCoord);
+    const fullAddr = getFullAddress();
+    const custCoord = await vmGeocode(fullAddr, brCoord.lat, brCoord.lon);
+    if (!custCoord) { showShipErr('Không tìm được địa chỉ. Hãy kiểm tra lại thông tin.'); return; }
+
+    const km = await vmRouteKm(brCoord, custCoord);
     if (km === null) { showShipErr('Không tính được tuyến đường. Vui lòng thử lại.'); return; }
 
-    const tiers = (shipConfig?.tiers?.length) ? shipConfig.tiers : SHIP_TIERS;
-    const tier = tiers.find(t => t.maxKm == null || km <= t.maxKm);
     shipKm = km;
-
-    const baseFee = (tier?.fee != null) ? tier.fee : null; // null = liên hệ
-    let finalFee = baseFee;
+    // Sort tiers tăng dần trước khi tìm — fix bug tier lộn thứ tự
+    const tiers  = (shipConfig?.tiers?.length) ? shipConfig.tiers : SHIP_TIERS;
+    const sorted = [...tiers].sort((a,b) => (a.maxKm ?? Infinity) - (b.maxKm ?? Infinity));
+    const tier   = sorted.find(t => t.maxKm == null || km <= t.maxKm);
+    const baseFee = tier?.fee != null ? tier.fee : null;
+    let finalFee  = baseFee;
 
     if (baseFee !== null) {
       const orderVal = cartTotal();
@@ -745,7 +918,7 @@ function showShipResult(km, fee, origFee = null) {
   info.style.display = '';
   info.style.background = fee === null ? '#fff3e0' : hasDiscount ? '#e8f5e9' : 'var(--sage-bg)';
   const d = $('#ship-dist'), f = $('#ship-fee-lbl');
-  if (d) d.textContent = '📍 Khoảng cách ~' + km.toFixed(1) + ' km (đường bộ)';
+  if (d) d.textContent = '🛵 Khoảng cách ~' + km.toFixed(1) + ' km (đường xe máy)';
   if (f) {
     if (fee === null) {
       f.textContent = '⚠️ Quá xa – liên hệ nhân viên';
