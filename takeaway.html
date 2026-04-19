@@ -1106,6 +1106,19 @@
         </div>
         <div class="tw-modal-row">
           <div class="tw-modal-group">
+            <label class="tw-modal-label">Vĩ độ (Lat) 📍</label>
+            <input class="input" type="number" step="any" id="twBranchLat" value="${b?b.lat||'':''}" placeholder="10.7769"/>
+          </div>
+          <div class="tw-modal-group">
+            <label class="tw-modal-label">Kinh độ (Lng) 📍</label>
+            <input class="input" type="number" step="any" id="twBranchLng" value="${b?b.lng||'':''}" placeholder="106.7009"/>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--h5c-text-secondary);margin-top:-8px;margin-bottom:8px">
+          💡 Lấy toạ độ: mở Google Maps → chuột phải vào địa chỉ chi nhánh → copy số đầu tiên (lat) và số thứ hai (lng).
+        </div>
+        <div class="tw-modal-row">
+          <div class="tw-modal-group">
             <label class="tw-modal-label">Số điện thoại</label>
             <input class="input" id="twBranchPhone" value="${b?b.phone||'':''}" placeholder="0912 345 678"/>
           </div>
@@ -1135,10 +1148,14 @@
     if (!name) { showToast('Vui lòng nhập tên chi nhánh', 'warning'); return; }
 
     let branches = get(KEYS.branches);
+    const latVal = parseFloat(document.getElementById('twBranchLat').value);
+    const lngVal = parseFloat(document.getElementById('twBranchLng').value);
     const data = {
       name,
       partner: document.getElementById('twBranchPartner').value.trim(),
       address: document.getElementById('twBranchAddress').value.trim(),
+      lat:     isNaN(latVal) ? null : latVal,
+      lng:     isNaN(lngVal) ? null : lngVal,
       phone:   document.getElementById('twBranchPhone').value.trim(),
       status:  document.getElementById('twBranchStatus').value,
       note:    document.getElementById('twBranchNote').value.trim(),

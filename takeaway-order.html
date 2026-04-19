@@ -227,9 +227,14 @@
           </select>
         </div>
       </div>
-      <div class="fg"><label class="fl">Địa chỉ chi tiết <span class="req">*</span></label>
+      <div class="fg"><label class="fl">Tên đường <span class="req">*</span></label>
+        <input type="text" class="fi" id="f-street"
+          placeholder="Hoàng Văn Thái, Lê Văn Lương..."
+          oninput="onAddrChange()"/>
+      </div>
+      <div class="fg"><label class="fl">Số nhà / Chi tiết</label>
         <input type="text" class="fi" id="f-addr-detail"
-          placeholder="Số nhà, tên đường, phường/xã, tòa nhà..."
+          placeholder="177/69A, Tòa nhà, căn hộ, landmark..."
           oninput="onAddrChange()"/>
       </div>
       <div class="fg" style="margin-top:2px">
@@ -620,12 +625,12 @@ async function submitOrder() {
 
   let deliveryAddress='', pickupBranchId='', branchId=urlBranchId || branches[0]?.id || '';
   if (orderType==='delivery') {
-    const city     = ($('#f-city')?.value     || '').trim();
-    const district = ($('#f-district')?.value || '').trim();
-    const detail   = ($('#f-addr-detail')?.value || '').trim();
-    if (!city)     { $('#f-city').focus();         alert('Vui lòng chọn tỉnh/thành phố'); return; }
-    if (!district) { $('#f-district').focus();     alert('Vui lòng chọn quận/huyện'); return; }
-    if (!detail)   { $('#f-addr-detail').focus();  alert('Vui lòng nhập địa chỉ chi tiết'); return; }
+    const city     = ($('#f-city')?.value        || '').trim();
+    const district = ($('#f-district')?.value    || '').trim();
+    const street   = ($('#f-street')?.value      || '').trim();
+    if (!city)     { $('#f-city').focus();     alert('Vui lòng chọn tỉnh/thành phố'); return; }
+    if (!district) { $('#f-district').focus(); alert('Vui lòng chọn quận/huyện'); return; }
+    if (!street)   { $('#f-street').focus();   alert('Vui lòng nhập tên đường'); return; }
     deliveryAddress = getFullAddress();
   } else {
     pickupBranchId = $('#f-branch').value;
@@ -727,7 +732,7 @@ function showSuccess(o) {
 function resetOrder() {
   cart={};
   shipFee=0; shipKm=null;
-  ['#f-name','#f-phone','#f-note','#f-addr-detail'].forEach(s => { if ($(s)) $(s).value=''; });
+  ['#f-name','#f-phone','#f-note','#f-street','#f-addr-detail'].forEach(s => { if ($(s)) $(s).value=''; });
   if ($('#f-city')) $('#f-city').value = '';
   const distSel = $('#f-district');
   if (distSel) { distSel.innerHTML = '<option value="">— Chọn quận/huyện —</option>'; distSel.disabled = true; }
@@ -787,9 +792,10 @@ async function vmRouteKm(from, to) {
 // ── Address helpers ──────────────────────────────────────
 function getFullAddress() {
   const detail   = ($('#f-addr-detail')?.value || '').trim();
+  const street   = ($('#f-street')?.value      || '').trim();
   const district = ($('#f-district')?.value    || '').trim();
   const city     = ($('#f-city')?.value        || '').trim();
-  return [detail, district, city, 'Việt Nam'].filter(Boolean).join(', ');
+  return [detail, street, district, city, 'Việt Nam'].filter(Boolean).join(', ');
 }
 
 function initCityDropdown() {
@@ -853,10 +859,10 @@ async function calcShipFee() {
   if (shipCalcing) return;
   const city     = ($('#f-city')?.value     || '').trim();
   const district = ($('#f-district')?.value || '').trim();
-  const detail   = ($('#f-addr-detail')?.value || '').trim();
+  const street   = ($('#f-street')?.value   || '').trim();
   if (!city)     { showShipErr('Vui lòng chọn tỉnh/thành phố'); return; }
   if (!district) { showShipErr('Vui lòng chọn quận/huyện'); return; }
-  if (!detail)   { showShipErr('Vui lòng nhập địa chỉ chi tiết (số nhà, tên đường...)'); return; }
+  if (!street)   { showShipErr('Vui lòng nhập tên đường'); return; }
 
   const brId = urlBranchId || branches[0]?.id || '';
   const br   = branches.find(b => b.id === brId);
