@@ -227,17 +227,13 @@
           </select>
         </div>
       </div>
-      <div class="fg"><label class="fl">Tên đường <span class="req">*</span></label>
-        <input type="text" class="fi" id="f-street"
-          placeholder="Hoàng Văn Thái, Lê Văn Lương..."
-          oninput="onAddrChange()"/>
-      </div>
-      <div class="fg"><label class="fl">Số nhà / Chi tiết</label>
+      <div class="fg"><label class="fl">Địa chỉ chi tiết <span class="req">*</span></label>
         <input type="text" class="fi" id="f-addr-detail"
-          placeholder="177/69A, Tòa nhà, căn hộ, landmark..."
+          placeholder="Số nhà, tên đường, phường/xã, tòa nhà..."
           oninput="onAddrChange()"/>
       </div>
-      <div class="fg" style="margin-top:2px">
+      <!-- TODO: tính phí ship — tạm ẩn, sẽ mở lại sau khi có map/phường -->
+      <div id="ship-fee-section" style="display:none">
         <button type="button" id="calc-ship-btn" onclick="calcShipFee()"
           style="width:100%;padding:11px 13px;background:var(--sage-bg);color:var(--sage);border:1.5px solid var(--sage);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:left;font-family:inherit;transition:opacity .15s">
           📍 Tính phí giao hàng
@@ -627,10 +623,10 @@ async function submitOrder() {
   if (orderType==='delivery') {
     const city     = ($('#f-city')?.value        || '').trim();
     const district = ($('#f-district')?.value    || '').trim();
-    const street   = ($('#f-street')?.value      || '').trim();
-    if (!city)     { $('#f-city').focus();     alert('Vui lòng chọn tỉnh/thành phố'); return; }
-    if (!district) { $('#f-district').focus(); alert('Vui lòng chọn quận/huyện'); return; }
-    if (!street)   { $('#f-street').focus();   alert('Vui lòng nhập tên đường'); return; }
+    const detail   = ($('#f-addr-detail')?.value || '').trim();
+    if (!city)   { $('#f-city').focus();         alert('Vui lòng chọn tỉnh/thành phố'); return; }
+    if (!district){ $('#f-district').focus();    alert('Vui lòng chọn quận/huyện'); return; }
+    if (!detail)  { $('#f-addr-detail').focus(); alert('Vui lòng nhập địa chỉ chi tiết'); return; }
     deliveryAddress = getFullAddress();
   } else {
     pickupBranchId = $('#f-branch').value;
@@ -732,7 +728,7 @@ function showSuccess(o) {
 function resetOrder() {
   cart={};
   shipFee=0; shipKm=null;
-  ['#f-name','#f-phone','#f-note','#f-street','#f-addr-detail'].forEach(s => { if ($(s)) $(s).value=''; });
+  ['#f-name','#f-phone','#f-note','#f-addr-detail'].forEach(s => { if ($(s)) $(s).value=''; });
   if ($('#f-city')) $('#f-city').value = '';
   const distSel = $('#f-district');
   if (distSel) { distSel.innerHTML = '<option value="">— Chọn quận/huyện —</option>'; distSel.disabled = true; }
@@ -792,10 +788,9 @@ async function vmRouteKm(from, to) {
 // ── Address helpers ──────────────────────────────────────
 function getFullAddress() {
   const detail   = ($('#f-addr-detail')?.value || '').trim();
-  const street   = ($('#f-street')?.value      || '').trim();
   const district = ($('#f-district')?.value    || '').trim();
   const city     = ($('#f-city')?.value        || '').trim();
-  return [detail, street, district, city, 'Việt Nam'].filter(Boolean).join(', ');
+  return [detail, district, city, 'Việt Nam'].filter(Boolean).join(', ');
 }
 
 function initCityDropdown() {
